@@ -1,6 +1,6 @@
-# Project Name
+# AKS-LABS
 
-(short, 1-3 sentenced, description of the project)
+Grab and go resources to learn about Azure Kubernetes Service (AKS)
 
 ## Features
 
