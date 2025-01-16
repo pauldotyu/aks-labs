@@ -27,7 +27,7 @@ jobs:
           cache: npm
           cache-dependency-path: website/package-lock.json
       - name: Build website
-        working-directory: website
+        working-directory: .
         run: |
           npm ci
           npm run build
