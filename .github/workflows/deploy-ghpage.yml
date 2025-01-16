@@ -25,7 +25,7 @@ jobs:
         with:
           node-version: 18.x
           cache: npm
-          cache-dependency-path: website/package-lock.json
+          cache-dependency-path: package-lock.json
       - name: Build website
         run: |
           npm ci
