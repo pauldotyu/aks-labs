@@ -3,6 +3,9 @@ name: Manual Deploy Docusaurus to GitHub Pages
 on:
   workflow_dispatch:
 
+permissions:
+  actions: write
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
