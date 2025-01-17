@@ -19,7 +19,7 @@ const config: Config = {
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
   organizationName: 'azure-samples', // Usually your GitHub org/user name.
-  projectName: 'azure-samples.github.io', // Usually your repo name.
+  projectName: 'aks-labs', // Usually your repo name.
 
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
