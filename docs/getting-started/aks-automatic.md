@@ -23,6 +23,8 @@ After completing this workshop, you will be able to:
 
 ## Prerequisites
 
+<!-- ## Prerequisites
+
 Before you begin, you will need an [Azure subscription](https://azure.microsoft.com/) with Owner permissions and a [GitHub account](https://github.com/signup).
 
 In addition, you will need the following tools installed on your local machine:
@@ -94,7 +96,30 @@ This will create a new resource group and deploy the following resources:
 - [Azure Log Analytics Workspace](https://learn.microsoft.com/azure/azure-monitor/logs/data-platform-logs) for [container insights](https://learn.microsoft.com/azure/azure-monitor/containers/container-insights-overview) and [application insights](https://learn.microsoft.com/azure/azure-monitor/app/app-insights-overview)
 - [Azure Managed Grafana](https://learn.microsoft.com/azure/managed-grafana/overview) for visualizing metrics
 
-Once the resources are deployed, you can proceed with the workshop.
+Once the resources are deployed, you can proceed with the workshop. -->
+
+## Lab environment
+
+Your lab environment includes access to an [Azure subscription](https://azure.microsoft.com/) with Owner permissions but you will need a [GitHub account](https://github.com/signup).
+
+Please take the time now to login to your Azure subscription and GitHub account using the Edge browser in the lab environment.
+
+In addition, this lab environment includes a virtual machine with the following tools installed:
+
+- [Azure CLI](https://learn.microsoft.com/cli/azure/what-is-azure-cli?WT.mc_id=containers-105184-pauyu)
+- [Visual Studio Code](https://code.visualstudio.com/)
+- [Git](https://git-scm.com/)
+- [GitHub CLI](https://cli.github.com/)
+- [WSL](https://docs.microsoft.com/windows/wsl/install-win10) with Ubuntu (Windows Terminal will default to WSL)
+
+To keep focus on AKS-specific features, this workshop will have some Azure resources pre-provisioned. Your lab environment will have a resource group called **myresourcegroup** with the following resources:
+
+- Azure Container Registry for storing container images
+- Azure CosmosDB database with a MongoDB API (version 7.0) and a database named **test**
+- Azure User-Assigned Managed Identity for CosmosDB access
+- Azure Monitor Workspace for Prometheus metrics
+- Azure Log Analytics Workspace for container and application insights
+- Azure Managed Grafana for visualizing metrics
 
 ---
 
