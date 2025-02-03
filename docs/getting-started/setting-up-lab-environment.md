@@ -1,7 +1,16 @@
 ---
 title: "Setting up the Lab Environment"
+description: "Setting up the lab environment for the workshops"
 sidebar_label: "Setting up the Lab Environment"
-sidebar_position: 3
+sidebar_position: 1
+authors:
+ - "Russell de Pina"
+ - "Paul Yu"
+ - "Ken Kilty"
+contacts:
+ - "@russd2357"
+ - "@paultdotyu"
+ - "@KenKilty"
 ---
 
 ## Prerequisites
@@ -17,43 +26,40 @@ Many of the workshops on this site will be done using command line tools, so you
 - [Git](https://git-scm.com/)
 - Bash shell (e.g. [Windows Terminal](https://www.microsoft.com/p/windows-terminal/9n0dx20hk701) with [WSL](https://docs.microsoft.com/windows/wsl/install-win10) or [Azure Cloud Shell](https://shell.azure.com))
 
-For the Istio Service Mesh workshop, you will also need:
-- [Hubble CLI](https://docs.cilium.io/en/stable/observability/hubble/setup/)
-
-For the Secure Container Supply Chain workshop, you will also need:
-- [Notation CLI](https://notaryproject.dev/docs/user-guides/installation/cli/)
-- [Notation AKV plugin](https://github.com/Azure/notation-azure-kv?tab=readme-ov-file#installation-the-akv-plugin)
-
 If you are unable to install these tools on your local machine, you can use the Azure Cloud Shell, which has most of the tools pre-installed.
 
 ---
 
 ## Lab Environment Setup
 
-Many of the workshops will require the use of multiple Azure resources such as [Azure Log Analytics](https://learn.microsoft.com/azure/azure-monitor/logs/log-analytics-overview), [Azure Managed Prometheus](https://learn.microsoft.com/azure/azure-monitor/essentials/prometheus-metrics-overview), [Azure Managed Grafana](https://learn.microsoft.com/azure/managed-grafana/overview), [Azure Key Vault](https://learn.microsoft.com/azure/key-vault/general/overview), and [Azure Container Registry](https://learn.microsoft.com/azure/container-registry/container-registry-intro). The resource deployment can take some time, so to expedite the process, we will use a [Bicep template](https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview?tabs=bicep) to deploy the resources.
+Many of the workshops will require the use of multiple Azure resources such as:
 
-Using the terminal of your choice, run the following commands to set up the workshop **.env** file which will be used to store the environment variables throughout the workshop. If you are using the Azure Cloud Shell, you may encounter shell a time out loose environment variables. Therefore, writing your variables to an **.env** file will make it easier to reload them.
+- [Azure Log Analytics](https://learn.microsoft.com/azure/azure-monitor/logs/log-analytics-overview)
+- [Azure Managed Prometheus](https://learn.microsoft.com/azure/azure-monitor/essentials/prometheus-metrics-overview)
+- [Azure Managed Grafana](https://learn.microsoft.com/azure/managed-grafana/overview)
+- [Azure Key Vault](https://learn.microsoft.com/azure/key-vault/general/overview)
+- [Azure Container Registry](https://learn.microsoft.com/azure/container-registry/container-registry-intro).
 
-Set the environment variables for the resource group name and location.
+The resource deployment can take some time, so to expedite the process, we will use a [Bicep template](https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview?tabs=bicep) to deploy those resources.
 
-<div class="important" data-title="Important">
+:::info[Important]
 
-> You must ensure the region you choose to deploy to supports [availability zones](https://learn.microsoft.com/azure/aks/availability-zones-overview) to demonstrate some of the concepts in this workshop.
-
-</div>
-
-```bash
-cat <<EOF > .env
-RG_NAME="myResourceGroup"
-LOCATION="eastus"
-EOF
-```
-
-Run the following command to load the local variables into the shell.
+You must ensure the region where you choose to deploy supports [availability zones](https://learn.microsoft.com/azure/aks/availability-zones-overview) to demonstrate the concepts in the some of the workshops. You can list the regions that support availability zones using the following command:
 
 ```bash
-source .env
+az account list-locations --query "[?metadata.regionType=='Physical' && metadata.supportsAvailabilityZones==true].{Region:name}" -o table
 ```
+
+:::
+
+In this workshop, we will set environment variables for the resource group name and location. Run the following commands to set the environment variables.
+
+```bash
+export RG_NAME="myResourceGroup"
+export LOCATION="eastus"
+```
+
+This will set the environment variables for the current terminal session. If you close the current terminal session, you will need to set the environment variables again.
 
 Run the following command and follow the prompts to log in to your Azure account using the Azure CLI.
 
@@ -61,13 +67,13 @@ Run the following command and follow the prompts to log in to your Azure account
 az login --use-device-code
 ```
 
-<div class="tip" data-title="Tip">
+:::tip
 
 > If you are logging into a different tenant, you can use the **--tenant** flag to specify the tenant domain or tenant ID.
 
-</div>
+:::
 
-Run the following command to create a resource group.
+Run the following command to create a resource group using the environment variables you just created.
 
 ```bash
 az group create \
@@ -77,10 +83,10 @@ az group create \
 
 ### Deploy Azure resources using Bicep
 
-Run the following command to download the Bicep template file to deploy the lab resources.
+Run the following command to download the Bicep template file to deploy the lab resources *except* the AKS cluster which we will create in this workshop.
 
 ```bash
-curl  -o main.bicep https://raw.githubusercontent.com/azure-samples/aks-labs/docs/storage/assets/main.bicep
+curl  -o main.bicep https://raw.githubusercontent.com/azure-samples/aks-labs/refs/heads/main/docs/storage/assets/main.bicep
 ```
 
 Verify the contents of the **main.bicep** file by running the following command.
@@ -92,10 +98,7 @@ cat main.bicep
 Run the following command to save your user object ID to a variable, save it to the **.env** file, and reload the environment variables.
 
 ```bash
-cat <<EOF >> .env
-USER_ID="$(az ad signed-in-user show --query id -o tsv)"
-EOF
-source .env
+export USER_ID="$(az ad signed-in-user show --query id -o tsv)"
 ```
 
 Run the following command to deploy Bicep template into the resource group.
@@ -120,11 +123,11 @@ Before you deploy an AKS cluster, it's essential to consider its size based on y
 
 When it comes to considering the size of the node, it is important to understand the types of Virtual Machines (VMs) available in Azure; their characteristics, such as CPU, memory, and disk, and ultimate the SKU that best fits your workload requirements. See the [Azure VM sizes](https://learn.microsoft.com/azure/virtual-machines/sizes/overview) documentation for more information.
 
-<div class="info" data-title="Note">
+:::note
 
 > In your Azure subscription, you will need to make sure to have at least 32 vCPU of Standard D series quota available to create multiple AKS clusters and accommodate node surges on cluster upgrades. If you don't have enough quota, you can request an increase. Check [here](https://docs.microsoft.com/azure/azure-portal/supportability/per-vm-quota-requests) for more information.
 
-</div>
+:::
 
 #### System and User Node Pools
 
@@ -155,6 +158,20 @@ EOF
 source .env
 ```
 
+:::info[Important]
+
+Before creating the AKS cluster you need to decide on the Kubernetes version to use. It is recommended to use the latest version of Kubernetes available in the region you are deploying to. You can find the latest version of Kubernetes available in your region by running the following command:
+
+```bash
+export K8S_VERSION=$(az aks get-versions -l ${LOCATION} \
+--query "reverse(sort_by(values[?isDefault==true].{version: version}, &version)) | [0] " \
+-o tsv)
+```
+
+*If you are planning on doing the cluster upgrades workshop, you will want to use an older version of Kubernetes. To do this, simply specify an index value greater than 0 and less than 4 in the query above.*
+
+:::
+
 Run the following command to create an AKS cluster.
 
 ```bash
@@ -163,7 +180,7 @@ az aks create \
 --name ${AKS_NAME} \
 --location ${LOCATION} \
 --tier standard \
---kubernetes-version 1.29 \
+--kubernetes-version ${K8S_VERSION} \
 --os-sku AzureLinux \
 --nodepool-name systempool \
 --node-count 3 \
@@ -181,7 +198,7 @@ az aks create \
 
 The command above will deploy an AKS cluster with the following configurations:
 
-- Deploy Kubernetes version 1.29. This is not the latest version of Kubernetes, and is intentionally set to an older version to demonstrate cluster upgrades later in the workshop.
+- Deploy the selected version of Kubernetes.
 - Create a system node pool with 3 nodes spread across availability zones 1, 2, and 3. This node pool will be used to host Kubernetes control plane and AKS-specific components.
 - Use standard load balancer to support traffic across availability zones.
 - Use Azure CNI Overlay Powered By Cilium networking. This will give you the most advanced networking features available in AKS and gives great flexibility in how IP addresses are assigned to pods. Note the Advanced Container Networking Services (ACNS) feature is enabled and will be covered later in the workshop.
@@ -189,11 +206,11 @@ The command above will deploy an AKS cluster with the following configurations:
   - Disable SSH access to the nodes to prevent unauthorized access
   - Enable a managed identity for passwordless authentication to Azure services
 
-<div class="important" data-title="Important">
+:::info[Important]
 
 > Not all best practices are implemented in this workshop. For example, you will be creating an AKS cluster that can be accessible from the public internet. For production use, it is recommended to create a private cluster. You can find more information on creating a private cluster [here](https://docs.microsoft.com/azure/aks/private-clusters). Don't worry though, more best practices will be implemented as we progress through the workshop 😎
 
-</div>
+:::
 
 Once the AKS cluster has been created, run the following command to connect to the cluster.
 
@@ -261,11 +278,11 @@ EOF
 source .env
 ```
 
-<div class="tip" data-title="Tip">
+:::tip
 
 > Whenever you want to see the contents of the **.env** file, run the **cat .env** command.
 
-</div>
+:::
 
 Run the following command to enable metrics monitoring on the AKS cluster.
 
@@ -290,11 +307,11 @@ az aks enable-addons \
 --no-wait
 ```
 
-<div class="info" data-title="Note">
+:::note
 
 > More on full stack monitoring on AKS can be found [here](https://learn.microsoft.com/azure/azure-monitor/containers/monitor-kubernetes)
 
-</div>
+:::
 
 ### Deploying the AKS Store Demo Application
 
@@ -341,14 +358,12 @@ Copy the **EXTERNAL-IP** of the **store-front** service to your browser to acces
 
 ![AKS Store Demo sample app](assets/acns-pets-app.png)
 
-<div class="tip" data-title="Congratulations!">
+:::note[Congratulations!]
 
-> You have now created an AKS cluster with some best practices in place such as multiple node pools, availability zones, and monitoring. You have also deployed an application to work with in the upcoming sections.
->
-> At this point, you can jump any section within this workshop and focus on the topics that interest you the most.
->
-> Feel free to click **Next** at the bottom of the page to continue with the workshop or jump to any of the sections in the left-hand navigation.
+You have now created an AKS cluster with some best practices in place such as multiple node pools, availability zones, and monitoring. You have also deployed an application to work with in the other workshops.
 
-</div>
+At this point, you can jump into any of the workshops and focus on the topics that interest you the most.
+
+:::
 
 ---
