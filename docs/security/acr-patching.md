@@ -90,7 +90,7 @@ If you are performing this on a lab machine, you must go through the following s
 
 1. Log in to the lab machine with the provided credentials.
 
-2. Open the Azure Portal at <https://portal.azure.com/#home> in a browser.
+2. Open the Azure Portal at [https://portal.azure.com/#home](https://portal.azure.com/#home) in a browser.
 
 3. Log in to Azure Portal with the provided credentials.
 
@@ -102,7 +102,7 @@ This lab requires running CLI tools within Azure Cloud Shell to perform the scen
 
 2. Open up an Azure Cloud Shell instance within the Windows Terminal desktop application. To do so, select the dropdown near the "+" button at the top of the window and select "Azure Cloud Shell" in the dropdown.
 
-3. The Azure Cloud Shell instance will prompt you to sign in to Azure using a specific URL and a device code. Please go to <https://microsoft.com/devicelogin> in a browser and authenticate using the device code shown in the Azure Cloud Shell instance.
+3. The Azure Cloud Shell instance will prompt you to sign in to Azure using a specific URL and a device code. Please go to [https://microsoft.com/devicelogin](https://microsoft.com/devicelogin) in a browser and authenticate using the device code shown in the Azure Cloud Shell instance.
 
 4. Install `trivy` by running the following command in Azure Cloud Shell:
 
