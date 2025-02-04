@@ -45,9 +45,9 @@ ACR Continuous Patching is currently in preview. The following limitations apply
 
 1. **Azure subscription** with permission to create resources.
 2. **Azure CLI** (version 2.15.0+). If you need to install or update, see [Install the Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli).
-3. **kubectl** installed locally. If you need to install, see [Install kubectl](https://kubernetes.io/docs/tasks/tools/).
+3. **kubectl** installed locally. If you need to install, you can run `az aks install-cli`. Alternatively, see [Install kubectl](https://kubernetes.io/docs/tasks/tools/).
 4. **trivy** installed locally. If not installed, follow the instructions at [Trivy Installation](https://trivy.dev/latest/getting-started/installation/).
-5. A **development environment** (local shell or Cloud Shell) for running Azure CLI commands.
+5. A **development environment** (POSIX-compliant local shell or Cloud Shell) for running Azure CLI commands.
 
 > **Note**: If you choose to use Azure Cloud Shell, be aware that Cloud Shell currently does not come with Trivy pre-installed. You would need to install Trivy in your Cloud Shell or run those steps locally.
 
