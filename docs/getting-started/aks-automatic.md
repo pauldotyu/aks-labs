@@ -114,12 +114,12 @@ In addition, this lab environment includes a virtual machine with the following 
 
 To keep focus on AKS-specific features, this workshop will have some Azure resources pre-provisioned. Your lab environment will have a resource group called **myresourcegroup** with the following resources:
 
-- Azure Container Registry for storing container images
-- Azure CosmosDB database with a MongoDB API (version 7.0) and a database named **test**
-- Azure User-Assigned Managed Identity for CosmosDB access
-- Azure Monitor Workspace for Prometheus metrics
-- Azure Log Analytics Workspace for container and application insights
-- Azure Managed Grafana for visualizing metrics
+- [Azure Container Registry](https://learn.microsoft.com/azure/container-registry/container-registry-intro) for storing container images
+- [Azure CosmosDB database with a MongoDB API](https://learn.microsoft.com/azure/cosmos-db/mongodb/introduction) ([version 7.0](https://learn.microsoft.com/azure/cosmos-db/mongodb/feature-support-70)) and a database named **test**
+- [Azure User-Assigned Managed Identity](https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/overview) for CosmosDB access
+- [Azure Monitor Workspace for Prometheus](https://learn.microsoft.com/azure/azure-monitor/essentials/prometheus-metrics-overview) metrics
+- [Azure Log Analytics Workspace](https://learn.microsoft.com/azure/azure-monitor/logs/data-platform-logs) for [container insights](https://learn.microsoft.com/azure/azure-monitor/containers/container-insights-overview) and [application insights](https://learn.microsoft.com/azure/azure-monitor/app/app-insights-overview)
+- [Azure Managed Grafana](https://learn.microsoft.com/azure/managed-grafana/overview) for visualizing metrics
 
 ---
 
