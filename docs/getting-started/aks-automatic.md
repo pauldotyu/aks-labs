@@ -102,7 +102,7 @@ Once the resources are deployed, you can proceed with the workshop.
 
 Let's jump right in and deploy an application to an AKS Automatic cluster. In this section, you will use AKS Automated Deployment to deploy a sample application hosted on GitHub to your AKS cluster.
 
-With AKS, the [Automated Deployments](https://learn.microsoft.com/azure/aks/automated-deployments) feature allows you to create [GitHub Actions workflows](https://docs.github.com/actions) that allows you to start deploying your applications to your AKS cluster with minimal effort. All you need to do is point it at a GitHub repository with your application code. 
+With AKS, the [Automated Deployments](https://learn.microsoft.com/azure/aks/automated-deployments) feature allows you to create [GitHub Actions workflows](https://docs.github.com/actions) that allows you to start deploying your applications to your AKS cluster with minimal effort. All you need to do is point it at a GitHub repository with your application code.
 
 If you have Dockerfiles or Kubernetes manifests in your repository, that's great, you can simply point to them in the Automated Deployments setup. If you don't have Dockerfiles or Kubernetes manifests in your repository, don't sweat... Automated Deployments can create them for you!
 
@@ -287,11 +287,11 @@ kubectl patch nodepool default --type='merge' -p '{
 
 ### Review the pull request
 
-Back in the Azure portal, click on the **Approve pull request** button to view the pull request to be taken to the pull request page in your GitHub repository. 
+Once the deployment is complete, click on the **Approve pull request** button to view the pull request to be taken to the pull request page in your GitHub repository.
 
 ![Automated Deployment success](./assets/aks-automatic/deploy-app-done.png)
 
-In the pull request review, click on the **Files changed** tab to view the changes that were made by the Automated Deployments workflow. 
+In the pull request review, click on the **Files changed** tab to view the changes that were made by the Automated Deployments workflow.
 
 ![GitHub pull request files changed](./assets/aks-automatic/github-pull-request-files.png)
 
@@ -342,7 +342,7 @@ If the deploy step fails, it is likely that Node Autoprovisioning (NAP) is still
 
 ### Test the deployed application
 
-Back in the Azure portal, click the **Close** button to close the Automated Deployments setup. 
+Back in the Azure portal, click the **Close** button to close the Automated Deployments setup.
 
 In the left-hand menu, click on **Services and ingresses** under the **Kubernetes resources** section. You should see a new service called `contoso-air` with a public IP address assigned to it. Click on the IP address to view the deployed application.
 
@@ -350,7 +350,7 @@ In the left-hand menu, click on **Services and ingresses** under the **Kubernete
 
 With AKS Automated Deployments, every time you push application code changes to your GitHub repository, the GitHub Action workflow will automatically build and deploy your application to your AKS cluster. This is a great way to automate the deployment process and ensure that your applications are always up-to-date!
 
-Let's test the application functionality by clicking the **Login** link in the upper right corner of the page. 
+Let's test the application functionality by clicking the **Login** link in the upper right corner of the page.
 
 ![Contoso Air application](./assets/aks-automatic/contoso-air.png)
 
@@ -450,7 +450,7 @@ You will see the YAML manifest for the contoso-air application with the highligh
 
 ![AKS service connector yaml snippet for contoso-air](./assets/aks-automatic/service-connector-yaml-deploy.png)
 
-Scroll through the YAML manifest to view the changes highlighted in yellow, then click **Apply** to apply the changes to the application. This will redeploy the contoso-air application with the new connection details. 
+Scroll through the YAML manifest to view the changes highlighted in yellow, then click **Apply** to apply the changes to the application. This will redeploy the contoso-air application with the new connection details.
 
 ![AKS service connector yaml snippet apply](./assets/aks-automatic/service-connector-yaml-apply.png)
 
@@ -616,6 +616,7 @@ The workbook visuals will include a query button that you can click to view the 
 :::
 
 If you click on the **Logs** section in the left-hand menu, you can view the logs collected by Container Insights. Here, you can write your own KQL queries or run pre-configured queries to logs from your cluster and applications. The Logs section should be configured to open **Queries hub** which displays a list of pre-configured queries that you can run. Click on a query and click **Run** to view the results.
+
 
 ### Visualizing metrics with Grafana
 
