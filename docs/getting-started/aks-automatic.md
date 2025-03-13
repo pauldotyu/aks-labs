@@ -241,50 +241,6 @@ This process can take up to 20 minutes to complete
 
 ![Automated Deployment and AKS Cluster deployment](./assets/aks-automatic/deploy-app-deploy.png)
 
-:::warning
-
-There is a known issue of the default nodepool not having the proper labels and taints for Cilium to work properly. So we'll need to patch the default nodepool after the deployment is complete.
-
-Run the following command to log into the AKS cluster:
-
-```bash
-az login
-az aks get-credentials --resource-group myresourcegroup --name myakscluster
-```
-
-Run the following commands to see if the default nodepool has the proper labels and taints:
-
-```bash
-kubectl get nodepool default -o jsonpath='{.spec.template.metadata.labels}{"\n"}{.spec.template.spec.startupTaints}{"\n"}'
-```
-
-If you don't see any cilium related labels or startup taints, you will need to patch the nodepool. To patch the nodepool, run the following commands:
-
-```bash
-kubectl patch nodepool default --type='merge' -p '{
-  "spec": {
-    "template": {
-      "metadata": {
-        "labels": {
-          "kubernetes.azure.com/ebpf-dataplane": "cilium"
-        }
-      },
-      "spec": {
-        "startupTaints": [
-          {
-            "key": "node.cilium.io/agent-not-ready",
-            "effect": "NoExecute",
-            "value": "true"
-          }
-        ]
-      }
-    }
-  }
-}'
-```
-
-:::
-
 ### Review the pull request
 
 Once the deployment is complete, click on the **Approve pull request** button to view the pull request to be taken to the pull request page in your GitHub repository.
@@ -294,25 +250,6 @@ Once the deployment is complete, click on the **Approve pull request** button to
 In the pull request review, click on the **Files changed** tab to view the changes that were made by the Automated Deployments workflow.
 
 ![GitHub pull request files changed](./assets/aks-automatic/github-pull-request-files.png)
-
-:::warning
-
-The Automated Deployments workflow generated a Kubernetes deployment manifest that will cause the contoso-air application to fail to start. This is because the startupProbe is not configured correctly. To fix this, scroll down to the **manifests/deployment.yaml**, click the 3-dots in the file name section and click **Edit file**. Scroll down to line 49 and update the startupProbe section to look like the following:
-
-```yaml
-startupProbe:
-  tcpSocket:
-    port: 3000
-  periodSeconds: 5
-  timeoutSeconds: 7
-  failureThreshold: 3
-  successThreshold: 1
-  initialDelaySeconds: 5
-```
-
-Commit your changes directly to the **aks-devhub-**** branch when done.
-
-:::
 
 Navigate back to the **Conversation** tab and click on the **Merge pull request** button to merge the pull request, then click **Confirm merge**.
 
@@ -366,7 +303,7 @@ You will see some available flight options. Scroll to the bottom of the page and
 
 ![Contoso Air flight options](./assets/aks-automatic/contoso-air-flights.png)
 
-Did you notice that the application redirected you back to the login page? What happened? Let's find out...
+The application will either redirect you back to the login page or show a connection failure. What happened? Let's find out...
 
 ### Troubleshoot the application
 
@@ -380,6 +317,12 @@ Close the **Queries hub** pop-up to get to the query editor, type the following 
 ContainerLogV2
 | where LogLevel contains "error" and ContainerName == "contoso-air"
 ```
+
+:::tip
+
+If you do not see a query editor, you might be in **Simple mode**. If so, click the drop down in the top right corner of the query editor and select **KQL mode**. You can also save the default mode to **KQL mode** by selecting the appropriate radio button and click the **Save** button in the pop-up.
+
+:::
 
 ![Contoso Air error log query](./assets/aks-automatic/log-query.png)
 
