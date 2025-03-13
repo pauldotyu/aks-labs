@@ -131,10 +131,10 @@ Press Enter to open https://github.com/login/device in your browser...
 
 :::
 
-After you've completed the login process, run the following command to fork the [contoso-air](https://github.com/pauldotyu/contoso-air) repository to your GitHub account.
+After you've completed the login process, run the following command to fork the [contoso-air](https://github.com/Azure-Samples/contoso-air) repository to your GitHub account.
 
 ```bash
-gh repo fork pauldotyu/contoso-air --clone
+gh repo fork Azure-Samples/contoso-air --clone
 ```
 
 Change into the `contoso-air` directory.
