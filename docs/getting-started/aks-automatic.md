@@ -46,6 +46,7 @@ Register preview features.
 
 ```bash
 az feature register --namespace Microsoft.ContainerService --name AutomaticSKUPreview
+az feature register --namespace Microsoft.ContainerService --name AzureMonitorAppMonitoringPreview
 ```
 
 Register resource providers.
@@ -72,7 +73,17 @@ Once the resource provider and preview features have been registered, create res
 ```bash
 az group create \
 --name myresourcegroup \
---location eastus
+--location eastus # change this to your preferred location
+```
+
+:::warning
+   As noted in the AKS Automatic [documentation](https://learn.microsoft.com/azure/aks/automatic/quick-automatic-managed-network?pivots=azure-portal), AKS Automatic tries to dynamically select a virtual machine size for the system node pool based on the capacity available in the subscription. Make sure your subscription has quota for 16 vCPUs of any of the following sizes in the region you're deploying the cluster to: [Standard_D4pds_v5](https://learn.microsoft.com/azure/virtual-machines/sizes/general-purpose/dpsv5-series), [Standard_D4lds_v5](https://learn.microsoft.com/azure/virtual-machines/sizes/general-purpose/dldsv5-series), [Standard_D4ads_v5](https://learn.microsoft.com/azure/virtual-machines/sizes/general-purpose/dadsv5-series), [Standard_D4ds_v5](https://learn.microsoft.com/azure/virtual-machines/sizes/general-purpose/ddsv5-series), [Standard_D4d_v5](https://learn.microsoft.com/azure/virtual-machines/sizes/general-purpose/ddv5-series), [Standard_D4d_v4](https://learn.microsoft.com/azure/virtual-machines/sizes/general-purpose/ddv4-series), [Standard_DS3_v2](https://learn.microsoft.com/azure/virtual-machines/sizes/general-purpose/dsv3-series), [Standard_DS12_v2](https://learn.microsoft.com/azure/virtual-machines/sizes/memory-optimized/dv2-dsv2-series-memory). You can [view quotas for specific VM-families and submit quota increase requests](https://learn.microsoft.com/azure/quotas/per-vm-quota-requests) through the Azure portal.
+:::
+
+Generate a random suffix that will be used to create unique resource names.
+
+```bash
+RANDOM_SUFFIX=$(date +%s)
 ```
 
 Finally, run the following command to create resources for the workshop.
@@ -80,9 +91,9 @@ Finally, run the following command to create resources for the workshop.
 ```bash
 az deployment group create \
 --resource-group myresourcegroup \
+--name azure-deploy \
 --template-uri https://raw.githubusercontent.com/Azure-Samples/aks-labs/refs/heads/main/docs/getting-started/assets/aks-automatic/azure-deploy.json \
---parameters nameSuffix=$(date +%s) userObjectId=$(az ad signed-in-user show --query id -o tsv) \
---query "properties.outputs"
+--parameters nameSuffix=$RANDOM_SUFFIX userObjectId=$(az ad signed-in-user show --query id -o tsv)
 ```
 
 This will create a new resource group and deploy the following resources:
@@ -363,7 +374,7 @@ In the **Basics** tab, enter the following details:
 
 Click **Next: Authentication**.
 
-In the **Authentication** tab, select the **Workload Identity** option and select the user-assigned managed identity with a name that starts with **mymongo**.
+In the **Authentication** tab, select the **Workload Identity** option and select a user-assigned managed identity which has been created for you. If you don't see any managed identities in the dropdown, click the **Create new** link to create a new managed identity.
 
 ![AKS service connector authentication](./assets/aks-automatic/service-connector-auth.png)
 
@@ -403,7 +414,168 @@ Wait a minute or two for the new pod to be rolled out then navigate back to the 
 
 ---
 
+## Observing your cluster and apps
+
+Monitoring and observability are key components of running applications in production. With AKS Automatic, you get a lot of monitoring and observability features enabled out-of-the-box. You experienced some of these features when you used ran queries to look for error logs in the application. Let's take a closer look at how you can monitor and observe your application and cluster.
+
+If you recall from the beginning of the workshop, we created the AKS Automatic cluster and configured it to use the [Azure Log Analytics Workspace](https://learn.microsoft.com/azure/azure-monitor/logs/log-analytics-overview) for logging, [Azure Monitor Managed Workspace](https://learn.microsoft.com/azure/azure-monitor/containers/kubernetes-monitoring-enable?tabs=cli) for metrics, and [Azure Managed Grafana](https://azure.microsoft.com/products/managed-grafana) and visualization.
+
+Now, you can also enable the [Azure Monitor Application Insights for AKS](https://learn.microsoft.com/azure/azure-monitor/app/kubernetes-codeless) feature to automatically instrument your applications with [Azure Application Insights](https://learn.microsoft.com/azure/azure-monitor/app/app-insights-overview). 
+
+### Application insights
+
+:::warning
+   At the time of this writing, the application monitoring feature is in public preview. To enable this feature, please refer to the [documentation](https://learn.microsoft.com/azure/azure-monitor/app/kubernetes-codeless#register-the-azuremonitorappmonitoringpreview-feature-flag).
+:::
+
+
+You can enable the feature on your AKS cluster with the following command.
+
+```bash
+az aks update \
+-g myresourcegroup \
+-n myakscluster \
+--enable-azure-monitor-app-monitoring
+```
+
+:::note
+   This can take a few minutes to complete.
+:::
+
+With the feature enabled, you can now deploy a new Instrumentation custom resource to the AKS cluster which will allow you to automatically instrument your applications with zero code changes!
+
+But first, you will need to get the Application Insights connection string from the Azure deployment. Run the following command to get the connection string and save it to an environment variable.
+
+```bash
+APPLICATION_INSIGHTS_CONNECTION_STRING=$(az deployment group show \
+--resource-group myresourcegroup \
+--name azure-deploy \      
+--query "properties.outputs.appInsightsConnectionString.value" -o tsv)
+```
+
+Now, you can deploy the Instrumentation custom resource to the AKS cluster.
+
+```bash
+kubectl apply -f - <<EOF
+apiVersion: monitor.azure.com/v1
+kind: Instrumentation
+metadata:
+  name: default
+  namespace: dev
+spec:
+  settings:
+    autoInstrumentationPlatforms: # note this is an array so more languages can be supported
+      - NodeJs
+  destination:
+    applicationInsightsConnectionString: $APPLICATION_INSIGHTS_CONNECTION_STRING
+EOF
+```
+
+This will deploy the Instrumentation custom resource called `default` and instrument all Node.js applications running in the `dev` namespace. 
+
+Now you need to restart the application pods to apply the changes. Run the following command to restart the application pods.
+
+```bash
+kubectl rollout restart deployment contoso-air -n dev
+```
+
+Once you confirm the pods have been restarted, you will see that the pod has been injected with an `initContainer` that will automatically instrument the application with Application Insights. If you run the following command, you will see the initContainer and the environment variables that have been injected into the application pod. In our case, the auto instrumentation is for Node.js so the AKS add-on injected the appropriate Node.js packages, code for sending telemetry to Application Insights, and the connection string.
+
+```bash
+kubectl describe pods -n dev
+```
+
+:::tip
+   This is a simple example of how to instrument your application across an entire namespace. You can also instrument individual deployments by deploying another Instrumentation custom resource with a different name then annotating the targeted deployment with with the following annotation: `"instrumentation.opentelemetry.io/inject-nodejs": "<name-of-instrumentation-resource>"` and restarting the deployment. See the [documentation](https://learn.microsoft.com/azure/azure-monitor/app/kubernetes-codeless#mixed-mode-onboarding) for more details.
+:::
+
+Now that the application is instrumented with Application Insights, you can view the application performance and usage metrics in the Azure portal.
+
+Navigate to the **Application Insights** resource in your resource group.
+
+![Application Insights resource](./assets/aks-automatic/app-insights.png)
+
+Click on the **Application map** in the left-hand menu to view a high-level overview of the application components, their dependencies, and number of calls. You'll also notice that the application map includes the CosmosDB database that the application is connected to and the time it takes to make requests to the database.
+
+![Application map](./assets/aks-automatic/app-insights-map.png)
+
+Click on the **Live Metrics** tab to view the live metrics for the application. Here you can see incoming and outgoing requests, response times, and exceptions in real-time.
+
+![Live metrics](./assets/aks-automatic/app-insights-live-metrics.png)
+
+Finally, click on the **Performance** tab to view the performance metrics for the application. Here you can see the average response time, request rate, and failure rate for the application.
+
+![Application Insights resource](./assets/aks-automatic/app-insights-performance.png)
+
+Feel free to explore the other features of Application Insights and see how you can use it to monitor and observe your applications.
+
+### Container insights
+
+AKS Automatic also makes it easy to monitor your cluster with [Container Insights](https://learn.microsoft.com/azure/azure-monitor/containers/container-insights-overview). Container Insights is a monitoring solution that provides a comprehensive view of your containerized applications running on AKS. It collects and analyzes logs, metrics, and events from your cluster and applications and provides insights into the performance and health of your applications.
+
+Navigate to the **Monitoring** section in the AKS cluster left-hand menu and click on **Insights**. Here you will see a high-level overview of how the cluster is performing.
+
+![Cluster metrics](./assets/aks-automatic/insights.png)
+
+The AKS Automatic cluster was also pre-configured with basic CPU utilization and memory utilization alerts. You can also create additional alerts based on the metrics collected by the Prometheus workspace.
+
+Click on the **Recommended alerts (Preview)** button to view the recommended alerts for the cluster. Expand the **Prometheus community alert rules (Preview)** section to see the list of Prometheus alert rules that are available. You can enable any of these alerts by clicking on the toggle switch.
+
+![Cluster alerts](./assets/aks-automatic/insights-recommended-alerts.png)
+
+Click **Save** to enable the alerts.
+
+#### Workbooks and logs
+
+With [Container Insights](https://learn.microsoft.com/azure/azure-monitor/containers/container-insights-overview) enabled, you can query the logs using Kusto Query Language (KQL). You can also create custom workbooks to visualize the data. One nice feature of Container Insights is having pre-configured workbooks that you can use to monitor your cluster and applications without having to write any queries.
+
+In the **Monitoring** section of the AKS cluster left-hand menu, click on **Workbooks**. Here you will see a list of pre-configured workbooks that you can use to monitor your cluster. One workbook that is particularly useful is the **Cluster Optimization** workbook. This workbook can help you identify anomalies and detect application probe failures in addition to providing guidance on optimizing container resource requests and limits. Click on the **Cluster Optimization** workbook to view the details. Take some time to explore the other workbooks available in the list.
+
+![Cluster optimization workbook](./assets/aks-automatic/insights-workbooks.png)
+
+:::tip
+
+The workbook visuals will include a query button that you can click to view the KQL query that powers the visual. This is a great way to learn how to write your own queries.
+
+:::
+
+If you click on the **Logs** section in the left-hand menu, you can view the logs collected by Container Insights. Here, you can write your own KQL queries or run pre-configured queries to logs from your cluster and applications. The Logs section should be configured to open **Queries hub** which displays a list of pre-configured queries that you can run. Click on a query and click **Run** to view the results.
+
+### Visualizing with Grafana
+
+The Azure Portal provides a great way to view metrics and logs, but if you prefer to visualize the data using Grafana, or execute complex queries using PromQL, you can use the Azure Managed Grafana instance that was created with the AKS Automatic cluster.
+
+In the AKS cluster's left-hand menu, click on **Insights** under the **Monitoring** section and click on the **View Grafana** button at the top of the page. This will open a window with the linked Azure Managed Grafana instance. Click on the **Browse dashboards** link. This will take you to the Azure Managed Grafana instance.
+
+![Browse dashboards](./assets/aks-automatic/monitor-grafana.png)
+
+Log into the Grafana instance then in the Grafana home page, click on the **Dashboards** link in the left-hand menu. Here you will see a list of pre-configured dashboards that you can use to visualize the metrics collected by the Prometheus workspace. 
+
+In the **Dashboards** list, expand the **Azure Managed Prometheus** folder and explore the dashboards available. Each dashboard provides a different view of the metrics collected by the Prometheus workspace with controls to allow you to filter the data.
+
+Click on a **Kubernetes / Compute Resources / Workload** dashboard.
+
+![Grafana dashboards](./assets/aks-automatic/grafana-dashboards.png)
+
+Filter the **namespace** to **dev** the **type** to **deployment**, and the **workload** to **contoso-air**. This will show you the metrics for the contoso-air deployment.
+
+![Grafana compute workload dashboard](./assets/aks-automatic/grafana-compute-workload.png)
+
+#### Querying metrics with PromQL
+
+If you prefer to write your own queries to visualize the data, you can use the **Explore** feature in Grafana. In the Grafana home page, click on the **Explore** link in the left-hand menu, and select the **Managed_Prometheus_defaultazuremonitorworkspace** data source.
+
+The query editor supports a graphical query builder and a text-based query editor. The graphical query builder is a great way to get started with PromQL. You can select the metric you want to query, the aggregation function, and any filters you want to apply.
+
+![Grafana explore with PromQL](./assets/aks-automatic/grafana-promql.png)
+
+There is a lot you can do with Grafana and PromQL, so take some time to explore the features and visualize the metrics collected by the Prometheus workspace.
+
+---
+
 ## Scaling your cluster and apps
+
+Now that you have learned how to deploy applications to AKS Automatic and monitor your cluster and applications, let's explore how to scale your cluster and applications to handle the demands of your workloads effectively.
 
 Right now, the application is running a single pod. When the web app is under heavy load, it may not be able to handle the requests. To automatically scale your deployments, you should use [Kubernetes Event-driven Autoscaling (KEDA)](https://keda.sh/) which allows you to scale your application workloads based on utilization metrics, number of events in a queue, or based on a custom schedule using CRON expressions.
 
@@ -551,76 +723,9 @@ sudo mv hey /usr/local/bin
 
 ---
 
-## Observing your cluster and apps
-
-Monitoring and observability are key components of running applications in production. With AKS Automatic, you get a lot of monitoring and observability features enabled out-of-the-box. If you recall from the beginning of the workshop, we created the AKS Automatic cluster and configured it to use the [Azure Log Analytics Workspace](https://learn.microsoft.com/azure/azure-monitor/logs/log-analytics-overview), [Azure Monitor Managed Workspace](https://learn.microsoft.com/azure/azure-monitor/containers/kubernetes-monitoring-enable?tabs=cli), and [Azure Managed Grafana](https://azure.microsoft.com/products/managed-grafana). Let's take a look at how you can use these features to monitor and observe your cluster and applications.
-
-### Cluster and container insights
-
-Navigate to the **Monitoring** section in the AKS cluster left-hand menu and click on **Insights**. Here you will see a high-level overview of how the cluster is performing.
-
-![Cluster metrics](./assets/aks-automatic/insights.png)
-
-The AKS Automatic cluster was also pre-configured with basic CPU utilization and memory utilization alerts. You can also create additional alerts based on the metrics collected by the Prometheus workspace.
-
-Click on the **Recommended alerts (Preview)** button to view the recommended alerts for the cluster. Expand the **Prometheus community alert rules (Preview)** section to see the list of Prometheus alert rules that are available. You can enable any of these alerts by clicking on the toggle switch.
-
-![Cluster alerts](./assets/aks-automatic/insights-recommended-alerts.png)
-
-Click **Save** to enable the alerts.
-
-### Workbooks and logs
-
-With [Container Insights](https://learn.microsoft.com/azure/azure-monitor/containers/container-insights-overview) enabled, you can query the logs using Kusto Query Language (KQL). You can also create custom workbooks to visualize the data. One nice feature of Container Insights is having pre-configured workbooks that you can use to monitor your cluster and applications without having to write any queries.
-
-In the **Monitoring** section of the AKS cluster left-hand menu, click on **Workbooks**. Here you will see a list of pre-configured workbooks that you can use to monitor your cluster. One workbook that is particularly useful is the **Cluster Optimization** workbook. This workbook can help you identify anomalies and detect application probe failures in addition to providing guidance on optimizing container resource requests and limits. Click on the **Cluster Optimization** workbook to view the details. Take some time to explore the other workbooks available in the list.
-
-![Cluster optimization workbook](./assets/aks-automatic/insights-workbooks.png)
-
-:::tip
-
-The workbook visuals will include a query button that you can click to view the KQL query that powers the visual. This is a great way to learn how to write your own queries.
-
-:::
-
-If you click on the **Logs** section in the left-hand menu, you can view the logs collected by Container Insights. Here, you can write your own KQL queries or run pre-configured queries to logs from your cluster and applications. The Logs section should be configured to open **Queries hub** which displays a list of pre-configured queries that you can run. Click on a query and click **Run** to view the results.
-
-
-### Visualizing metrics with Grafana
-
-The Azure Portal provides a great way to view metrics and logs, but if you prefer to visualize the data using Grafana, or execute complex queries using PromQL, you can use the Azure Managed Grafana instance that was created with the AKS Automatic cluster.
-
-In the AKS cluster's left-hand menu, click on **Insights** under the **Monitoring** section and click on the **View Grafana** button at the top of the page. This will open a window with the linked Azure Managed Grafana instance. Click on the **Browse dashboards** link. This will take you to the Azure Managed Grafana instance.
-
-![Browse dashboards](./assets/aks-automatic/monitor-grafana.png)
-
-Log into the Grafana instance then in the Grafana home page, click on the **Dashboards** link in the left-hand menu. Here you will see a list of pre-configured dashboards that you can use to visualize the metrics collected by the Prometheus workspace. 
-
-In the **Dashboards** list, expand the **Azure Managed Prometheus** folder and explore the dashboards available. Each dashboard provides a different view of the metrics collected by the Prometheus workspace with controls to allow you to filter the data.
-
-Click on a **Kubernetes / Compute Resources / Workload** dashboard.
-
-![Grafana dashboards](./assets/aks-automatic/grafana-dashboards.png)
-
-Filter the **namespace** to **dev** the **type** to **deployment**, and the **workload** to **contoso-air**. This will show you the metrics for the contoso-air deployment.
-
-![Grafana compute workload dashboard](./assets/aks-automatic/grafana-compute-workload.png)
-
-### Querying metrics with PromQL
-
-If you prefer to write your own queries to visualize the data, you can use the **Explore** feature in Grafana. In the Grafana home page, click on the **Explore** link in the left-hand menu, and select the **Managed_Prometheus_defaultazuremonitorworkspace** data source.
-
-The query editor supports a graphical query builder and a text-based query editor. The graphical query builder is a great way to get started with PromQL. You can select the metric you want to query, the aggregation function, and any filters you want to apply.
-
-![Grafana explore with PromQL](./assets/aks-automatic/grafana-promql.png)
-
-There is a lot you can do with Grafana and PromQL, so take some time to explore the features and visualize the metrics collected by the Prometheus workspace.
-
----
-
 ## Summary
 
-In this workshop, you learned how to create an AKS Automatic cluster and deploy an application to the cluster using Automated Deployments. From there, you learned how to troubleshoot application issues using the Azure portal and how to integrate applications with Azure services using the AKS Service Connector. You also learned how to configure your applications for resource specific scaling using the Vertical Pod Autoscaler (VPA) and scaling your applications KEDA. Hopefully, you now have a better understanding of how easy it can be to build and deploy applications on AKS Automatic.
+In this workshop, you learned how to create an AKS Automatic cluster and deploy an application to the cluster using Automated Deployments. From there, you learned how to troubleshoot application issues using the Azure portal and how to integrate applications with Azure services using the AKS Service Connector. You also learned how to enable application monitoring with automatic instrumentation using Azure Monitor Application Insights, which provides deep visibility into your application's performance without requiring any code changes. Additionally, you explored how to configure your applications for resource specific scaling using the Vertical Pod Autoscaler (VPA) and scaling your applications with KEDA. Hopefully, you now have a better understanding of how easy it can be to build and deploy applications on AKS Automatic.
 
 To learn more about AKS Automatic, visit the [AKS documentation](https://learn.microsoft.com/azure/aks/intro-aks-automatic).
 
