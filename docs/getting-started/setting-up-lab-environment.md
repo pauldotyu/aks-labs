@@ -55,7 +55,6 @@ Many of the workshops will require the use of multiple Azure resources such as:
 - [Azure Managed Grafana](https://learn.microsoft.com/azure/managed-grafana/overview)
 - [Azure Key Vault](https://learn.microsoft.com/azure/key-vault/general/overview)
 - [Azure Container Registry](https://learn.microsoft.com/azure/container-registry/container-registry-intro).
-- [Azure Cosmos DB](https://learn.microsoft.com/azure/cosmos-db/introduction)
 
 The resource deployment can take some time, so to expedite the process, we will use a [Bicep template](https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview?tabs=bicep) to deploy those resources.
 
