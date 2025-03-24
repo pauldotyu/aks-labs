@@ -109,52 +109,6 @@ resource keyVaultAdministratorRoleAssignment 'Microsoft.Authorization/roleAssign
   }
 }
 
-resource cosmosdbAccount 'Microsoft.DocumentDB/databaseAccounts@2022-08-15' = {
-  name: 'mymongo${take(uniqueString(subscription().id, resourceGroup().id, deployment().name), 4)}'
-  location: resourceGroup().location
-  kind: 'MongoDB'
-  properties: {
-    consistencyPolicy: { defaultConsistencyLevel: 'Session' }
-    locations: [
-      {
-        locationName: resourceGroup().location
-        failoverPriority: 0
-        isZoneRedundant: false
-      }
-    ]
-    databaseAccountOfferType: 'Standard'
-    enableAutomaticFailover: false
-    enableMultipleWriteLocations: false
-    apiProperties: { serverVersion: '7.0' }
-    capabilities: [ { name: 'EnableServerless' } ]
-  }
-}
-
-resource mongodb 'Microsoft.DocumentDB/databaseAccounts/mongodbDatabases@2024-12-01-preview' = {
-  parent: cosmosdbAccount
-  name: 'test'
-  properties: {
-    resource: {
-      id: 'test'
-    }
-  }
-}
-
-resource cosmosdbAccountIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-07-31-preview' = {
-  name: '${cosmosdbAccount.name}-identity'
-  location: resourceGroup().location
-}
-
-resource documentDBAccountContributorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  scope: cosmosdbAccount
-  name: guid(cosmosdbAccount.id, cosmosdbAccountIdentity.id)
-  properties: {
-    principalId: cosmosdbAccountIdentity.properties.principalId
-    principalType: 'ServicePrincipal'
-    roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', '5bd9cd88-fe45-4216-938b-f97437e15450')
-  }
-}
-
 resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   name: 'myappinsights${take(uniqueString(subscription().id, resourceGroup().id, deployment().name), 4)}'
   location: resourceGroup().location
@@ -174,5 +128,4 @@ output azureKeyVaultName string = azureKeyVault.name
 output azureKeyVaultUri string = azureKeyVault.properties.vaultUri
 output containerRegistryId string = containerRegistry.id
 output containerRegistryUrl string = containerRegistry.properties.loginServer
-output cosmosdbAccountId string = cosmosdbAccount.id
 output appInsightsConnectionString string = appInsights.properties.ConnectionString
