@@ -68,6 +68,7 @@ Before you submit your Pull Request (PR) consider the following guidelines:
 - If we suggest changes then:
   - Make the required updates.
   - Rebase your fork and force push to your GitHub repository (this will update your Pull Request):
+
     ```shell
     git rebase main -i
     git push -f
@@ -76,7 +77,6 @@ Before you submit your Pull Request (PR) consider the following guidelines:
 ## Submission Guidelines {#submit}
 
 When putting together your workshop, each workshop should be self-contained and should not rely on any other. Consider the time commitment required from users completing your workshop. Ideally, we want users to be able to complete a lab in **75 minutes**. If you think your workshop will take longer than that, please consider breaking it up into multiple workshops.
-
 
 ### Before You Author {#before-author}
 
@@ -107,7 +107,7 @@ The site requires [Node.js](https://nodejs.org/en/download) to run locally. If y
 
 ### Style Guide {#style-guide}
 
-This site is built using [Docusaurus](https://docusaurus.io/) and uses its default theme. If you have never authored with Docusaurus before, check out their [tutorial](https://tutorial.docusaurus.io/docs/tutorial-basics/markdown-features) for a quick introduction. Also, be sure to check out the other workshop docs in the `docs` folder for examples of how to format your content. 
+This site is built using [Docusaurus](https://docusaurus.io/) and uses its default theme. If you have never authored with Docusaurus before, check out their [tutorial](https://tutorial.docusaurus.io/docs/tutorial-basics/markdown-features) for a quick introduction. Also, be sure to check out the other workshop docs in the `docs` folder for examples of how to format your content.
 
 ### Naming Files {#naming-files}
 
@@ -123,13 +123,13 @@ Here is an example:
 ---
 title: Your Workshop Title
 sidebar_label: Your Navigation Title # use only if you want to display a different label than the title
-sidebar_position: 1                  # this dictates the order of the pages in the sidebar
+sidebar_position: 1                  # this dictates the order of the pages in the sidebar 
 ---
 ```
 
 The remaining content of the workshop can be written using standard markdown with a few additional [features](https://docusaurus.io/docs/markdown-features) provided by Docusaurus.
 
-Here is an example of what your markdown file might look like:
+Here is an example of what your markdown file should look like:
 
 ```markdown
 # Title
@@ -149,6 +149,14 @@ This is a list of what the reader needs to know and/or installed in their enviro
 This is the content of the workshop. It can be a mix of text, code snippets, and images. Use the Docusaurus markdown features to format your content.
 ```
 
+:::important
+
+You must include an Objective and Prerequisites section in your workshop. This will help users understand what they will learn and what they need to know before starting the workshop.
+
+To make for a more positive learning experience, we want all the labs to start with a common environment. You should review the environment described in the [Setting Up the Lab Environment](/aks-labs/docs/getting-started/setting-up-lab-environment) workshop and ensure that your workshop is compatible with that environment. If you need to use a different environment, please reach out to us so we can help you determine the best way to do this.
+
+:::
+
 :::tip
 
 When authoring content, you may want to draw attention to certain sections of your content. Use Docusaurus's [admonitions](https://docusaurus.io/docs/markdown-features/admonitions) to do this.
@@ -165,7 +173,7 @@ When creating a folder to hold your workshop assets, name the folder the same as
 
 ### Improving Accessibility {#improving-accessibility}
 
-When authoring your workshop, please consider the accessibility of the content. This includes ensuring that the content is readable by screen readers and that any images included in the workshop are accessible to all users. 
+When authoring your workshop, please consider the accessibility of the content. This includes ensuring that the content is readable by screen readers and that any images included in the workshop are accessible to all users.
 
 When writing your content, please use headings to structure your content. This will help users who are using screen readers to navigate the content more easily.
 
@@ -198,7 +206,7 @@ You may also want to have others test your workshop prior to submitting a PR. To
 1. Navigate to the **Actions** tab
 1. If this is your first time running GitHub Actions in the repo, click on the green button that says **I understand my workflows, go ahead and enable them**. This will enable the GitHub Actions workflow to build and deploy your changes to GitHub Pages.
 1. Click on the **Deploy to GitHub Pages** in the left navigation
-1. Click the **Run workflow** button. This will trigger the workflow to build and deploy your changes to GitHub Pages. 
+1. Click the **Run workflow** button. This will trigger the workflow to build and deploy your changes to GitHub Pages.
 
 Once the workflow has completed, you can access your site at `https://<your-github-username>.github.io/aks-labs/`.
 

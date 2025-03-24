@@ -1,13 +1,10 @@
-@description('The location of the resource.')
-param location string = resourceGroup().location
-
-@description('The user object id for the cluster admin.')
+@description('The user object id for role assignments.')
 @secure()
 param userObjectId string
 
 resource logWorkspace 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
-  name: 'myLogs${uniqueString(subscription().id, resourceGroup().id, deployment().name)}'
-  location: location
+  name: 'mylogs${take(uniqueString(subscription().id, resourceGroup().id, deployment().name), 4)}'
+  location: resourceGroup().location
   identity: {
     type: 'SystemAssigned'
   }
@@ -19,13 +16,13 @@ resource logWorkspace 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
 }
 
 resource metricsWorkspace 'Microsoft.Monitor/accounts@2023-04-03' = {
-  name: 'myPrometheus${uniqueString(subscription().id, resourceGroup().id, deployment().name)}'
-  location: location
+  name: 'myprometheus${take(uniqueString(subscription().id, resourceGroup().id, deployment().name), 4)}'
+  location: resourceGroup().location
 }
 
 resource grafanaDashboard 'Microsoft.Dashboard/grafana@2023-09-01' = {
-  name: 'myGrafana${uniqueString(subscription().id, resourceGroup().id, deployment().name)}'
-  location: location
+  name: 'mygrafana${take(uniqueString(subscription().id, resourceGroup().id, deployment().name), 4)}'
+  location: resourceGroup().location
   sku: {
     name: 'Standard'
   }
@@ -53,9 +50,20 @@ resource grafanaAdminRoleAssignment 'Microsoft.Authorization/roleAssignments@202
   }
 }
 
+resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-11-01-preview' = {
+  name: 'myregistry${take(uniqueString(subscription().id, resourceGroup().id, deployment().name), 4)}'
+  location: resourceGroup().location
+  sku: {
+    name: 'Standard'
+  }
+  identity: {
+    type: 'SystemAssigned'
+  }
+}
+
 resource azureKeyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
-  name: 'myKeyVault${uniqueString(subscription().id, resourceGroup().id, deployment().name)}'
-  location: location
+  name: 'mykeyvault${take(uniqueString(subscription().id, resourceGroup().id, deployment().name), 4)}'
+  location: resourceGroup().location
   properties: {
     enableRbacAuthorization: true
     sku: {
@@ -66,26 +74,26 @@ resource azureKeyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
   }
 }
 
-resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+resource azureKeyVaultIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: '${azureKeyVault.name}-identity'
-  location: location
+  location: resourceGroup().location
 }
 
 resource keyVaultSecretUserRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(subscription().id, resourceGroup().id, managedIdentity.id, 'Key Vault Secrets User')
+  name: guid(subscription().id, resourceGroup().id, azureKeyVaultIdentity.id, 'Key Vault Secrets User')
   scope: azureKeyVault
   properties: {
-    principalId: managedIdentity.properties.principalId
+    principalId: azureKeyVaultIdentity.properties.principalId
     principalType: 'ServicePrincipal'
     roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
   }
 }
 
 resource keyVaultCertificateUserRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(subscription().id, resourceGroup().id, managedIdentity.id, 'Key Vault Certificate User')
+  name: guid(subscription().id, resourceGroup().id, azureKeyVaultIdentity.id, 'Key Vault Certificate User')
   scope: azureKeyVault
   properties: {
-    principalId: managedIdentity.properties.principalId
+    principalId: azureKeyVaultIdentity.properties.principalId
     principalType: 'ServicePrincipal'
     roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', 'db79e9a7-68ee-4b58-9aeb-b90e7c24fcba')
   }
@@ -101,23 +109,23 @@ resource keyVaultAdministratorRoleAssignment 'Microsoft.Authorization/roleAssign
   }
 }
 
-resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-11-01-preview' = {
-  name: 'myregistry${uniqueString(subscription().id, resourceGroup().id, deployment().name)}'
-  location: location
-  sku: {
-    name: 'Standard'
-  }
-  identity: {
-    type: 'SystemAssigned'
+resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
+  name: 'myappinsights${take(uniqueString(subscription().id, resourceGroup().id, deployment().name), 4)}'
+  location: resourceGroup().location
+  kind: 'web'
+  properties: {
+    Application_Type: 'web'
+    WorkspaceResourceId: logWorkspace.id
   }
 }
 
-output monitor_id string = metricsWorkspace.id
-output grafana_id string = grafanaDashboard.id
-output grafana_Name string = grafanaDashboard.name
-output logs_id string = logWorkspace.id
-output akv_id string = azureKeyVault.id
-output akv_name string = azureKeyVault.name
-output akv_url string = azureKeyVault.properties.vaultUri
-output acr_id string = containerRegistry.id
-output acr_server string = containerRegistry.properties.loginServer
+output metricsWorkspaceId string = metricsWorkspace.id
+output grafanaDashboardId string = grafanaDashboard.id
+output grafanaDashboardName string = grafanaDashboard.name
+output logWorkspaceId string = logWorkspace.id
+output azureKeyVaultId string = azureKeyVault.id
+output azureKeyVaultName string = azureKeyVault.name
+output azureKeyVaultUri string = azureKeyVault.properties.vaultUri
+output containerRegistryId string = containerRegistry.id
+output containerRegistryUrl string = containerRegistry.properties.loginServer
+output appInsightsConnectionString string = appInsights.properties.ConnectionString
