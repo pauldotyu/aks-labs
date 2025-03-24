@@ -17,6 +17,22 @@ contacts:
 
 Before you begin, you will need an [Azure subscription](https://azure.microsoft.com/) with permissions to create resources and a [GitHub account](https://github.com/signup). Using a code editor like [Visual Studio Code](https://code.visualstudio.com/) will also be helpful for editing files and running commands.
 
+:::info[Important]
+
+Many of the workshops require you to have the AKS Preview extension installed in your subscription. You can check if you have the extension installed by running the following command (make sure you log into Azure first):
+
+```bash
+az extension list --query "[?name=='aks-preview']"
+```
+
+If the extension is not installed, you can install it using the following command:
+
+```bash
+az extension add --name aks-preview
+```
+
+:::
+
 ### Command Line Tools
 
 Many of the workshops on this site will be done using command line tools, so you will need to have the following tools installed:
@@ -39,6 +55,7 @@ Many of the workshops will require the use of multiple Azure resources such as:
 - [Azure Managed Grafana](https://learn.microsoft.com/azure/managed-grafana/overview)
 - [Azure Key Vault](https://learn.microsoft.com/azure/key-vault/general/overview)
 - [Azure Container Registry](https://learn.microsoft.com/azure/container-registry/container-registry-intro).
+- [Azure Cosmos DB](https://learn.microsoft.com/azure/cosmos-db/introduction)
 
 The resource deployment can take some time, so to expedite the process, we will use a [Bicep template](https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview?tabs=bicep) to deploy those resources.
 
@@ -86,13 +103,13 @@ az group create \
 Run the following command to download the Bicep template file to deploy the lab resources *except* the AKS cluster which we will create in this workshop.
 
 ```bash
-curl  -o main.bicep https://raw.githubusercontent.com/azure-samples/aks-labs/refs/heads/main/docs/storage/assets/main.bicep
+curl  -o aks-labs-deploy.bicep https://raw.githubusercontent.com/azure-samples/aks-labs/refs/heads/main/docs/getting-started/assets/aks-labs-deploy.bicep
 ```
 
-Verify the contents of the **main.bicep** file by running the following command.
+Verify the contents of the **aks-labs-deploy.bicep** file by running the following command.
 
 ```bash
-cat main.bicep
+cat aks-labs-deploy.bicep
 ```
 
 Run the following command to save your user object ID to a variable.
@@ -113,7 +130,7 @@ Run the following command to deploy Bicep template into the resource group.
 az deployment group create \
 --name ${DEPLOY_NAME} \
 --resource-group $RG_NAME \
---template-file main.bicep \
+--template-file aks-labs-deploy.bicep \
 --parameters userObjectId=${USER_ID} \
 --no-wait
 ```
@@ -150,11 +167,7 @@ When creating an AKS cluster, you can specify the use of [availability zones](ht
 
 Now that we have covered the basics of cluster sizing and topology, let's create an AKS cluster with multiple node pools and availability zones.
 
-Before you create the AKS cluster, run the following command to install the aks-preview extension. This extension will allow you to work with the latest features in AKS some of which will be in preview.
-
-```bash
-az extension add --name aks-preview
-```
+Before you create the AKS cluster, make sure you have the AKS Preview extension installed in your Azure subscription. See the [Prerequisites](#prerequisites) section for more info.
 
 :::info[Important]
 
