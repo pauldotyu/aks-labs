@@ -35,8 +35,8 @@ In this workshop you will learn about the advanced storage concepts in Azure Kub
 
 Before starting this lab, please make sure that you have provisioned a lab environment. We suggest you complete *ONE* of the following labs before starting this lab:
 
-- [Setting Up the Lab Environment](/aks-labs/docs/getting-started/setting-up-the-lab-environment)
-- [Kubernetes the Easy Way with AKS Automatic](/aks-labs/docs/getting-started/aks-automatic)
+- [Setting Up the Lab Environment](../getting-started/setting-up-lab-environment.md)
+- [Kubernetes the Easy Way with AKS Automatic](../getting-started/aks-automatic.md)
 
 ### Storage Options
 
