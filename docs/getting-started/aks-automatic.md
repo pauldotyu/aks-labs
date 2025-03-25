@@ -35,7 +35,6 @@ In addition, you will need the following tools installed on your local machine:
 
 To keep focus on AKS-specific features, this workshop will need some Azure resources to be pre-provisioned. You can use the following Azure CLI commands to create the resources:
 
-
 Start by logging in to the Azure CLI.
 
 ```bash
@@ -68,7 +67,7 @@ Once the feature is registered, run the following command to re-register the Mic
 az provider register --namespace Microsoft.ContainerService
 ```
 
-Once the resource provider and preview features have been registered, create resource group.
+Once the resource provider and preview features have been registered, create a resource group.
 
 ```bash
 az group create \
@@ -77,33 +76,54 @@ az group create \
 ```
 
 :::warning
-   As noted in the AKS Automatic [documentation](https://learn.microsoft.com/azure/aks/automatic/quick-automatic-managed-network?pivots=azure-portal), AKS Automatic tries to dynamically select a virtual machine size for the system node pool based on the capacity available in the subscription. Make sure your subscription has quota for 16 vCPUs of any of the following sizes in the region you're deploying the cluster to: [Standard_D4pds_v5](https://learn.microsoft.com/azure/virtual-machines/sizes/general-purpose/dpsv5-series), [Standard_D4lds_v5](https://learn.microsoft.com/azure/virtual-machines/sizes/general-purpose/dldsv5-series), [Standard_D4ads_v5](https://learn.microsoft.com/azure/virtual-machines/sizes/general-purpose/dadsv5-series), [Standard_D4ds_v5](https://learn.microsoft.com/azure/virtual-machines/sizes/general-purpose/ddsv5-series), [Standard_D4d_v5](https://learn.microsoft.com/azure/virtual-machines/sizes/general-purpose/ddv5-series), [Standard_D4d_v4](https://learn.microsoft.com/azure/virtual-machines/sizes/general-purpose/ddv4-series), [Standard_DS3_v2](https://learn.microsoft.com/azure/virtual-machines/sizes/general-purpose/dsv3-series), [Standard_DS12_v2](https://learn.microsoft.com/azure/virtual-machines/sizes/memory-optimized/dv2-dsv2-series-memory). You can [view quotas for specific VM-families and submit quota increase requests](https://learn.microsoft.com/azure/quotas/per-vm-quota-requests) through the Azure portal.
+
+As noted in the AKS Automatic [documentation](https://learn.microsoft.com/azure/aks/automatic/quick-automatic-managed-network?pivots=azure-portal), AKS Automatic tries to dynamically select a virtual machine size for the system node pool based on the capacity available in the subscription. Make sure your subscription has quota for 16 vCPUs of any of the following sizes in the region you're deploying the cluster to: [Standard_D4pds_v5](https://learn.microsoft.com/azure/virtual-machines/sizes/general-purpose/dpsv5-series), [Standard_D4lds_v5](https://learn.microsoft.com/azure/virtual-machines/sizes/general-purpose/dldsv5-series), [Standard_D4ads_v5](https://learn.microsoft.com/azure/virtual-machines/sizes/general-purpose/dadsv5-series), [Standard_D4ds_v5](https://learn.microsoft.com/azure/virtual-machines/sizes/general-purpose/ddsv5-series), [Standard_D4d_v5](https://learn.microsoft.com/azure/virtual-machines/sizes/general-purpose/ddv5-series), [Standard_D4d_v4](https://learn.microsoft.com/azure/virtual-machines/sizes/general-purpose/ddv4-series), [Standard_DS3_v2](https://learn.microsoft.com/azure/virtual-machines/sizes/general-purpose/dsv3-series), [Standard_DS12_v2](https://learn.microsoft.com/azure/virtual-machines/sizes/memory-optimized/dv2-dsv2-series-memory). You can [view quotas for specific VM-families and submit quota increase requests](https://learn.microsoft.com/azure/quotas/per-vm-quota-requests) through the Azure portal.
+
 :::
 
-Generate a random suffix that will be used to create unique resource names.
-
-```bash
-RANDOM_SUFFIX=$(date +%s)
-```
-
-Finally, run the following command to create resources for the workshop.
+Next, run the following command to create resources for the workshop.
 
 ```bash
 az deployment group create \
 --resource-group myresourcegroup \
---name azure-deploy \
---template-uri https://raw.githubusercontent.com/Azure-Samples/aks-labs/refs/heads/main/docs/getting-started/assets/aks-automatic/azure-deploy.json \
---parameters nameSuffix=$RANDOM_SUFFIX userObjectId=$(az ad signed-in-user show --query id -o tsv)
+--name aks-labs-deploy \
+--template-uri https://raw.githubusercontent.com/Azure-Samples/aks-labs/refs/heads/main/docs/getting-started/assets/aks-labs-deploy.json \
+--parameters userObjectId=$(az ad signed-in-user show --query id -o tsv) \
+--no-wait
 ```
 
-This will create a new resource group and deploy the following resources:
+:::tip
+
+The `--no-wait` flag is used to run the deployment in the background. This will allow you to continue while the resources are being deployed.
+
+:::
+
+This will create the following resources in the resource group:
 
 - [Azure Container Registry](https://learn.microsoft.com/azure/container-registry/container-registry-intro) for storing container images
-- [Azure CosmosDB database with a MongoDB API](https://learn.microsoft.com/azure/cosmos-db/mongodb/introduction) ([version 7.0](https://learn.microsoft.com/azure/cosmos-db/mongodb/feature-support-70)) and a database named **test**
-- [Azure User-Assigned Managed Identity](https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/overview) for CosmosDB access
 - [Azure Monitor Workspace for Prometheus](https://learn.microsoft.com/azure/azure-monitor/essentials/prometheus-metrics-overview) metrics
 - [Azure Log Analytics Workspace](https://learn.microsoft.com/azure/azure-monitor/logs/data-platform-logs) for [container insights](https://learn.microsoft.com/azure/azure-monitor/containers/container-insights-overview) and [application insights](https://learn.microsoft.com/azure/azure-monitor/app/app-insights-overview)
 - [Azure Managed Grafana](https://learn.microsoft.com/azure/managed-grafana/overview) for visualizing metrics
+- [Azure User-Assigned Managed Identity](https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/overview) for accessing Azure services via Workload Identity
+
+The last thing you need to do is create an [Azure CosmosDB database with a MongoDB API](https://learn.microsoft.com/azure/cosmos-db/mongodb/introduction) ([version 7.0](https://learn.microsoft.com/azure/cosmos-db/mongodb/feature-support-70)) and a database named `test`.
+
+You can do that by running the following commands:
+
+```bash
+AZURE_COSMOSDB_NAME=$(az cosmosdb create \
+--name mymongo$RANDOM \
+--resource-group myresourcegroup \
+--kind MongoDB \
+--server-version 7.0 \
+--query name -o tsv)
+
+az cosmosdb mongodb collection create \
+--account-name $AZURE_COSMOSDB_NAME \
+--name test \
+--database-name test \
+--resource-group myresourcegroup
+```
 
 Once the resources are deployed, you can proceed with the workshop.
 
@@ -111,11 +131,9 @@ Once the resources are deployed, you can proceed with the workshop.
 
 ## Deploy your app to AKS Automatic
 
-Let's jump right in and deploy an application to an AKS Automatic cluster. In this section, you will use AKS Automated Deployment to deploy a sample application hosted on GitHub to your AKS cluster.
+With AKS, the [Automated Deployments](https://learn.microsoft.com/azure/aks/automated-deployments) feature allows you to create [GitHub Actions workflows](https://docs.github.com/actions) that allows you to start deploying your applications to your AKS cluster with minimal effort, even if you don't already have an AKS cluster. All you need to do is point it at a GitHub repository with your application code.
 
-With AKS, the [Automated Deployments](https://learn.microsoft.com/azure/aks/automated-deployments) feature allows you to create [GitHub Actions workflows](https://docs.github.com/actions) that allows you to start deploying your applications to your AKS cluster with minimal effort. All you need to do is point it at a GitHub repository with your application code.
-
-If you have Dockerfiles or Kubernetes manifests in your repository, that's great, you can simply point to them in the Automated Deployments setup. If you don't have Dockerfiles or Kubernetes manifests in your repository, don't sweat... Automated Deployments can create them for you!
+If you have Dockerfiles or Kubernetes manifests in your repository, that's great, you can simply point to them in the Automated Deployments setup. If you don't have Dockerfiles or Kubernetes manifests in your repository, don't sweat 😅 Automated Deployments can create them for you 🚀
 
 ### Fork and clone the sample repository
 
@@ -306,7 +324,7 @@ There is no authentication required, so you can simply type in whatever you like
 
 ![Contoso Air login page](./assets/aks-automatic/contoso-air-login.png)
 
-Click on the **Book** link in the top navigation bar and fill in the form with your trip details and click the **Find flights** button. 
+Click on the **Book** link in the top navigation bar and fill in the form with your trip details and click the **Find flights** button.
 
 ![Contoso Air book flight](./assets/aks-automatic/contoso-air-book.png)
 
@@ -420,14 +438,15 @@ Monitoring and observability are key components of running applications in produ
 
 If you recall from the beginning of the workshop, we created the AKS Automatic cluster and configured it to use the [Azure Log Analytics Workspace](https://learn.microsoft.com/azure/azure-monitor/logs/log-analytics-overview) for logging, [Azure Monitor Managed Workspace](https://learn.microsoft.com/azure/azure-monitor/containers/kubernetes-monitoring-enable?tabs=cli) for metrics, and [Azure Managed Grafana](https://azure.microsoft.com/products/managed-grafana) and visualization.
 
-Now, you can also enable the [Azure Monitor Application Insights for AKS](https://learn.microsoft.com/azure/azure-monitor/app/kubernetes-codeless) feature to automatically instrument your applications with [Azure Application Insights](https://learn.microsoft.com/azure/azure-monitor/app/app-insights-overview). 
+Now, you can also enable the [Azure Monitor Application Insights for AKS](https://learn.microsoft.com/azure/azure-monitor/app/kubernetes-codeless) feature to automatically instrument your applications with [Azure Application Insights](https://learn.microsoft.com/azure/azure-monitor/app/app-insights-overview).
 
 ### Application insights
 
 :::warning
-   At the time of this writing, the application monitoring feature is in public preview. To enable this feature, please refer to the [documentation](https://learn.microsoft.com/azure/azure-monitor/app/kubernetes-codeless#register-the-azuremonitorappmonitoringpreview-feature-flag).
-:::
 
+At the time of this writing, the application monitoring feature is in public preview. To enable this feature, please refer to the [documentation](https://learn.microsoft.com/azure/azure-monitor/app/kubernetes-codeless#register-the-azuremonitorappmonitoringpreview-feature-flag).
+
+:::
 
 You can enable the feature on your AKS cluster with the following command.
 
@@ -439,7 +458,9 @@ az aks update \
 ```
 
 :::note
-   This can take a few minutes to complete.
+
+This can take a few minutes to complete.
+
 :::
 
 With the feature enabled, you can now deploy a new Instrumentation custom resource to the AKS cluster which will allow you to automatically instrument your applications with zero code changes!
@@ -449,7 +470,7 @@ But first, you will need to get the Application Insights connection string from 
 ```bash
 APPLICATION_INSIGHTS_CONNECTION_STRING=$(az deployment group show \
 --resource-group myresourcegroup \
---name azure-deploy \      
+--name azure-deploy \
 --query "properties.outputs.appInsightsConnectionString.value" -o tsv)
 ```
 
@@ -471,7 +492,7 @@ spec:
 EOF
 ```
 
-This will deploy the Instrumentation custom resource called `default` and instrument all Node.js applications running in the `dev` namespace. 
+This will deploy the Instrumentation custom resource called `default` and instrument all Node.js applications running in the `dev` namespace.
 
 Now you need to restart the application pods to apply the changes. Run the following command to restart the application pods.
 
@@ -486,7 +507,9 @@ kubectl describe pods -n dev
 ```
 
 :::tip
-   This is a simple example of how to instrument your application across an entire namespace. You can also instrument individual deployments by deploying another Instrumentation custom resource with a different name then annotating the targeted deployment with with the following annotation: `"instrumentation.opentelemetry.io/inject-nodejs": "<name-of-instrumentation-resource>"` and restarting the deployment. See the [documentation](https://learn.microsoft.com/azure/azure-monitor/app/kubernetes-codeless#mixed-mode-onboarding) for more details.
+
+This is a simple example of how to instrument your application across an entire namespace. You can also instrument individual deployments by deploying another Instrumentation custom resource with a different name then annotating the targeted deployment with with the following annotation: `"instrumentation.opentelemetry.io/inject-nodejs": "<name-of-instrumentation-resource>"` and restarting the deployment. See the [documentation](https://learn.microsoft.com/azure/azure-monitor/app/kubernetes-codeless#mixed-mode-onboarding) for more details.
+
 :::
 
 Now that the application is instrumented with Application Insights, you can view the application performance and usage metrics in the Azure portal.
@@ -549,7 +572,7 @@ In the AKS cluster's left-hand menu, click on **Insights** under the **Monitorin
 
 ![Browse dashboards](./assets/aks-automatic/monitor-grafana.png)
 
-Log into the Grafana instance then in the Grafana home page, click on the **Dashboards** link in the left-hand menu. Here you will see a list of pre-configured dashboards that you can use to visualize the metrics collected by the Prometheus workspace. 
+Log into the Grafana instance then in the Grafana home page, click on the **Dashboards** link in the left-hand menu. Here you will see a list of pre-configured dashboards that you can use to visualize the metrics collected by the Prometheus workspace.
 
 In the **Dashboards** list, expand the **Azure Managed Prometheus** folder and explore the dashboards available. Each dashboard provides a different view of the metrics collected by the Prometheus workspace with controls to allow you to filter the data.
 
@@ -579,7 +602,7 @@ Now that you have learned how to deploy applications to AKS Automatic and monito
 
 Right now, the application is running a single pod. When the web app is under heavy load, it may not be able to handle the requests. To automatically scale your deployments, you should use [Kubernetes Event-driven Autoscaling (KEDA)](https://keda.sh/) which allows you to scale your application workloads based on utilization metrics, number of events in a queue, or based on a custom schedule using CRON expressions.
 
-But simply using implementing KEDA is not enough. KEDA can try to deploy more pods, but if the cluster is out of resources, the pods will not be scheduled and remain in pending status. 
+But simply using implementing KEDA is not enough. KEDA can try to deploy more pods, but if the cluster is out of resources, the pods will not be scheduled and remain in pending status.
 
 With AKS Automatic, [Node Autoprovisioning (NAP)](https://learn.microsoft.com/azure/aks/node-autoprovision?tabs=azure-cli) is enabled and is used over the traditional cluster autoscaler. With NAP, it can detect if there are pods pending scheduling and will automatically scale the node pool to meet the demands. We won't go into the details of working with NAP in this workshop, but you can read more about it in the [AKS documentation](https://learn.microsoft.com/azure/aks/node-autoprovision?tabs=azure-cli).
 
@@ -589,7 +612,7 @@ NAP will not only automatically scale out additional nodes to meet demand, it wi
 
 :::
 
-For the Kubernetes scheduler to efficiently schedule pods on nodes, it is best practice to include resource requests and limits in your pod configuration. The Automated Deployment setup added some default resource requests and limits to the pod configuration, but they may not be optimal. Knowing what to set the request and limit values to can be challenging. This is where the [Vertical Pod Autoscaler (VPA)](https://kubernetes.io/docs/tasks/run-application/vertical-pod-autoscaling/) can help. 
+For the Kubernetes scheduler to efficiently schedule pods on nodes, it is best practice to include resource requests and limits in your pod configuration. The Automated Deployment setup added some default resource requests and limits to the pod configuration, but they may not be optimal. Knowing what to set the request and limit values to can be challenging. This is where the [Vertical Pod Autoscaler (VPA)](https://kubernetes.io/docs/tasks/run-application/vertical-pod-autoscaling/) can help.
 
 ### Vertical Pod Autoscaler (VPA) setup
 
@@ -605,11 +628,11 @@ Click on the **VerticalPodAutoscaler** resource to view the VPA resources in the
 
 ![VPA resources](./assets/aks-automatic/custom-resources-vpa.png)
 
-Click on the **+ Create** button where you'll see a **Add with YAML** editor. 
+Click on the **+ Create** button where you'll see a **Add with YAML** editor.
 
 ![Create VPA](./assets/aks-automatic/custom-resources-vpa-create.png)
 
-Not sure what to add here? No worries! You can lean on [Microsoft Copilot in Azure](https://learn.microsoft.com/azure/copilot/overview) to help generate the VPA manifest. 
+Not sure what to add here? No worries! You can lean on [Microsoft Copilot in Azure](https://learn.microsoft.com/azure/copilot/overview) to help generate the VPA manifest.
 
 Click in the text editor or press **Alt + I** to open the Copilot editor.
 
@@ -666,7 +689,7 @@ The VPA resource will only update the CPU and memory requests and limits for the
 
 AKS Automatic also comes with the KEDA controller pre-installed, so you can use the KEDA resource immediately by simply deploying a KEDA scaler to your cluster.
 
-Navigate to **Application scaling** under **Settings** in the AKS cluster left-hand menu,  then click on the **+ Create** button.
+Navigate to **Application scaling** under **Settings** in the AKS cluster left-hand menu, then click on the **+ Create** button.
 
 ![Application scaling](./assets/aks-automatic/keda.png)
 
@@ -699,7 +722,7 @@ Now that the number of replicas has been increased, the VPA resource will be abl
 
 This was a simple example of using using KEDA. The real power of KEDA comes from its ability to scale your application based on external metrics. There are many [scalers](https://keda.sh/docs/scalers/) available for KEDA that you can use to scale your application based on a variety of external metrics.
 
-If you have time, try to run a simple load test to see the scaling in action. You can use the [hey](https://github.com/rakyll/hey) tool to generate some traffic to the application. 
+If you have time, try to run a simple load test to see the scaling in action. You can use the [hey](https://github.com/rakyll/hey) tool to generate some traffic to the application.
 
 Run the following command to generate some traffic to the application:
 
