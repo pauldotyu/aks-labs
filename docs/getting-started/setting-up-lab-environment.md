@@ -48,7 +48,7 @@ If you are unable to install these tools on your local machine, you can use the 
 
 ## Lab Environment Setup
 
-Many of the workshops will require the use of multiple Azure resources such as:
+Many of the workshops will require the use of multiple Azure resources including:
 
 - [Azure Log Analytics](https://learn.microsoft.com/azure/azure-monitor/logs/log-analytics-overview)
 - [Azure Managed Prometheus](https://learn.microsoft.com/azure/azure-monitor/essentials/prometheus-metrics-overview)
@@ -56,7 +56,7 @@ Many of the workshops will require the use of multiple Azure resources such as:
 - [Azure Key Vault](https://learn.microsoft.com/azure/key-vault/general/overview)
 - [Azure Container Registry](https://learn.microsoft.com/azure/container-registry/container-registry-intro).
 
-The resource deployment can take some time, so to expedite the process, we will use a [Bicep template](https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview?tabs=bicep) to deploy those resources.
+The resource deployment can take some time, so to expedite the process, we have created an [ARM template](https://learn.microsoft.com/en-us/azure/azure-resource-manager/templates/overview) to deploy those resources.
 
 :::info[Important]
 
@@ -97,19 +97,9 @@ az group create \
 --location ${LOCATION}
 ```
 
-### Deploy Azure resources using Bicep
+### Deploy Azure resources using ARM template
 
-Run the following command to download the Bicep template file to deploy the lab resources *except* the AKS cluster which we will create in this workshop.
-
-```bash
-curl  -o aks-labs-deploy.bicep https://raw.githubusercontent.com/azure-samples/aks-labs/refs/heads/main/docs/getting-started/assets/aks-labs-deploy.bicep
-```
-
-Verify the contents of the **aks-labs-deploy.bicep** file by running the following command.
-
-```bash
-cat aks-labs-deploy.bicep
-```
+We have created an ARM template to deploy the Azure resources needed for the lab environment. The template will deploy the resources listed in the [Lab Environment Setup](#lab-environment-setup) section.
 
 Run the following command to save your user object ID to a variable.
 
@@ -129,7 +119,7 @@ Run the following command to deploy Bicep template into the resource group.
 az deployment group create \
 --name ${DEPLOY_NAME} \
 --resource-group $RG_NAME \
---template-file aks-labs-deploy.bicep \
+--template-uri https://raw.githubusercontent.com/azure-samples/aks-labs/refs/heads/main/docs/getting-started/assets/aks-labs-deploy.json \
 --parameters userObjectId=${USER_ID} \
 --no-wait
 ```
@@ -138,7 +128,7 @@ This deployment will take a few minutes to complete. Move on to the next section
 
 ### AKS Deployment Strategies
 
-In this section, you will explore cluster setup considerations such as cluster sizing and topology, system and user node pools, and availability zones. You will create an AKS cluster implementing some of the best practices for production clusters. Not all best practices will be covered in this workshop, but you will have a good foundation to build upon.
+Before deploying an AKS cluster, you should consider how you want to configure it. Factors such as cluster sizing and topology, system and user node pools, and availability zones are a few examples. In this lab you will create an AKS cluster implementing some of the best practices for production clusters. Not all best practices will be covered in this lab, but it will give you a good foundation to build upon.
 
 #### Size Considerations
 
