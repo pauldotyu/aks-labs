@@ -81,12 +81,16 @@ As noted in the AKS Automatic [documentation](https://learn.microsoft.com/azure/
 
 :::
 
-Next, run the following command to create resources for the workshop.
+Next, run the following commands to create resources for the workshop.
 
 ```bash
+# Create a unique deployment name and save it for later reference
+AKS_LABS_DEPLOYMENT_NAME=aks-labs-deploy-$(date +%s)
+
+# Deploy the Azure resource template
 az deployment group create \
 --resource-group myresourcegroup \
---name aks-labs-deploy \
+--name $AKS_LABS_DEPLOYMENT_NAME \
 --template-uri https://raw.githubusercontent.com/Azure-Samples/aks-labs/refs/heads/main/docs/getting-started/assets/aks-labs-deploy.json \
 --parameters userObjectId=$(az ad signed-in-user show --query id -o tsv) \
 --no-wait
@@ -111,13 +115,15 @@ The last thing you need to do is create an [Azure CosmosDB database with a Mongo
 You can do that by running the following commands:
 
 ```bash
+# Create an Azure CosmosDB account with a random name and save it for later reference
 AZURE_COSMOSDB_NAME=$(az cosmosdb create \
---name mymongo$RANDOM \
+--name mymongo$(date +%s) \
 --resource-group myresourcegroup \
 --kind MongoDB \
 --server-version 7.0 \
 --query name -o tsv)
 
+# Create a MongoDB database and collection
 az cosmosdb mongodb collection create \
 --account-name $AZURE_COSMOSDB_NAME \
 --name test \
@@ -470,7 +476,7 @@ But first, you will need to get the Application Insights connection string from 
 ```bash
 APPLICATION_INSIGHTS_CONNECTION_STRING=$(az deployment group show \
 --resource-group myresourcegroup \
---name azure-deploy \
+--name $AKS_LABS_DEPLOYMENT_NAME \
 --query "properties.outputs.appInsightsConnectionString.value" -o tsv)
 ```
 
