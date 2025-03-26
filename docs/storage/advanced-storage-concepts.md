@@ -120,7 +120,7 @@ where the environment variable `RG_NAME` is the set to the name of the resource 
 
 :::info
 
-> You may or may not have enough quota to deploy Standard_L8s_v3 VMs. If you encounter an error, please try with a different VM size within the [L-family](https://learn.microsoft.com/azure/virtual-machines/sizes/storage-optimized/lsv2-series?tabs=sizebasic) or request additional quota by following the instructions [here](https://docs.microsoft.com/azure/azure-portal/supportability/resource-manager-core-quotas-request).
+You may or may not have enough quota to deploy Standard_L8s_v3 VMs. If you encounter an error, please try with a different VM size within the [L-family](https://learn.microsoft.com/azure/virtual-machines/sizes/storage-optimized/lsv2-series?tabs=sizebasic) or request additional quota by following the instructions [here](https://docs.microsoft.com/azure/azure-portal/supportability/resource-manager-core-quotas-request).
 
 :::
 
