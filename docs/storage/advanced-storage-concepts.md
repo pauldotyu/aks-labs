@@ -138,7 +138,7 @@ az aks update \
 
 :::note
 
-> This command can take up to 20 minutes to complete.
+This command can take up to 20 minutes to complete.
 
 :::
 
