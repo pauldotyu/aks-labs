@@ -691,7 +691,7 @@ The ClusterResourcePlacement API object is used to propagate resources from a hu
 
 :::important
 
-> Before running the following commands, make sure your `kubectl conifg` has the Fleet hub cluster as it's current context. To check your current context, run the `kubectl config current-context` command. You should see the output as **hub**. If the output is not **hub**, please run `kubectl config set-context hub`.
+Before running the following commands, make sure your `kubectl conifg` has the Fleet hub cluster as it's current context. To check your current context, run the `kubectl config current-context` command. You should see the output as **hub**. If the output is not **hub**, please run `kubectl config set-context hub`.
 
 :::
 
