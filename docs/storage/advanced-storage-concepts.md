@@ -254,7 +254,7 @@ mysql-0   2/2     Running   0          1m34s  10.244.3.16   aks-nodepool1-285671
 
 :::note
 
-> Keep a note of the node on which the **mysql-0** pod is running.
+Keep a note of the node on which the **mysql-0** pod is running.
 
 :::
 
