@@ -21,8 +21,7 @@ After completing this workshop, you will be able to:
 
 ## Pre-requisites
 
-Before you begin, please make sure that you have provisioned a lab environment. Head over to [Lab Environment Setup](../getting-started/setting-up-lab-environment#lab-environment-setup) and follow the instructions to provision the required resources. Once you've provisioned the resources and [created and AKS cluster](../getting-started/setting-up-lab-environment#creating-an-aks-cluster) come back here to continue with the workshop.
-
+Before you begin, please make sure that you have provisioned a lab environment. Head over to [Lab Environment Setup](../getting-started/setting-up-lab-environment#lab-environment-setup) and follow the instructions to provision the required resources. Once you've provisioned the resources and [created an AKS cluster](../getting-started/setting-up-lab-environment#creating-an-aks-cluster) come back here to continue with the workshop.
 ---
 
 ## API Server upgrades
