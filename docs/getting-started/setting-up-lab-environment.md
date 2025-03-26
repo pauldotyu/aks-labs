@@ -56,7 +56,7 @@ Many of the workshops will require the use of multiple Azure resources including
 - [Azure Key Vault](https://learn.microsoft.com/azure/key-vault/general/overview)
 - [Azure Container Registry](https://learn.microsoft.com/azure/container-registry/container-registry-intro).
 
-The resource deployment can take some time, so to expedite the process, we have created an [ARM template](https://learn.microsoft.com/en-us/azure/azure-resource-manager/templates/overview) to deploy those resources.
+The resource deployment can take some time, so to expedite the process, we have created an [ARM template](https://learn.microsoft.com/azure/azure-resource-manager/templates/overview) to deploy those resources.
 
 :::info[Important]
 
