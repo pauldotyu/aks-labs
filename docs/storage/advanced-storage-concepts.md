@@ -25,13 +25,11 @@ sidebar_label: Advanced Storage Concepts
 # wt_id: WT.mc_id=containers-147656-pauyu
 ---
 
-## Advanced Storage Concepts
-
-### Objectives
+## Objectives
 
 In this workshop you will learn about the advanced storage concepts in Azure Kubernetes Service (AKS). You will learn about the different storage options available in Azure, how to use Azure Container Storage to manage local NVMe disks, and how to use Azure Container Storage to replicate local NVMe disks across multiple nodes. You will also learn about the different orchestration options available in Azure, including CSI drivers and Azure Container Storage.
 
-### Prerequisites
+## Prerequisites
 
 Before starting this lab, please make sure that you have provisioned a lab environment. We suggest you complete *ONE* of the following labs before starting this lab:
 
