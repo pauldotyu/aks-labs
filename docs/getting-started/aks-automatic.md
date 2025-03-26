@@ -67,7 +67,7 @@ Once the feature is registered, run the following command to re-register the Mic
 az provider register --namespace Microsoft.ContainerService
 ```
 
-Once the resource provider and preview features have been registered, jump over to [Lab Environment Setup](../getting-started/setting-up-lab-environment#lab-environment-setup) and follow the instructions to provision the required resources and come back here to continue with the workshop.
+Once the resource provider and preview features have been registered, jump over to [Lab Environment Setup](/docs/getting-started/setting-up-lab-environment#lab-environment-setup) and follow the instructions to provision the required resources and come back here to continue with the workshop.
 
 :::warning
 
