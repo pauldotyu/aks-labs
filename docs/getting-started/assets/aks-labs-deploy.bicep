@@ -74,26 +74,26 @@ resource azureKeyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
   }
 }
 
-resource azureKeyVaultIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
-  name: '${azureKeyVault.name}-identity'
+resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+  name: 'myidentity${take(uniqueString(subscription().id, resourceGroup().id, deployment().name), 4)}'
   location: resourceGroup().location
 }
 
 resource keyVaultSecretUserRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(subscription().id, resourceGroup().id, azureKeyVaultIdentity.id, 'Key Vault Secrets User')
+  name: guid(subscription().id, resourceGroup().id, managedIdentity.id, 'Key Vault Secrets User')
   scope: azureKeyVault
   properties: {
-    principalId: azureKeyVaultIdentity.properties.principalId
+    principalId: managedIdentity.properties.principalId
     principalType: 'ServicePrincipal'
     roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')
   }
 }
 
 resource keyVaultCertificateUserRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(subscription().id, resourceGroup().id, azureKeyVaultIdentity.id, 'Key Vault Certificate User')
+  name: guid(subscription().id, resourceGroup().id, managedIdentity.id, 'Key Vault Certificate User')
   scope: azureKeyVault
   properties: {
-    principalId: azureKeyVaultIdentity.properties.principalId
+    principalId: managedIdentity.properties.principalId
     principalType: 'ServicePrincipal'
     roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', 'db79e9a7-68ee-4b58-9aeb-b90e7c24fcba')
   }

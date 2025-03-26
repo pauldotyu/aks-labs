@@ -50,11 +50,12 @@ If you are unable to install these tools on your local machine, you can use the 
 
 Many of the workshops will require the use of multiple Azure resources including:
 
-- [Azure Log Analytics](https://learn.microsoft.com/azure/azure-monitor/logs/log-analytics-overview)
-- [Azure Managed Prometheus](https://learn.microsoft.com/azure/azure-monitor/essentials/prometheus-metrics-overview)
-- [Azure Managed Grafana](https://learn.microsoft.com/azure/managed-grafana/overview)
-- [Azure Key Vault](https://learn.microsoft.com/azure/key-vault/general/overview)
-- [Azure Container Registry](https://learn.microsoft.com/azure/container-registry/container-registry-intro).
+- [Azure Log Analytics Workspace](https://learn.microsoft.com/azure/azure-monitor/logs/data-platform-logs) for [container insights](https://learn.microsoft.com/azure/azure-monitor/containers/container-insights-overview) and [application insights](https://learn.microsoft.com/azure/azure-monitor/app/app-insights-overview)
+- [Azure Monitor Workspace for Prometheus](https://learn.microsoft.com/azure/azure-monitor/essentials/prometheus-metrics-overview) metrics
+- [Azure Managed Grafana](https://learn.microsoft.com/azure/managed-grafana/overview) for visualizing metrics
+- [Azure Container Registry](https://learn.microsoft.com/azure/container-registry/container-registry-intro) for storing container images
+- [Azure Key Vault](https://learn.microsoft.com/azure/key-vault/general/overview) for secrets management
+- [Azure User-Assigned Managed Identity](https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/overview) for accessing Azure services via Workload Identity
 
 The resource deployment can take some time, so to expedite the process, we have created an [ARM template](https://learn.microsoft.com/azure/azure-resource-manager/templates/overview) to deploy those resources.
 
@@ -71,8 +72,8 @@ az account list-locations --query "[?metadata.regionType=='Physical' && metadata
 In this workshop, we will set environment variables for the resource group name and location. Run the following commands to set the environment variables.
 
 ```bash
-export RG_NAME="myResourceGroup"
-export LOCATION="eastus"
+export RG_NAME="myresourcegroup"
+export LOCATION="eastus" # Change this to a region that supports availability zones
 ```
 
 This will set the environment variables for the current terminal session. If you close the current terminal session, you will need to set the environment variables again.
@@ -110,7 +111,7 @@ export USER_ID="$(az ad signed-in-user show --query id -o tsv)"
 Run the following command to save the deployment name to a variable. In this example we set the deployment name to **labdemo**.
 
 ```bash
-export DEPLOY_NAME="labdemo"
+export DEPLOY_NAME="labdemo$(date +%s)"
 ```
 
 Run the following command to deploy Bicep template into the resource group.
@@ -118,11 +119,17 @@ Run the following command to deploy Bicep template into the resource group.
 ```bash
 az deployment group create \
 --name ${DEPLOY_NAME} \
---resource-group $RG_NAME \
+--resource-group ${RG_NAME} \
 --template-uri https://raw.githubusercontent.com/azure-samples/aks-labs/refs/heads/main/docs/getting-started/assets/aks-labs-deploy.json \
 --parameters userObjectId=${USER_ID} \
 --no-wait
 ```
+
+:::tip
+
+The `--no-wait` flag is used to run the deployment in the background. This will allow you to continue while the resources are being deployed.
+
+:::
 
 This deployment will take a few minutes to complete. Move on to the next section while the resources are being deployed.
 
