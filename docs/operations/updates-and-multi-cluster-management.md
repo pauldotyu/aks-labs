@@ -21,7 +21,8 @@ After completing this workshop, you will be able to:
 
 ## Pre-requisites
 
-Before you begin, please make sure that you have provisioned a lab environment. Head over to [Lab Environment Setup](../getting-started/setting-up-lab-environment#lab-environment-setup) and follow the instructions to provision the required resources. Once you've provisioned the resources and [created an AKS cluster](../getting-started/setting-up-lab-environment#creating-an-aks-cluster) come back here to continue with the workshop.
+Before you begin, please make sure that you have provisioned a lab environment. Head over to [Lab Environment Setup](/docs/getting-started/setting-up-lab-environment#lab-environment-setup) and follow the instructions to provision the required resources. Once you've provisioned the resources and [created an AKS cluster](/docs/getting-started/setting-up-lab-environment#lab-environment-setup#creating-an-aks-cluster) come back here to continue with the workshop.
+
 ---
 
 ## API Server upgrades
@@ -103,6 +104,8 @@ Once the auto-upgrade channel subscription has been enabled for your cluster, yo
 Configuring your AKS cluster to an auto-upgrade channel can have impact on the availability of workloads running on your cluster. Please review the additional options available to [Customize node surge upgrade](https://learn.microsoft.com/azure/aks/upgrade-aks-cluster?tabs=azure-cli#customize-node-surge-upgrade).
 
 :::
+
+---
 
 ## Node image updates
 
