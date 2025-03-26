@@ -580,7 +580,7 @@ You can find and learn about additional AKS Fleet Manager concepts and functiona
 
 :::note
 
-> If you already have an additional AKS cluster, in addition to your original lab AKS cluster, you can skip this section.
+If you already have an additional AKS cluster, in addition to your original lab AKS cluster, you can skip this section.
 
 :::
 
