@@ -5,63 +5,96 @@ title: Workload Identity
 ---
 
 
-## Workload Identity
+## Objectives
 
 Workloads deployed on an Azure Kubernetes Services (AKS) cluster require Microsoft Entra application credentials or managed identities to access Microsoft Entra protected resources, such as Azure Key Vault and Microsoft Graph. Microsoft Entra Workload ID integrates with the capabilities native to Kubernetes to federate with external identity providers.
 
-This Workload Identity section of the lab will deploy an application workload onto AKS and use Workload Identity to allow the application to access a secret in Azure KeyVault.
+In this lab, you will learn how to:
 
-### Limitations
+- Enable Workload Identity on an AKS cluster
+- Create a managed identity
+- Create a Kubernetes service account
+- Create a federated identity credential
+- Deploy a sample application utilizing Workload Identity
+- Access secrets in Azure Key Vault with Workload Identity
 
-Please be aware of the following limitations for Workload Identity
+## Prerequisites
 
-- You can have a maximum of [20 federated identity credentials](https://learn.microsoft.com/entra/workload-id/workload-identity-federation-considerations#general-federated-identity-credential-considerations) per managed identity.
-- It takes a few seconds for the federated identity credential to be propagated after being initially added.
-- The [virtual nodes](https://learn.microsoft.com/azure/aks/virtual-nodes) add on, based on the open source project [Virtual Kubelet](https://virtual-kubelet.io/docs/), isn't supported.
-- Creation of federated identity credentials is not supported on user-assigned managed identities in these [regions.](https://learn.microsoft.com/entra/workload-id/workload-identity-federation-considerations#unsupported-regions-user-assigned-managed-identities)
+To complete this lab, you will need an [Azure subscription](https://azure.microsoft.com/) with permissions to create resources and a [GitHub account](https://github.com/signup). Using a code editor like [Visual Studio Code](https://code.visualstudio.com/) will also be helpful for editing files and running commands.
 
-### Enable Workload Identity on an AKS cluster
+You will also need to have the command line tools mentioned in Command Line Tools section [Setting Up the Lab Enviroment](../getting-started/setting-up-lab-environment#command-line-tools) installed.
 
-To enable Workload Identity on the AKS cluster, run the following command.
+If you do not already have an AKS cluster created in your subscription, you can create all the required infrastructure for this lab by running the [Setting Up the Lab Enviroment](../getting-started/setting-up-lab-environment) lab.
+
+### Set Environment Variables
+
+To make it easier to run the commands in the lab, use the following commands save the names of the resource group, Azure Key Vault and AKS cluster, and region you are using in environment variables.
 
 ```bash
-az aks update \
+export RG_NAME="myResourceGroup"
+export AKS_NAME="myAKSCluster"
+export LOCATION="eastus"
+export AKV_NAME="myKeyVault"
+```
+
+In this example we are using the resource group name **myResourceGroup**, the region name **eastus** and the AKS cluster name **myAKSCluster**. Using the environment variables allows you to easily change the values in one place and have them used in all the commands.
+
+## Enable Workload Identity and OpenID Connect (OIDC) on an AKS cluster
+
+Use the following command to check your AKS cluster to see if Workload Identity is already enabled.
+
+```bash
+az aks show \
 --resource-group ${RG_NAME} \
+--name ${AKS_NAME} \
+--query "securityProfile.workloadIdentity.enabled" \
+--output tsv
+```
+
+Use the following command to check if the OIDC issuer is enabled on your AKS cluster.
+
+```bash
+az aks show \
+--resource-group ${RG_NAME} \
+--name ${AKS_NAME} \
+--query "oidcIssuerProfile.enabled" \
+--output tsv
+```
+
+If you need to enable Workload Identity and/or the OIDC issuer, run the following command to enable them on your AKS cluster.
+
+```bash
 --name ${AKS_NAME} \
 --enable-oidc-issuer \
 --enable-workload-identity
 ```
 
-<div class="info" data-title="Note">
+:::note
 
-> This will can take several moments to complete.
+This will can take several moments to complete.
 
-</div>
+:::
 
-After the cluster has been updated, run the following command to get the OIDC Issuer URL, save it to the .env file, and reload the environment variables.
+### Get the OIDC Issuer URL
+
+After the cluster has been updated, run the following command to get the OIDC Issuer URL and save it in an environment variable.
 
 ```bash
-cat <<EOF >> .env
-AKS_OIDC_ISSUER="$(az aks show \
+export AKS_OIDC_ISSUER="$(az aks show \
 --resource-group ${RG_NAME} \
 --name ${AKS_NAME} \
 --query "oidcIssuerProfile.issuerUrl" \
 --output tsv)"
-EOF
-source .env
 ```
 
-### Create a Managed Identity
+## Create a Managed Identity
 
 A Managed Identity is a account (identity) created in Microsoft Entra ID. These identities allows your application to leverage them to use when connecting to resources that support Microsoft Entra authentication. Applications can use managed identities to obtain Microsoft Entra tokens without having to manage any credentials.
 
-Run the following command to set the name of the user-assigned managed identity, save it to the .env file, and reload the environment variables.
+Run the following command to save the name of the user-assigned managed identity to an environment variable.
 
 ```bash
-cat <<EOF >> .env
-USER_ASSIGNED_IDENTITY_NAME="myIdentity"
-EOF
-source .env
+export USER_ASSIGNED_IDENTITY_NAME="myIdentity"
 ```
 
 Run the following command to create a Managed Identity.
@@ -73,30 +106,38 @@ az identity create \
 --location ${LOCATION} \
 ```
 
-You will need several properties of the managed identity for the next steps. Run the following command to capture the details of the managed identity, service account, save it to the .env file, and reload the environment variables.
+You will need several properties of the managed identity for the next steps. Run the following commands to capture the details of the managed identity and save the values as environment variables.
 
 ```bash
-cat <<EOF >> .env
-USER_ASSIGNED_CLIENT_ID="$(az identity show \
+
+export USER_ASSIGNED_CLIENT_ID="$(az identity show \
 --resource-group ${RG_NAME} \
 --name ${USER_ASSIGNED_IDENTITY_NAME} \
---query "clientId" \
 --output tsv)"
-USER_ASSIGNED_PRINCIPAL_ID="$(az identity show \
+export USER_ASSIGNED_PRINCIPAL_ID="$(az identity show \
 --name "${USER_ASSIGNED_IDENTITY_NAME}" \
 --resource-group ${RG_NAME} \
 --query "principalId" \
 --output tsv)"
-SERVICE_ACCOUNT_NAMESPACE="default"
-SERVICE_ACCOUNT_NAME="workload-identity-sa"
-FEDERATED_IDENTITY_CREDENTIAL_NAME="myFedIdentity"
-EOF
-source .env
 ```
 
-### Create a Kubernetes Service Account
+## Create a Kubernetes Service Account
 
 Create a Kubernetes service account and annotate it with the client ID of the managed identity created in the previous step. This annotation is used to associate the managed identity with the service account.
+
+Run the following command to save the name of the service account to an environment variable.
+
+```bash
+export SERVICE_ACCOUNT_NAME="workload-identity-sa"
+```
+
+The service account namespace should be the same as the namespace where your application pods will be deployed. Run the following command to save the name of the service account namespace to an environment variable. In this example, we are using the **default** namespace, but you can change it to any namespace you want.
+
+```bash
+export SERVICE_ACCOUNT_NAMESPACE="default"
+```
+
+Run the following command to create the service account and annotate it with the client ID of the managed identity.
 
 ```bash
 kubectl apply -f - <<EOF
@@ -110,7 +151,13 @@ metadata:
 EOF
 ```
 
-### Create the Federated Identity Credential
+## Create the Federated Identity Credential
+
+Run the following command to save the name of the federated identity credential to an environment variable.
+
+```bash
+export FEDERATED_IDENTITY_CREDENTIAL_NAME="myFedIdentity"
+```
 
 Run the following command to create the federated identity credential which creates a link between the managed identity, the service account issuer, and the subject. For more information about federated identity credentials in Microsoft Entra, see [Overview of federated identity credentials in Microsoft Entra ID](https://learn.microsoft.com/graph/api/resources/federatedidentitycredentials-overview?view=graph-rest-1.0).
 
@@ -124,11 +171,11 @@ az identity federated-credential create \
 --audience api://AzureADTokenExchange
 ```
 
-<div class="info" data-title="Note">
+:::note
 
-> It takes a few seconds for the federated identity credential to propagate after it is added. If a token request is made immediately after adding the federated identity credential, the request might fail until the cache is refreshed. To avoid this issue, you can add a slight delay after adding the federated identity credential.
+It takes a few seconds for the federated identity credential to propagate after it is added. If a token request is made immediately after adding the federated identity credential, the request might fail until the cache is refreshed. To avoid this issue, you can add a slight delay after adding the federated identity credential.
 
-</div>
+:::
 
 Assign the Key Vault Secrets User role to the user-assigned managed identity that you created previously. This step gives the managed identity permission to read secrets from the key vault.
 
@@ -140,9 +187,17 @@ az role assignment create \
 --assignee-principal-type ServicePrincipal
 ```
 
-### Deploy a Sample Application Utilizing Workload Identity
+## Deploy a Sample Application Utilizing Workload Identity
 
-When you deploy your application pods, the manifest should reference the service account created in the Create Kubernetes service account step. The following manifest deploys the **busybox** image and shows how to reference the account, specifically the metadata\namespace and spec\serviceAccountName properties.
+When you deploy your application pods, the manifest should reference the service account created in the Create Kubernetes service account step. The manifest depicted here shows the reference to the service account in the pod template ```spec``` section.
+
+:::warning[Important]
+
+Ensure that the application pods using workload identity include the label **azure.workload.identity/use: "true"** in the pod template ```spec``` section. Otherwise the pods will fail after they are restarted.
+
+:::
+
+Run the following command to deploy a sample application that uses workload identity.
 
 ```bash
 kubectl apply -f - <<EOF
@@ -162,25 +217,9 @@ spec:
 EOF
 ```
 
-<div class="important" data-title="Important">
+## Access Secrets in Azure Key Vault with Workload Identity
 
-> Ensure that the application pods using workload identity include the label **azure.workload.identity/use: "true"** in the pod spec. Otherwise the pods will fail after they are restarted.
-
-</div>
-
-### Access Secrets in Azure Key Vault with Workload Identity
-
-The instructions in this step show how to access secrets, keys, or certificates in an Azure key vault from the pod. The examples in this section configure access to secrets in the key vault for the workload identity, but you can perform similar steps to configure access to keys or certificates.
-
-The following example shows how to use the Azure role-based access control (Azure RBAC) permission model to grant the pod access to the key vault. For more information about the Azure RBAC permission model for Azure Key Vault, see [Grant permission to applications to access an Azure key vault using Azure RBAC](https://learn.microsoft.com/azure/key-vault/general/rbac-guide).
-
-<div class="warning" data-title="Warning">
-
-> At the beginning of this lab, you created an Azure Key Vault and you should have properties of the key vault in the .env file. If you don't have the properties set, go back to the top of the workshop and set the properties.
-
-</div>
-
-Run the following command to create a secret in the key vault.
+Make sure the Azure account you are signed in on has the apprpriate privileges to create secrets in an Azure Key Vault. If so, run the following command to create a secret in the key vault.
 
 ```bash
 az keyvault secret set \
@@ -215,16 +254,29 @@ spec:
 EOF
 ```
 
-To check whether all properties are injected properly by the webhook, use the kubectl describe command:
+To check whether all properties are injected properly, use the ```kubectl describe``` command:
 
 ```bash
-kubectl describe pod sample-workload-identity-key-vault | grep "SECRET_NAME:"
+kubectl describe pod sample-workload-identity-key-vault -n ${SERVICE_ACCOUNT_NAMESPACE} | grep "SECRET_NAME:"
 ```
 
 To verify that pod is able to get a token and access the resource, use the kubectl logs command:
 
 ```bash
-kubectl logs sample-workload-identity-key-vault
+kubectl logs -n ${SERVICE_ACCOUNT_NAMESPACE} sample-workload-identity-key-vault
 ```
 
-Nice work! You have successfully deployed a sample application that utilizes Workload Identity to access a secret in Azure Key Vault. If you thought the process was too complex, you'll be happy to know that the AKS Service Connector is a relatively new feature that simplifies the process of accessing Azure services from your AKS cluster. Using the AKS Service Connector, many of the steps you performed in this exercise are automated. Be sure to check out the [AKS Service Connector documentation](https://learn.microsoft.com/azure/service-connector/how-to-use-service-connector-in-aks) to learn more.
+You have successfully deployed a sample application that utilizes Workload Identity to access a secret in Azure Key Vault.
+
+## Clean Up
+
+To clean up the resources created in this lab, run the following command to delete the resource group and all its contents. If you want to use the resources again, you can skip this step.
+
+```bash
+az group delete \
+--name ${RG_NAME} \
+--yes \
+--no-wait
+```
+
+This will delete the resource group and all its contents, including the AKS cluster, managed identity, and key vault.
