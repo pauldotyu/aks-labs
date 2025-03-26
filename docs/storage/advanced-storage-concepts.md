@@ -36,12 +36,14 @@ Before starting this lab, please make sure that you have provisioned a lab envir
 - [Setting Up the Lab Environment](../getting-started/setting-up-lab-environment.md)
 - [Kubernetes the Easy Way with AKS Automatic](../getting-started/aks-automatic.md)
 
-### Storage Options
+## Storage Options
 
-Azure offers rich set of storage options that can be categorized into two buckets: Block Storage and Shared File Storage. You can choose the best match option based on the workload requirements. The following guidance can facilitate your evaluation:
+Azure offers rich set of storage options that can be categorized into two buckets: Block Storage and Shared File Storage. You can choose the best match option based on the workload requirements.
+
+The following guidance can facilitate your evaluation:
 
 - Select storage category based on the attach mode.
-  Block Storage can be attached to a single node one time (RWO: Read Write Once), while Shared File Storage can be attached to different nodes one time (RWX: Read Write Many). If you need to access the same file from different nodes, you would need Shared File Storage.
+- Block Storage can be attached to a single node one time (RWO: Read Write Once), while Shared File Storage can be attached to different nodes one time (RWX: Read Write Many). If you need to access the same file from different nodes, you would need Shared File Storage.
 - Select a storage option in each category based on characteristics and user cases.
 
   **Block storage category:**
@@ -63,15 +65,15 @@ Azure offers rich set of storage options that can be categorized into two bucket
 - Select performance tier, redundancy type on the storage option.
   See the product page from above table for further evaluation of performance tier, redundancy type or other requirements.
 
-### Orchestration Options
+## Orchestration Options
 
 Besides invoking service REST API to ingest remote storage resources, there are two major ways to use storage options in AKS workloads: CSI (Container Storage Interface) drivers and Azure Container Storage.
 
-#### CSI Drivers
+### CSI Drivers
 
 Container Storage Interface is industry standard that enables storage vendors (SP) to develop a plugin once and have it work across a number of container orchestration systems. It’s widely adopted by both OSS community and major cloud storage vendors. If you already build storage management and operation with CSI drivers, or you plan to build cloud independent k8s cluster setup, it’s the preferred option.
 
-#### Azure Container Storage
+### Azure Container Storage
 
 Azure Container Storage is built on top of CSI drivers to support greater scaling capability with storage pool and unified management experience across local & remote storage. If you want to simplify the use of local NVMe disks, or achieve higher pod scaling target,​ it’s the preferred option.
 
@@ -86,11 +88,11 @@ Storage option support on CSI drivers and Azure Container Storage:
 | [Azure NetApp Files](https://learn.microsoft.com/azure/azure-netapp-files/azure-netapp-files-introduction) | Support([CSI NetApp driver](https://learn.microsoft.com/azure/aks/azure-netapp-files-nfs)) |           N/A           |
 |         [Azure Blobs](https://learn.microsoft.com/azure/storage/blobs/storage-blobs-introduction)          | Support([CSI Blobs driver](https://learn.microsoft.com/azure/aks/azure-blob-csi?tabs=NFS)) |           N/A           |
 
-### Use Azure Container Storage for Replicated Ephemeral NVMe Disk
+## Use Azure Container Storage for Replicated Ephemeral NVMe Disk
 
 Deploy a MySQL Server to mount volumes using local NVMe storage via Azure Container Storage and demonstrate replication and failover of replicated local NVMe storage in Azure Container Storage.
 
-#### Setup Azure Container Storage
+### Setup Azure Container Storage
 
 Follow the below steps to enable Azure Container Storage in an existing AKS cluster
 
@@ -114,7 +116,7 @@ az aks nodepool add \
 --node-count 3
 ```
 
-where the environment variable `RG_NAME` is the set to the name of the resource group in your lab environment and the environment variable `AKS_NAME` is set to the name of the AKS cluster in your lab environment.
+Where the environment variable `RG_NAME` is the set to the name of the resource group in your lab environment and the environment variable `AKS_NAME` is set to the name of the AKS cluster in your lab environment.
 
 :::info
 
@@ -154,7 +156,7 @@ Delete the default storage pool created.
 kubectl delete sp -n acstor ephemeraldisk-nvme
 ```
 
-#### Create a replicated ephemeral storage pool
+### Create a replicated ephemeral storage pool
 
 With Azure Container Storage enabled, storage pools can also be created using Kubernetes CRDs. Run the following command to deploy a new StoragePool custom resource. This will create a new storage class using the storage pool name prefixed with **acstor-**.
 
@@ -179,7 +181,7 @@ Now you should see the new storage class called **acstor-ephemeraldisk-nvme** ha
 kubectl get sc
 ```
 
-#### Deploy a MySQL server using new storage class
+### Deploy a MySQL server using new storage class
 
 This setup is a modified version of [this guide](https://kubernetes.io/docs/tasks/run-application/run-replicated-stateful-application/).
 
@@ -221,7 +223,7 @@ Run the following command to deploy the statefulset for MySQL server.
 kubectl apply -f acstor-mysql-statefulset.yaml
 ```
 
-#### Verify that all the MySQL server's components are available
+### Verify that all the MySQL server's components are available
 
 Run the following command to verify that both mysql services were created (headless one for the statefulset and mysql-read for the reads).
 
@@ -256,7 +258,7 @@ Keep a note of the node on which the **mysql-0** pod is running.
 
 :::
 
-#### Inject data to the MySql database
+### Inject data to the MySql database
 
 Run the following command to run and exec into a mysql client pod to the create a database named **school** and a table **students**. Also, make a few entries in the table to verify persistence.
 
@@ -270,7 +272,7 @@ INSERT INTO school.students VALUES (2, 'Student2');
 EOF
 ```
 
-#### Verify the entries in the MySQL server
+### Verify the entries in the MySQL server
 
 Run the following command to verify the creation of database, table, and entries.
 
@@ -291,7 +293,7 @@ You should see output similar to the following:
 +------------+----------+
 ```
 
-#### Initiate the node failover
+### Initiate the node failover
 
 Now we will simulate a failover scenario by deleting the node on which the `mysql-0` pod is running.
 
@@ -332,7 +334,7 @@ Run the following command to delete the node on which the **mysql-0** pod is run
 kubectl delete node $NODE_NAME
 ```
 
-#### Observe that the mysql pods are running
+### Observe that the mysql pods are running
 
 Run the following command to get the pods and observe that the **mysql-0** pod is running on a different node.
 
@@ -347,9 +349,13 @@ NAME      READY   STATUS    RESTARTS   AGE   IP             NODE                
 mysql-0   2/2     Running   0          3m25s  10.244.3.16   aks-nodepool1-28567125-vmss000002   <none>           <none>
 ```
 
-> You should see that the **mysql-0** pod is now running on a different node than you noted before the failover.
+:::note
 
-#### Verify successful data replication and persistence for MySQL Server
+You should see that the **mysql-0** pod is now running on a different node than you noted before the failover.
+
+:::
+
+### Verify successful data replication and persistence for MySQL Server
 
 Run the following command to verify the mount volume by injecting new data by running the following command.
 
@@ -390,373 +396,14 @@ Congratulations! You successfully created a replicated local NVMe storage pool u
 
 ---
 
-<!--
-## Advanced Security Concepts
-
-Security is a critical aspect of any application deployment and it can cover a wide range of areas. In this lab, we will focus on how to securely access resources in Azure from an AKS cluster using Workload Identity and the Secure Software Supply Chain. Workload Identity allows you to securely access Azure resources from your applications running on AKS without needing to manage credentials. When it comes to secure software supply chain, we will focus on using Notation to sign and verify container images. This will help ensure that the images you deploy are the ones you expect.
--->
-
-## Update and Multi-Cluster Management
-
-Maintaining your AKS cluster's updates is crucial for operational hygiene. Neglecting this can lead to severe issues, including losing support and becoming vulnerable to known CVEs (Common Vulnerabilities and Exposures) attacks. In this section, we will look and examine all tiers of your AKS infrastructure, and discuss and show the procedures and best practices to keep your AKS cluster up-to-date.
-
-### API Server upgrades
-
-AKS is a managed Kubernetes service provided by Azure. Even though AKS is managed, flexibility has been given to customer on controlling the version of the API server they use in their environment. As newer versions of Kubernetes become available, those versions are tested and made available as part of the service. As newer versions are provided, older versions of Kubernetes are phased out of the service and are no longer available to deploy. Staying within the spectrum of supported versions, will ensure you don't compromise support for your AKS cluster.
-
-You have two options for upgrading your AKS API server, you can do manual upgrades at your own designated schedule, or you can configure cluster to subscribe to an auto-upgrade channel. These two options provides you with the flexibility to adopt the most appropriate choice depending on your organizations policies and procedures.
-
-:::note
-
-When you upgrade a supported AKS cluster, you can't skip Kubernetes minor versions. For more information please see [Kubernetes version upgrades](https://learn.microsoft.com/azure/aks/upgrade-aks-cluster?tabs=azure-cli#kubernetes-version-upgrades)
-
-:::
-
-#### Manually Upgrading the API Server and Nodes
-
-The first step in manually upgrading your AKS API server is to view the current version, and the available upgrade versions.
-
-```bash
-az aks get-upgrades \
---resource-group ${RG_NAME} \
---name ${AKS_NAME} \
---output table
-```
-
-We can also, quickly look at the current version of Kubernetes running on the nodes in the nodepools by running the following:
-
-```bash
-kubectl get nodes
-```
-
-We can see all of the nodes in both the system and user node pools are at version **1.29.9** as well.
-
-```text
-NAME                                 STATUS   ROLES    AGE    VERSION
-aks-systempool-14753261-vmss000000   Ready    <none>   123m   v1.29.9
-aks-systempool-14753261-vmss000001   Ready    <none>   123m   v1.29.9
-aks-systempool-14753261-vmss000002   Ready    <none>   123m   v1.29.9
-aks-userpool-27827974-vmss000000     Ready    <none>   95m    v1.29.9
-```
-
-Run the following command to upgrade the current cluster API server, and the Kubernetes version running on the nodes, from version **1.29.9** to version **1.30.5**.
-
-```bash
-az aks upgrade \
---resource-group ${RG_NAME} \
---name ${AKS_NAME} \
---kubernetes-version "1.30.5"
-```
-
-:::note
-
-The az aks upgrade command has the ability to separate the upgrade operation to specify just the control plane and/or the node version. In this lab we will run the command that will upgrade both the control plan and nodes at the same time.
-
-:::
-
-Follow the prompts to confirm the upgrade operation. Once the AKS API version has been completed on both the control plane and nodes, you will see a completion message with the updated Kubernetes version shown.
-
-#### Setting up the auto-upgrade channel for the API Server and Nodes
-
-A more preferred method for upgrading your AKS API server and nodes is to configure the cluster auto-upgrade channel for your AKS cluster. This feature allow you a "set it and forget it" mechanism that yields tangible time and operational cost benefits. By enabling auto-upgrade, you can ensure your clusters are up to date and don't miss the latest features or patches from AKS and upstream Kubernetes.
-
-There are several auto-upgrade channels you can subscribe your AKS cluster to. Those channels include **none**, **patch**, **stable**, and **rapid**. Each channel provides a different upgrade experience depending on how you would like to keep your AKS clusters upgraded. For a more detailed explanation of each channel, please view the [cluster auto-upgrade channels](https://learn.microsoft.com/azure/aks/auto-upgrade-cluster?tabs=azure-cli#cluster-auto-upgrade-channels) table.
-
-For this lab demonstration, we will configure the AKS cluster to subscribe to the **patch** channel. The patch channel will automatically upgrades the cluster to the latest supported patch version when it becomes available while keeping the minor version the same.
-
-Run the following command to set the auto-upgrade channel.
-
-```bash
-az aks update \
---resource-group ${RG_NAME} \
---name ${AKS_NAME} \
---auto-upgrade-channel patch
-```
-
-Once the auto-upgrade channel subscription has been enabled for your cluster, you will see the **upgradeChannel** property updated to the chosen channel in the output.
-
-:::important
-
-Configuring your AKS cluster to an auto-upgrade channel can have impact on the availability of workloads running on your cluster. Please review the additional options available to [Customize node surge upgrade](https://learn.microsoft.com/azure/aks/upgrade-aks-cluster?tabs=azure-cli#customize-node-surge-upgrade).
-
-:::
-
-### Node image updates
-
-In addition to you being able to upgrade the Kubernetes API versions of both your control plan and nodepool nodes, you can also upgrade the operating system (OS) image of the VMs for your AKS cluster. AKSregularly provides new node images, so it's beneficial to upgrade your node images frequently to use the latest AKS features. Linux node images are updated weekly, and Windows node images are updated monthly.
-
-Upgrading node images is critical to not only ensuring the latest Kubernetes API functionality will be available from the OS, but also to ensure that the nodes in your AKS cluster have the latest security and CVE patches to prevent any vulnerabilities in your environment.
-
-#### Manually Upgrading AKS Node Image
-
-When planning to manually upgrade your AKS cluster, it's good practice to view the available images.
-
-Run the following command to view the available images for your the system node pool.
-
-```bash
-az aks nodepool get-upgrades \
---resource-group ${RG_NAME} \
---cluster-name ${AKS_NAME} \
---nodepool-name systempool
-```
-
-The command output shows the **latestNodeImageVersion** available for the nodepool.
-
-Check the current node image version for the system node pool by running the following command.
-
-```bash
-az aks nodepool show \
---resource-group ${RG_NAME} \
---cluster-name ${AKS_NAME} \
---name systempool \
---query "nodeImageVersion"
-```
-
-In this particular case, the system node pool image is the most recent image available as it matches the latest image version available, so there is no need to do an upgrade operation for the node image. If you needed to upgrade your node image, you can run the following command which will update all the node images for all node pools connected to your cluster.
-
-```bash
-az aks upgrade \
---resource-group ${RG_NAME} \
---cluster-name ${AKS_NAME} \
---node-image-only
-```
-
-### Maintenance windows
-
-Maintenance windows provides you with the predictability to know when maintenance from Kubernetes API updates and/or node OS image updates will occur. The use of maintenance windows can help align to your current organizational operational policies concerning when services are expected to not be available.
-
-There are currently three configuration schedules for maintenance windows, **default**, **aksManagedAutoUpgradeSchedule**, and **aksManagedNodeOSUpgradeSchedule**. For more specific information on these configurations, please see [Schedule configuration types for planned maintenance](https://learn.microsoft.com/azure/aks/planned-maintenance?tabs=azure-cli#schedule-configuration-types-for-planned-maintenance).
-
-It is recommended to use **aksManagedAutoUpgradeSchedule** for all cluster upgrade scenarios and aksManagedNodeOSUpgradeSchedule for all node OS security patching scenarios.
-
-:::note
-
-The default option is meant exclusively for AKS weekly releases. You can switch the default configuration to the **aksManagedAutoUpgradeSchedule** or **aksManagedNodeOSUpgradeSchedule** configuration by using the `az aks maintenanceconfiguration update` command.
-
-:::
-
-When creating a maintenance window, it is good practice to see if any existing maintenance windows have already been configured. Checking to see if existing maintenance windows exists will avoid any conflicts when applying the setting. To check for the maintenance windows on an existing AKS cluster, run the following command:
-
-```bash
-az aks maintenanceconfiguration list \
---resource-group ${RG_NAME} \
---cluster-name ${AKS_NAME}
-```
-
-If you receive **[]** as output, this means no maintenance windows exists for the AKS cluster specified.
-
-#### Adding an AKS Cluster Maintenance Windows
-
-Maintenance window configuration is highly configurable to meet the scheduling needs of your organization. For an in-depth understanding of all the properties available for configuration, please see the [Create a maintenance window](https://learn.microsoft.com/azure/aks/planned-maintenance?tabs=azure-cli#create-a-maintenance-window) guide.
-
-The following command will create a **default** configuration that schedules maintenance to run from 1:00 AM to 2:00 AM every Sunday.
-
-```bash
-az aks maintenanceconfiguration add \
---resource-group ${RG_NAME} \
---cluster-name ${AKS_NAME} \
---name default \
---weekday Sunday \
---start-hour 1
-```
-
-### Managing Multiple AKS Clusters with Azure Fleet
-
-Azure Kubernetes Fleet Manager (Fleet) enables at-scale management of multiple Azure Kubernetes Service (AKS) clusters. Fleet supports the following scenarios:
-
-- Create a Fleet resource and join AKS clusters across regions and subscriptions as member clusters
-- Orchestrate Kubernetes version upgrades and node image upgrades across multiple clusters by using update runs, stages, and groups
-- Automatically trigger version upgrades when new Kubernetes or node image versions are published (preview)
-- Create Kubernetes resource objects on the Fleet resource's hub cluster and control their propagation to member clusters
-- Export and import services between member clusters, and load balance incoming layer-4 traffic across service endpoints on multiple clusters (preview)
-
-For this section of the lab we will focus on two AKS Fleet Manager features, creating a fleet and joining member clusters, and propagating resources from a hub cluster to a member clusters.
-
-You can find and learn about additional AKS Fleet Manager concepts and functionality on the [Azure Kubernetes Fleet Manager](https://learn.microsoft.com/azure/kubernetes-fleet/) documentation page.
-
-#### Create Additional AKS Cluster
-
-:::note
-
-If you already have an additional AKS cluster, in addition to your original lab AKS cluster, you can skip this section.
-
-:::
-
-To understand how AKS Fleet Manager can help manage multiple AKS clusters, we will need to create an additional AKS cluster to join as a member cluster. The following commands and instructions will deploy an additional AKS cluster into the same Azure resource group as your existing AKS cluster. For this lab purposes, it is not necessary to deploy the additional cluster in a region and/or subscription to show the benefits of AKS Fleet Manager.
-
-Run the following command to create a new environment variable for the name of the additional AKS cluster.
-
-```bash
-AKS_NAME_2="${AKS_NAME}-2"
-```
-
-Run the following command to create a new AKS cluster.
-
-```bash
-az aks create \
---resource-group ${RG_NAME} \
---name ${AKS_NAME_2} \
---no-wait
-```
-
-This command will take a few minutes to complete. You can proceed with the next steps while the command is running.
-
-#### Create and configure Access for a Kubernetes Fleet Resource with Hub Cluster
-
-Since this lab will be using AKS Fleet Manager for Kubernetes object propagation, you will need to create the Fleet resource with the hub cluster enabled by specifying the --enable-hub parameter with the az fleet create command. The hub cluster will orchestrate and manage the Fleet member clusters. We will add the lab's original AKS cluster and the newly created additional cluster as a member of the Fleet group in a later step.
-
-In order to use the AKS Fleet Manager extension, you will need to install the extension. Run the following command to install the AKS Fleet Manager extension.
-
-```bash
-az extension add --name fleet
-```
-
-Run the following command to create new environment variables for the Fleet resource name and reload the environment variables.
-
-```bash
-FLEET_NAME="myfleet${RANDOM}"
-```
-
-Next run the following command to create the Fleet resource with the hub cluster enabled.
-
-```bash
-FLEET_ID="$(az fleet create \
---resource-group ${RG_NAME} \
---name ${FLEET_NAME} \
---location ${LOCATION} \
---enable-hub \
---query id \
---output tsv)"
-```
-
-Once the Kubernetes Fleet hub cluster has been created, we will need to gather the credential information to access it. This is similar to using the `az aks get-credentials` command on an AKS cluster. Run the following command to get the Fleet hub cluster credentials.
-
-```bash
-az fleet get-credentials \
---resource-group ${RG_NAME} \
---name ${FLEET_NAME}
-```
-
-Now that you have the credential information merged to your local Kubernetes config file, we will need to configure and authorize Azure role access for your account to access the Kubernetes API for the Fleet resource.
-
-Once we have all of the terminal environment variables set, we can run the command to add the Azure account to be a **Azure Kubernetes Fleet Manager RBAC Cluster Admin** role on the Fleet resource.
-
-```bash
-az role assignment create \
---role "Azure Kubernetes Fleet Manager RBAC Cluster Admin" \
---assignee ${USER_ID} \
---scope ${FLEET_ID}
-```
-
-#### Joining Existing AKS Cluster to the Fleet
-
-Now that we have our Fleet hub cluster created, along with the necessary Fleet API access, we're now ready to join our AKS clusters to Fleet as member servers. To join AKS clusters to Fleet, we will need the Azure subscription path to each AKS object. To get the subscription path to your AKS clusters, you can run the following commands.
-
-```bash
-AKS_FLEET_CLUSTER_1_NAME="$(echo ${AKS_NAME} | tr '[:upper:]' '[:lower:]')"
-AKS_FLEET_CLUSTER_2_NAME="$(echo ${AKS_NAME_2} | tr '[:upper:]' '[:lower:]')"
-AKS_FLEET_CLUSTER_1_ID="$(az aks show --resource-group ${RG_NAME} --name ${AKS_FLEET_CLUSTER_1_NAME} --query "id" --output tsv)"
-AKS_FLEET_CLUSTER_2_ID="$(az aks show --resource-group ${RG_NAME} --name ${AKS_FLEET_CLUSTER_2_NAME} --query "id" --output tsv)"
-```
-
-Run the following command to join both AKS clusters to the Fleet.
-
-```bash
-# add first AKS cluster to the Fleet
-az fleet member create \
---resource-group ${RG_NAME} \
---fleet-name ${FLEET_NAME} \
---name ${AKS_FLEET_CLUSTER_1_NAME} \
---member-cluster-id ${AKS_FLEET_CLUSTER_1_ID}
-
-# add the second AKS cluster to the Fleet
-az fleet member create \
---resource-group ${RG_NAME} \
---fleet-name ${FLEET_NAME} \
---name ${AKS_FLEET_CLUSTER_2_NAME} \
---member-cluster-id ${AKS_FLEET_CLUSTER_2_ID}
-```
-
-Run the following command to verify both AKS clusters have been added to the Fleet.
-
-```bash
-kubectl get memberclusters
-```
-
-#### Propagate Resources from a Hub Cluster to Member Clusters
-
-The ClusterResourcePlacement API object is used to propagate resources from a hub cluster to member clusters. The ClusterResourcePlacement API object specifies the resources to propagate and the placement policy to use when selecting member clusters. The ClusterResourcePlacement API object is created in the hub cluster and is used to propagate resources to member clusters. This example demonstrates how to propagate a namespace to member clusters using the ClusterResourcePlacement API object with a PickAll placement policy.
-
-:::important
-
-Before running the following commands, make sure your `kubectl conifg` has the Fleet hub cluster as it's current context. To check your current context, run the `kubectl config current-context` command. You should see the output as **hub**. If the output is not **hub**, please run `kubectl config set-context hub`.
-
-:::
-
-Run the following command to create a namespace to place onto the member clusters.
-
-```bash
-kubectl create namespace my-fleet-ns
-```
-
-Run the following command to create a ClusterResourcePlacement API object in the hub cluster to propagate the namespace to the member clusters.
-
-```bash
-kubectl apply -f - <<EOF
-apiVersion: placement.kubernetes-fleet.io/v1beta1
-kind: ClusterResourcePlacement
-metadata:
-  name: my-lab-crp
-spec:
-  resourceSelectors:
-    - group: ""
-      kind: Namespace
-      version: v1
-      name: my-fleet-ns
-  policy:
-    placementType: PickAll
-EOF
-```
-
-Check the progress of the resource propagation using the following command.
-
-```bash
-kubectl get clusterresourceplacement my-lab-crp
-```
-
-View the details of the ClusterResourcePlacement object using the following command.
-
-```bash
-kubectl describe clusterresourceplacement my-lab-crp
-```
-
-Now if you switch your context to one of the member clusters, you should see the namespace **my-fleet-ns** has been propagated to the member cluster.
-
-```bash
-kubectl config set-context ${AKS_FLEET_CLUSTER_1_NAME}
-```
-
-You should see the namespace **my-fleet-ns** in the list of namespaces.
-
-This is a simple example of how you can use AKS Fleet Manager to manage multiple AKS clusters. There are many more features and capabilities that AKS Fleet Manager provides to help manage and operate multiple AKS clusters. For more information on AKS Fleet Manager, see the [Azure Kubernetes Fleet Manager](https://learn.microsoft.com/azure/kubernetes-fleet/) documentation.
-
----
-
-<!--
 ## Summary
 
-Congratulations! If you've completed all the exercises in this lab, you are well on your way to becoming an Azure Kubernetes Service (AKS) expert. You've learned how to create an AKS cluster, deploy applications, configure networking, and secure your cluster. You've also learned how to monitor your AKS cluster, manage updates, and even manage multiple AKS clusters with Azure Kubernetes Fleet Manager. Hopefully, you've gained a better understanding of how to manage and operate AKS clusters in a production environment.
+In this workshop, you explored advanced storage options in Azure Kubernetes Service (AKS), covering both Block Storage (Azure Disks, Elastic SAN, Local Disks) and Shared File Storage solutions (Azure Files, NetApp Files, Blobs). You learned how different orchestration methods like CSI drivers and Azure Container Storage can be leveraged depending on your requirements.
 
-The cloud is always evolving, and so is AKS. It's important to stay up-to-date with the latest features and best practices. The Azure Kubernetes Service (AKS) documentation is a great resource to learn more about AKS and stay up-to-date with the latest features and best practices. You can find the AKS documentation [here](https://learn.microsoft.com/azure/aks/) as well as the links listed below.
--->
+Through hands-on exercises, you successfully deployed a MySQL database using replicated local NVMe storage via Azure Container Storage. You demonstrated real-world resilience by simulating node failure and verifying data persistence across failover events - a critical capability for production workloads.
 
-### Additional Resources
+For more information, check out these resources:
 
-- [Cluster operator and developer best practices to build and manage applications on Azure Kubernetes Service (AKS)](https://learn.microsoft.com/azure/aks/best-practices)
-- [AKS baseline architecture](https://learn.microsoft.com/azure/architecture/reference-architectures/containers/aks/baseline-aks)
-- [AKS baseline for multi-region clusters](https://learn.microsoft.com/azure/architecture/reference-architectures/containers/aks-multi-region/aks-multi-cluster)
-- [Create a private Azure Kubernetes Service (AKS) cluster](https://learn.microsoft.com/azure/aks/private-clusters?tabs=default-basic-networking%2Cazure-portal)
-- [Configure Azure CNI Powered by Cilium in Azure Kubernetes Service (AKS)](https://learn.microsoft.com/azure/aks/azure-cni-powered-by-cilium)
-- [Set up Advanced Network Observability for Azure Kubernetes Service (AKS)](https://learn.microsoft.com/azure/aks/advanced-network-observability-cli?tabs=cilium)
-- [Install Azure Container Storage for use with Azure Kubernetes Service](https://learn.microsoft.com/azure/storage/container-storage/install-container-storage-aks)
-- [Kubernetes resource propagation from hub cluster to member clusters](https://learn.microsoft.com/azure/kubernetes-fleet/concepts-resource-propagation)
+- [Azure Container Storage Introduction](https://learn.microsoft.com/azure/storage/container-storage/container-storage-introduction)
+- [Azure Storage Introduction](https://learn.microsoft.com/azure/storage/common/storage-introduction)
+- [AKS Storage Best Practices](https://learn.microsoft.com/azure/aks/operator-best-practices-storage)
