@@ -669,7 +669,7 @@ Click in the text editor or press **Alt + I** to open the Copilot editor.
 In the **Draft with Copilot** text box, type in the following prompt:
 
 ```text
-Help me create a vertical pod autoscaler manifest for the contoso-air deployment in the dev namespace and set min and max cpu and memory to something typical for a nodejs app. Ensure the values for both requests and limits are set.
+Help me create a vertical pod autoscaler manifest for the contoso-air deployment in the dev namespace and set min and max cpu and memory to something typical for a nodejs app. Please apply the values for both requests and limits.
 ```
 
 Press **Enter** to generate the VPA manifest.
