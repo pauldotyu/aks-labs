@@ -669,7 +669,7 @@ Click in the text editor or press **Alt + I** to open the Copilot editor.
 In the **Draft with Copilot** text box, type in the following prompt:
 
 ```text
-Help me create a vertical pod autoscaler manifest for the contoso-air deployment in the dev namespace and set min and max cpu and memory to something typical for a nodejs app. Ensure the values for both requests and limits are set.
+Help me create a vertical pod autoscaler manifest for the contoso-air deployment in the dev namespace and set min and max cpu and memory to something typical for a nodejs app. Please apply the values for both requests and limits.
 ```
 
 Press **Enter** to generate the VPA manifest.
@@ -778,7 +778,7 @@ This will generate some traffic to the application for 30 seconds. You should se
 
 In this workshop, you learned how to create an AKS Automatic cluster and deploy an application to the cluster using Automated Deployments. From there, you learned how to troubleshoot application issues using the Azure portal and how to integrate applications with Azure services using the AKS Service Connector. You also learned how to enable application monitoring with AutoInstrumentation using Azure Monitor Application Insights, which provides deep visibility into your application's performance without requiring any code changes. Additionally, you explored how to configure your applications for resource specific scaling using the Vertical Pod Autoscaler (VPA) and scaling your applications with KEDA. Hopefully, you now have a better understanding of how easy it can be to build and deploy applications on AKS Automatic.
 
-To learn more about AKS Automatic, visit the [AKS documentation](https://learn.microsoft.com/azure/aks/intro-aks-automatic).
+To learn more about AKS Automatic, visit the [AKS documentation](https://learn.microsoft.com/azure/aks/intro-aks-automatic) and checkout our other [AKS Automatic](/docs/operations/operating-aks-automatic) lab in this repo to explore more features of AKS.
 
 In addition to this workshop, you can also explore the following resources:
 
