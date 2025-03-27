@@ -475,11 +475,21 @@ With this feature enabled, you can now deploy a new Instrumentation custom resou
 Before proceeding, retrieve the Application Insights connection string from your Azure deployment by running the command below and saving the result to an environment variable.
 
 ```bash
-APPLICATION_INSIGHTS_CONNECTION_STRING=$(az deployment group show \
---resource-group ${RG_NAME} \
---name ${DEPLOY_NAME} \
---query "properties.outputs.appInsightsConnectionString.value" -o tsv)
+APPLICATION_INSIGHTS_CONNECTION_STRING=$(az monitor app-insights component show \
+-g ${RG_NAME} \
+--query "[0].connectionString" \
+-o tsv)
 ```
+
+:::tip
+
+If you don't have `app-insights` available in your Azure CLI, you can install the extension by running the following command:
+
+```bash
+az extension add --name application-insights
+```
+
+:::
 
 Connect to the AKS cluster by running the following command.
 
