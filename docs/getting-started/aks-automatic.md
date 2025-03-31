@@ -171,7 +171,7 @@ You're now ready to deploy the sample application to your AKS cluster.
 
 ### Automated Deployments setup
 
-In the Azure portal ([https://portal.azure.com](https://portal.azure.com)) type **Kubernetes services** in the search box at the top of the page and click the **Kubernetes services** option from the search results.
+In the [Azure portal](https://portal.azure.com/) type **Kubernetes services** in the search box at the top of the page and click the **Kubernetes services** option from the search results.
 
 ![Kubernetes services](./assets/aks-automatic/aks-search.png)
 
@@ -452,7 +452,6 @@ Now, you can also enable the [Azure Monitor Application Insights for AKS](https:
 
 At the time of this writing, the AutoInstrumentation feature is in public preview. Please refer to the [official documentation](https://learn.microsoft.com/azure/azure-monitor/app/kubernetes-codeless#register-the-azuremonitorappmonitoringpreview-feature-flag) for the most up-to-date information.
 
-
 :::
 
 You can enable the feature on your AKS cluster with the following command.
@@ -464,9 +463,13 @@ az aks update \
 --enable-azure-monitor-app-monitoring
 ```
 
-:::note
+:::tip
 
-This can take a few minutes to complete.
+Using the `--enable-azure-monitor-app-monitoring` flag for AKS requires the `aks-preview` extension installed for Azure CLI. Run the following command to install it:
+
+```bash
+az extension add --name aks-preview
+```
 
 :::
 
