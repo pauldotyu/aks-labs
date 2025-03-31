@@ -171,7 +171,7 @@ You're now ready to deploy the sample application to your AKS cluster.
 
 ### Automated Deployments setup
 
-In the Azure portal ([https://portal.azure.com](https://portal.azure.com)) type **Kubernetes services** in the search box at the top of the page and click the **Kubernetes services** option from the search results.
+In the [Azure portal](https://portal.azure.com/?feature.canmodifystamps=true&Microsoft_Azure_ContainerService=stage2#home) type **Kubernetes services** in the search box at the top of the page and click the **Kubernetes services** option from the search results.
 
 ![Kubernetes services](./assets/aks-automatic/aks-search.png)
 
