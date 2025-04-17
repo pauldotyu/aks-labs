@@ -394,7 +394,7 @@ Think of it as a recursive GitOps pattern: your Argo CD app deploys other Argo C
 1. Create a new cluster using Argo CD
 
 ```bash
-kubectl apply -f ../gitops/clusters/clusters-argo-applicationset.yaml
+kubectl apply -f https://raw.githubusercontent.com/dcasati/aks-platform-engineering/refs/heads/main/gitops/clusters/clusters-argo-applicationset.yaml
 ```
 
 2. Get the credentials for the new cluster
