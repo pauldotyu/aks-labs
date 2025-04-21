@@ -75,7 +75,8 @@ This workshop uses the [GitOps Bridge Pattern](https://github.com/gitops-bridge-
   ```bash
   az aks get-credentials \
     --name ${AKS_CLUSTER_NAME} \
-    --resource-group ${RESOURCE_GROUP}
+    --resource-group ${RESOURCE_GROUP} \
+    --file aks-platform.config
   ```
 
 ### Step 2: Install ArgoCD
@@ -111,7 +112,7 @@ This workshop uses the [GitOps Bridge Pattern](https://github.com/gitops-bridge-
 1. Retrieve ArgoCD admin password and server IP
 
   ```bash
-  kubectl get secrets argocd-initial-admin-secret -n argocd --template="{{index .data.password | base64decode}}"
+  kubectl get secrets argocd-initial-admin-secret -n argocd --template="{{index .data.password | base64decode}}" ; echo
   kubectl get svc -n argocd argocd-server
   ```
 
@@ -207,9 +208,22 @@ EOF
 
 3. Bootstrap the Argo CD applications in the cluster:
 
-  ```bash
+ ```bash
   kubectl apply -f https://raw.githubusercontent.com/dcasati/aks-platform-engineering/refs/heads/main/terraform/bootstrap/addons.yaml
   ```
+
+  Here is a summary of the applications installed by Argo CD in the cluster:
+
+  Application Name | Purpose
+  | -| - 
+  cluster-addons | A general-purpose application for deploying shared or foundational cluster components (e.g., networking, storage, observability, etc.). Often used as a parent or umbrella app.
+  addon-aks-labs-gitops-argo-cd | Installs and manages the Argo CD GitOps controller that syncs desired state from Git repositories to Kubernetes clusters.
+  addon-aks-labs-gitops-argo-events | Argo Events, used to trigger workflows based on external events (webhooks, schedules, etc.). Useful for event-driven automation.
+  addon-aks-labs-gitops-argo-rollouts | Argo Rollouts, a Kubernetes controller for progressive delivery strategies like blue/green, canary, and experimentation.
+  addon-aks-labs-gitops-argo-workflows | Argo Workflows, a Kubernetes-native workflow engine for orchestrating  CI/CD pipelines.
+  addon-aks-labs-gitops-cert-manager | Installs cert-manager, a controller that automatically provisions and renews TLS certificates (e.g., from Let’s Encrypt).
+  addon-aks-labs-gitops-kargo | Deploys Kargo, an Argo ecosystem project for automating promotion of container images across environments based on predefined policies.
+  
 
 4. Verify cert-manager
 
@@ -272,7 +286,7 @@ We now need to create an user-assigned managed identity for CAPZ. Here we will d
 
 * Creates two federated identity credentials
 
-* Generates a identity.yaml manifest with `${CLIENT_ID}` and `${TENANT_ID}` references
+* Generates a identity.yaml manifest with `${AZURE_CLIENT_ID}` and `${AZURE_TENANT_ID}` references
 
 * Applies the manifest via `kubectl`
 
@@ -295,7 +309,7 @@ We now need to create an user-assigned managed identity for CAPZ. Here we will d
 2. Fetch the identity and subscription
 
   ```bash
-  export CLIENT_ID=$(az identity show \
+  export AZURE_CLIENT_ID=$(az identity show \
     --name "${MANAGED_IDENTITY_NAME}" \
     --resource-group "${RESOURCE_GROUP}" \
     --query "clientId" -o tsv)
@@ -305,17 +319,17 @@ We now need to create an user-assigned managed identity for CAPZ. Here we will d
     --resource-group "${RESOURCE_GROUP}" \
     --query "principalId" -o tsv)
 
-  export SUBSCRIPTION_ID=$(az account show --query id -o tsv)
-  export TENANT_ID=$(az account show --query tenantId -o tsv)
+  export AZURE_SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+  export AZURE_TENANT_ID=$(az account show --query tenantId -o tsv)
   ```
 
 3. Patch the `aks-labs-gitops` secret:
 
   ```bash
   kubectl -n argocd annotate secret aks-labs-gitops \
-    akspe_identity_id="${CLIENT_ID}" \
-    tenant_id="${TENANT_ID}" \
-    subscription_id="${SUBSCRIPTION_ID}" \
+    akspe_identity_id="${AZURE_CLIENT_ID}" \
+    tenant_id="${AZURE_TENANT_ID}" \
+    subscription_id="${AZURE_SUBSCRIPTION_ID}" \
     --overwrite
   ```
 
@@ -325,7 +339,7 @@ We now need to create an user-assigned managed identity for CAPZ. Here we will d
   az role assignment create \
     --assignee "${PRINCIPAL_ID}" \
     --role "Owner" \
-    --scope "/subscriptions/${SUBSCRIPTION_ID}"
+    --scope "/subscriptions/${AZURE_SUBSCRIPTION_ID}"
   ```
 
 5. Creating federated identity credential: aks-labs-capz-manager-credential
@@ -369,8 +383,8 @@ metadata:
   namespace: azure-infrastructure-system
 spec:
   allowedNamespaces: {}
-  clientID: ${CLIENT_ID}
-  tenantID: ${TENANT_ID}
+  clientID: ${AZURE_CLIENT_ID}
+  tenantID: ${AZURE_TENANT_ID}
   type: WorkloadIdentity
 EOF
 ```
@@ -380,6 +394,30 @@ EOF
   ```bash
   kubectl apply -f identity.yaml
   ```
+
+
+**TODO:**
+
+It looks like the CAPI operator might need some feature flags enabled. I need to look into that. I had to patch the deployment which isn't ideal:
+
+```bash 
+ kubectl -n azure-infrastructure-system patch deployment capz-controller-manager   --type=json   -p='[{
+    "op": "replace",
+    "path": "/spec/template/spec/containers/0/args",
+    "value": [
+      "--leader-elect",
+      "--diagnostics-address=:8443",
+      "--insecure-diagnostics=false",
+      "--feature-gates=MachinePool=true,AKSResourceHealth=false,EdgeZone=false,ASOAPI=true",
+      "--v=0"
+    ]
+  }]'
+ 
+ kubectl -n azure-infrastructure-system rollout restart deployment capz-controller-manager
+ kubectl -n capi-system  rollout restart deployment capi-controller-manager
+```
+
+**TODO**
 
 ---
 
@@ -435,11 +473,11 @@ Once deployed, you should now see a new application in your `aks1` cluster:
 
 ## Summary
 
-Here's what you’ve accomplished so far:
+In this lab, we accomplished the following:
 
-- Created the AKS control plane cluster and ACR using Azure CLI
-- Installed Argo CD and accessed the web UI
-- Bootstrapped the environment with GitOps
-- Installed CAPZ and ASO to support infrastructure provisioning
-- Created a workload cluster using Argo CD
-- Deployed an application (AKS Store Demo) to the workload cluster using Argo CD by leveraging the App of Apps pattern.
+- Created the AKS control plane cluster and Azure Container Registry (ACR) using the Azure CLI.
+- Installed Argo CD and accessed its web UI.
+- Bootstrapped the environment using GitOps principles.
+- Installed Cluster API Provider for Azure (CAPZ) and Azure Service Operator (ASO) to enable infrastructure provisioning.
+- Provisioned a workload cluster using Argo CD.
+- Deployed the `AKS Store Demo` application to the workload cluster via Argo CD, using the _App of Apps_ pattern.
