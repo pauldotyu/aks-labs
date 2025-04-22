@@ -208,8 +208,46 @@ EOF
 
 3. Bootstrap the Argo CD applications in the cluster:
 
- ```bash
-  kubectl apply -f https://raw.githubusercontent.com/dcasati/aks-platform-engineering/refs/heads/main/terraform/bootstrap/addons.yaml
+```bash
+cat <<EOF > bootstrap-addons.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: cluster-addons
+  namespace: argocd
+spec:
+  syncPolicy:
+    preserveResourcesOnDeletion: true
+  generators:
+    - clusters:
+        selector:
+          matchExpressions:
+            - key: akuity.io/argo-cd-cluster-name
+              operator: NotIn
+              values: [in-cluster]
+  template:
+    metadata:
+      name: cluster-addons
+    spec:
+      project: default
+      source:
+        repoURL: '{{metadata.annotations.addons_repo_url}}'
+        path: '{{metadata.annotations.addons_repo_basepath}}{{metadata.annotations.addons_repo_path}}'
+        targetRevision: '{{metadata.annotations.addons_repo_revision}}'
+        directory:
+          recurse: true
+          exclude: exclude/*
+      destination:
+        namespace: 'argocd'
+        name: '{{name}}'
+      syncPolicy:
+        automated: {}
+EOF
+  ```
+
+  Apply it:
+  ```bash
+  kubectl apply -f bootstrap-addons.yaml
   ```
 
   Here is a summary of the applications installed by Argo CD in the cluster:
@@ -251,6 +289,42 @@ Click on `Applications` and verify that the statuses of the Argo CD applications
 ## Step 3: Install Cluster API Provider for Azure (CAPZ)
 
 This section walks you through installing **Cluster API Provider for Azure (CAPZ)** and preparing your environment for provisioning AKS clusters using GitOps workflows.
+1. Generate a `values` file for the capi-operator:
+
+```bash
+cat <<EOF > capi-operator-values.yaml
+core: "cluster-api:v1.8.4"
+infrastructure: "azure:v1.17.0"
+addon: "helm:v0.2.5"
+providers:
+  infrastructure:
+    azure:
+      namespace: azure-infrastructure-system
+      manager:
+        featureGates:
+          MachinePool: true
+      annotations:
+        helm.sh/hook: post-install,post-upgrade
+        helm.sh/hook-weight: "5"
+manager:
+  featureGates:
+    core:
+      ClusterTopology: true
+      MachinePool: true
+    azure:
+      MachinePool: true
+      ASOAPI: true
+      ClusterResourceSet: true
+      ClusterTopology: true
+additionalDeployments:
+  azureserviceoperator-controller-manager:
+    deployment:
+      containers:
+        - name: manager
+          args:
+            --crd-pattern: "documentdb.azure.com/*;managedidentity.azure.com/*;keyvault.azure.com/*"
+EOF
+```
 
 2. Install the Cluster API Operator
 
@@ -259,12 +333,7 @@ This section walks you through installing **Cluster API Provider for Azure (CAPZ
   helm repo update
   helm install capi-operator capi-operator/cluster-api-operator \
     --create-namespace -n capi-operator-system \
-    --set manager.featureGates.core.MachinePool="true" \
-    --set manager.featureGates.azure.MachinePool="true" \
-    --set manager.featureGates.azure.ASOAPI="true" \
-    --set manager.featureGates.azure.ClusterResourceSet="true" \
-    --set manager.featureGates.azure.ClusterTopology="true" \
-    -f https://raw.githubusercontent.com/dcasati/aks-platform-engineering/refs/heads/main/gitops/environments/default/addons/cluster-api-provider-azure/values.yaml
+    -f capi-operator-values.yaml
   ```
 
 3. Verify the `CAPZ` Installation
@@ -414,7 +483,44 @@ Think of it as a recursive GitOps pattern: your Argo CD app deploys other Argo C
 1. Create the cluster:
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/dcasati/aks-platform-engineering/refs/heads/main/gitops/clusters/clusters-argo-applicationset.yaml
+cat <<EOF > clusters-argo-applicationset.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: clusters
+  namespace: argocd
+spec:
+  syncPolicy:
+    preserveResourcesOnDeletion: true
+  generators:
+  - clusters:
+      selector:
+        matchLabels:
+          environment: control-plane
+  template:
+    metadata:
+      name: clusters
+    spec:
+      project: default
+      source:
+        repoURL: '{{metadata.annotations.addons_repo_url}}'
+        targetRevision: '{{metadata.annotations.addons_repo_revision}}'
+        path: 'gitops/clusters/{{metadata.annotations.infrastructure_provider}}'
+      destination:
+        name: '{{name}}'
+        namespace: workload
+      syncPolicy:
+        retry:
+          limit: 10
+        automated: {}
+        syncOptions:
+          - CreateNamespace=true
+EOF
+```
+Apply it:
+
+```bash
+kubectl apply -f clusters-argo-applicationset.yaml
 ```
 
 2. Get the credentials for the new cluster
@@ -570,7 +676,7 @@ EOF
 
 In this lab, we accomplished the following:
 
-- Created the AKS control plane cluster and Azure Container Registry (ACR) using the Azure CLI.
+- Created the AKS control plane cluster using the Azure CLI.
 - Installed Argo CD and accessed its web UI.
 - Bootstrapped the environment using GitOps principles.
 - Installed Cluster API Provider for Azure (CAPZ) and Azure Service Operator (ASO) to enable infrastructure provisioning.
