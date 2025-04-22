@@ -307,7 +307,7 @@ Before we enable continuous patching, let's inspect the imported image to see wh
 1. Install the Preview ACR Extension for ACR Continuous Patching. When prompted for confirmation, confirm the installation by typing in `y` and pressing Enter.
 
     ```bash
-    az extension add --source https://acrcssc.z5.web.core.windows.net/acrcssc-1.1.1rc11-py3-none-any.whl
+az extension add --source https://acrcssc.z5.web.core.windows.net/debug/acrcssc-1.0.0b2-py3-none-any.whl
     ```
 
 2. Create the ACR Continuous Patching configuration file:
