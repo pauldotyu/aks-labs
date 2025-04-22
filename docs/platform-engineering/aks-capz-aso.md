@@ -429,7 +429,9 @@ This parent application acts as the single source of truth that bootstraps other
 
 Think of it as a recursive GitOps pattern: your Argo CD app deploys other Argo CD apps.
 
-1. Create a new cluster using Argo CD
+### Sample: Create a new cluster as an Argo CD Application Set
+
+1. Create the cluster:
 
 ```bash
 kubectl apply -f https://raw.githubusercontent.com/dcasati/aks-platform-engineering/refs/heads/main/gitops/clusters/clusters-argo-applicationset.yaml
@@ -468,6 +470,119 @@ EOF
 Once deployed, you should now see a new application in your `aks1` cluster:
 
 ![aks pet store](assets/aks-store-demo.png)
+
+### Sample: Create a new cluster using ASOv2 (Azure Service Operator)
+
+In this sample, we will create an AKS cluster based on an Azure Service Operator definition. In this file, we will be creating an Azure Resource Group and an AKS cluster. The structure of the Git repo containing the ASO files is the following:
+
+```bash
+samples/
+└──> resourcegroup/
+    └──> rg.yaml  <-- contains your ResourceGroup manifest
+    clusters/
+    └──> cluster.yaml <-- contains the ManagedCluster manifest
+```
+
+Here is how the `cluster.yaml` file looks like:
+
+```yaml
+apiVersion: resources.azure.com/v1api20200601
+kind: ResourceGroup
+metadata:
+  name: rg-cluster-aso
+  namespace: default
+  annotations:
+    serviceoperator.azure.com/credential-from: aso-credentials
+spec:
+  location: westus3
+---
+apiVersion: containerservice.azure.com/v1api20231102preview
+kind: ManagedCluster
+metadata:
+  name: sample-managedcluster-20231102preview
+  namespace: default
+  annotations:
+    serviceoperator.azure.com/credential-from: aso-credentials
+spec:
+  location: westus3
+  sku:
+    name: Base
+    tier: Standard
+  metricsProfile:
+    costAnalysis:
+      enabled: true
+  owner:
+    name: rg-cluster-aso
+  dnsPrefix: aso
+  agentPoolProfiles:
+    - name: pool1
+      count: 1
+      vmSize: Standard_DS2_v2
+      osType: Linux
+      mode: System
+  identity:
+    type: SystemAssigned
+```
+
+Before we can use ASO for this, we have to create a secret in our cluster for the operator to use later on when performing tasks on Azure. We will be using our previously created workload identity for this. 
+
+:::note
+From now on, when creating resources with ASOv2, we need to include the following annotation:
+
+```bash 
+  annotations:
+    serviceoperator.azure.com/credential-from: aso-credentials
+```
+
+:::
+
+```bash
+cat <<EOF  > aso-credentials.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+ name: aso-credentials
+ namespace: default
+stringData:
+ AZURE_SUBSCRIPTION_ID: "$AZURE_SUBSCRIPTION_ID"
+ AZURE_TENANT_ID: "$AZURE_TENANT_ID"
+ AZURE_CLIENT_ID: "$AZURE_CLIENT_ID"
+ USE_WORKLOAD_IDENTITY_AUTH: "true"
+EOF
+
+kubectl apply -f aso-credentials.yaml
+```
+
+1. Create the new ManagedCluster
+
+```bash
+kubectl apply -f - <<EOF
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: aso-aks
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  source:
+    repoURL: https://github.com/dcasati/capz-aso-samples.git
+    targetRevision: main
+    path: samples/aks/
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+EOF
+```
+
+2. Verify the creation of the cluster
+
+![ASO Cluster](assets/aso-cluster.png)
 
 ---
 
