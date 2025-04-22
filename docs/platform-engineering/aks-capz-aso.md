@@ -559,68 +559,9 @@ Once deployed, you should now see a new application in your `aks1` cluster:
 
 ### Sample: Create a new cluster using ASOv2 (Azure Service Operator)
 
-In this sample, we will create an AKS cluster based on an Azure Service Operator definition. In this file, we will be creating an Azure Resource Group and an AKS cluster. The structure of the Git repo containing the ASO files is the following:
+In this sample, we will create an AKS cluster based on an Azure Service Operator definition.  Before we can use ASO for this, we have to create a secret in our cluster for the operator to use later on when performing tasks on Azure. We will be using our previously created workload identity for this. 
 
-```bash
-samples/
-└──> resourcegroup/
-    └──> rg.yaml  <-- contains your ResourceGroup manifest
-    clusters/
-    └──> cluster.yaml <-- contains the ManagedCluster manifest
-```
-
-Here is how the `cluster.yaml` file looks like:
-
-```yaml
-apiVersion: resources.azure.com/v1api20200601
-kind: ResourceGroup
-metadata:
-  name: rg-cluster-aso
-  namespace: default
-  annotations:
-    serviceoperator.azure.com/credential-from: aso-credentials
-spec:
-  location: westus3
----
-apiVersion: containerservice.azure.com/v1api20231102preview
-kind: ManagedCluster
-metadata:
-  name: sample-managedcluster-20231102preview
-  namespace: default
-  annotations:
-    serviceoperator.azure.com/credential-from: aso-credentials
-spec:
-  location: westus3
-  sku:
-    name: Base
-    tier: Standard
-  metricsProfile:
-    costAnalysis:
-      enabled: true
-  owner:
-    name: rg-cluster-aso
-  dnsPrefix: aso
-  agentPoolProfiles:
-    - name: pool1
-      count: 1
-      vmSize: Standard_DS2_v2
-      osType: Linux
-      mode: System
-  identity:
-    type: SystemAssigned
-```
-
-Before we can use ASO for this, we have to create a secret in our cluster for the operator to use later on when performing tasks on Azure. We will be using our previously created workload identity for this. 
-
-:::note
-From now on, when creating resources with ASOv2, we need to include the following annotation:
-
-```bash 
-  annotations:
-    serviceoperator.azure.com/credential-from: aso-credentials
-```
-
-:::
+1. Create the aso-credentials secret:
 
 ```bash
 cat <<EOF  > aso-credentials.yaml
@@ -635,11 +576,15 @@ stringData:
  AZURE_CLIENT_ID: "$AZURE_CLIENT_ID"
  USE_WORKLOAD_IDENTITY_AUTH: "true"
 EOF
+```
 
+2. Apply it:
+
+```bash
 kubectl apply -f aso-credentials.yaml
 ```
 
-1. Create the new ManagedCluster
+3. Create the new ManagedCluster
 
 ```bash
 kubectl apply -f - <<EOF
@@ -666,9 +611,34 @@ spec:
 EOF
 ```
 
-2. Verify the creation of the cluster
+4. Verify the creation of the cluster
 
 ![ASO Cluster](assets/aso-cluster.png)
+
+## Creating new ASOv2 resources
+
+To create other resources using ASOv2, you can follow the structure of the Git repo for this sample:
+
+```bash
+samples/
+└──> resourcegroup/
+    └──> rg.yaml  <-- contains your ResourceGroup manifest
+    clusters/
+    └──> cluster.yaml <-- contains the ManagedCluster manifest
+```
+
+:::note
+From now on, when creating resources with ASOv2, we need to include the following annotation:
+
+```bash 
+  annotations:
+    serviceoperator.azure.com/credential-from: aso-credentials
+```
+:::
+
+Here is how the `cluster.yaml` manifest. Notice the inclusion of the `serviceoperator.azure.com/credential-from: aso-credentials` annotation:
+
+![ASO Annotation](assets/aso-annotation.png)
 
 ---
 
