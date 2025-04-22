@@ -259,7 +259,11 @@ This section walks you through installing **Cluster API Provider for Azure (CAPZ
   helm repo update
   helm install capi-operator capi-operator/cluster-api-operator \
     --create-namespace -n capi-operator-system \
-    --wait --timeout 300s \
+    --set manager.featureGates.core.MachinePool="true" \
+    --set manager.featureGates.azure.MachinePool="true" \
+    --set manager.featureGates.azure.ASOAPI="true" \
+    --set manager.featureGates.azure.ClusterResourceSet="true" \
+    --set manager.featureGates.azure.ClusterTopology="true" \
     -f https://raw.githubusercontent.com/dcasati/aks-platform-engineering/refs/heads/main/gitops/environments/default/addons/cluster-api-provider-azure/values.yaml
   ```
 
@@ -394,30 +398,6 @@ EOF
   ```bash
   kubectl apply -f identity.yaml
   ```
-
-
-**TODO:**
-
-It looks like the CAPI operator might need some feature flags enabled. I need to look into that. I had to patch the deployment which isn't ideal:
-
-```bash 
- kubectl -n azure-infrastructure-system patch deployment capz-controller-manager   --type=json   -p='[{
-    "op": "replace",
-    "path": "/spec/template/spec/containers/0/args",
-    "value": [
-      "--leader-elect",
-      "--diagnostics-address=:8443",
-      "--insecure-diagnostics=false",
-      "--feature-gates=MachinePool=true,AKSResourceHealth=false,EdgeZone=false,ASOAPI=true",
-      "--v=0"
-    ]
-  }]'
- 
- kubectl -n azure-infrastructure-system rollout restart deployment capz-controller-manager
- kubectl -n capi-system  rollout restart deployment capi-controller-manager
-```
-
-**TODO**
 
 ---
 
