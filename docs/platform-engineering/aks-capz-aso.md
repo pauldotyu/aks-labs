@@ -682,3 +682,4 @@ In this lab, we accomplished the following:
 - Installed Cluster API Provider for Azure (CAPZ) and Azure Service Operator (ASO) to enable infrastructure provisioning.
 - Provisioned a workload cluster using Argo CD.
 - Deployed the `AKS Store Demo` application to the workload cluster via Argo CD, using the _App of Apps_ pattern.
+- Created an AKS cluster using a manifest based on ASOv2
