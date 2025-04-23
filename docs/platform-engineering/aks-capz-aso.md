@@ -162,7 +162,7 @@ metadata:
     enable_argocd: "true"
     enable_azure_crossplane_upbound_provider: "false"
     enable_cert_manager: "true"
-    enable_cluster_api_operator: "true"
+    enable_cluster_api_operator: "false"
     enable_cluster_proportional_autoscaler: "false"
     enable_crossplane: "false"
     enable_crossplane_helm_provider: "false"
