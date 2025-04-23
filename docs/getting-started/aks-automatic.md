@@ -3,7 +3,7 @@ sidebar_position: 2
 title: Kubernetes the Easy Way with AKS Automatic
 ---
 
-This workshop will show you how easy it is to deploy and configure applications with AKS Automatic. AKS Automatic is a new way to deploy and manage Kubernetes clusters on Azure. It is a fully managed Kubernetes service that simplifies the deployment, management, and operations of Kubernetes clusters. With AKS Automatic, you can deploy a Kubernetes cluster with just a few clicks in the Azure Portal. AKS Automatic is designed to be simple and easy to use, so you can focus on building and deploying your applications.
+This workshop will show you how easy it is to deploy applications to AKS Automatic. AKS Automatic is a new way to deploy and manage Kubernetes clusters on Azure. It is a fully managed Kubernetes service that simplifies the deployment, management, and operations of Kubernetes clusters. With AKS Automatic, you can deploy a Kubernetes cluster with just a few clicks in the Azure Portal, and it is designed to be simple and easy to use, so you can focus on building your applications!
 
 ---
 
@@ -14,6 +14,7 @@ After completing this workshop, you will be able to:
 - Deploy an application to an AKS Automatic cluster
 - Troubleshoot application issues
 - Integrate applications with Azure services
+  - Optional: Use Microsoft Authentication Library (MSAL) to implement passwordless authentication with Azure CosmosDB
 - Scale your cluster and applications
 - Observe your cluster and applications
 
@@ -58,6 +59,21 @@ Change into the `contoso-air` directory.
 cd contoso-air
 ```
 
+> [!alert]
+> If you want to walkthrough the coding exercise to implement the passwordless authentication with Azure CosmosDB, you will need to take code from the `msbuild_lab342` branch. You can do this by running the following commands:
+
+```bash
+git reset --hard origin/msbuild_lab342
+git push --force
+```
+
+Also, make sure to set the user name and email address for Git. This will be required to commit changes to your GitHub repository.
+
+```bash
+git config user.name "your_name"
+git config user.email "your_email_address"
+```
+
 Set the default repository to your forked repository.
 
 ```bash
@@ -79,6 +95,9 @@ In the upper left portion of the screen, click the **+ Create** button to view a
 ![Deploy application with Automated Deployment](./assets/aks-automatic/deploy-app.png)
 
 In the **Basics** tab, click on the **Deploy your application** option, then select your Azure subscription and the resource group you created during the lab environment setup.
+
+> [!alert]
+> Make a note of the location that the resources are deployed to in your pre-provisioned resource group as you should use the same location for your AKS cluster.
 
 ![Automated Deployment basics](./assets/aks-automatic/deploy-app-basics.png)
 
@@ -146,7 +165,6 @@ When ready, click the **Deploy** button to start the deployment.
 > [!alert]
 > This process can take up to 20 minutes to complete. Do not close the browser window or navigate away from the page until the deployment is complete.
 
-
 ### Review the pull request
 
 Once the deployment is complete, click on the **Approve pull request** button to view the pull request to be taken to the pull request page in your GitHub repository.
@@ -206,7 +224,7 @@ You will see some available flight options. Scroll to the bottom of the page and
 
 ![Contoso Air flight options](./assets/aks-automatic/contoso-air-flights.png)
 
-The application will either redirect you back to the login page or show a connection failure. What happened? 🤔
+The application will either redirect you back to the login page or show an error message. What happened? 🤔
 
 Let's find out...
 
@@ -245,6 +263,94 @@ This error occurred because the application is trying to connect to an Azure Cos
 > [!hint]
 > Workload Identity is the recommended way to authenticate with Azure services from your applications running on AKS. It is more secure than using service principals and does not require you to manage credentials in your application. To read more about the implementation of Workload Identity for Kubernetes, see [this doc](https://azure.github.io/azure-workload-identity/docs/).
 
+### Use Microsoft Authentication Library (MSAL) to implement passwordless authentication
+
+> [!alert]
+> If you opted to implement the passwordless authentication with Azure CosmosDB when you forked and cloned the repository, you will need to follow the instructions below to implement the functionality for Service Connector to work. Otherwise, you can skip this section and continue to the next section.
+
+Open the repo using Visual Studio Code (VSCode) then navigate to **/src/web/repositories** and open the **index.js** file. This is where the BookRepository class is instantiated and the connection information to the Azure CosmosDB database is configured.
+
+> [!knowledge]
+> Notice the names of the environment variables (e.g., **AZURE_COSMOS_LISTCONNECTIONSTRINGURL**, **AZURE_COSMOS_SCOPE**, and **AZURE_COSMOS_CLIENTID**) that are used to configure the connection to the Azure CosmosDB database. These environment variables will be set by the Service Connector when it is created.
+
+Let's implement the passwordless authentication with Azure CosmosDB using the Microsoft Authentication Library (MSAL) for JavaScript.
+
+In the VSCode terminal, run the following command to install the necessary dependencies.
+
+> [!alert]
+> Make sure to run this command in the **/src/web** directory. This is where the **package.json** file is located.
+
+```bash
+cd src/web
+npm install @azure/identity axios
+```
+
+Open the **/src/web/repositories/book.repository.js** file and add the following code to the top of the file:
+
+```javascript
+const { DefaultAzureCredential } = require("@azure/identity");
+const axios = require("axios");
+```
+
+Next, find the **BookRepository** class constructor and add the following code to the top of the constructor (before the **initialize** function):
+
+```javascript
+const { listConnectionStringUrl, scope, clientId } = options;
+let accessToken;
+let connectionString;
+```
+
+Finally, replace the code in **initialize** function with the following:
+
+```javascript
+// Get the access token for the managed identity
+const credential = new DefaultAzureCredential({
+  managedIdentityClientId: clientId,
+});
+accessToken = await credential.getToken(scope);
+
+// Get the connection string using the access token
+const config = {
+  method: "post",
+  url: listConnectionStringUrl,
+  headers: {
+    Authorization: `Bearer ${accessToken.token}`,
+  },
+};
+const response = await axios(config);
+const keysDict = response.data;
+connectionString = keysDict["connectionStrings"][0]["connectionString"];
+
+// Connect to the MongoDB server using the connection string
+mongoose.connect(connectionString, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
+mongoose.Promise = global.Promise;
+
+console.log("Connected to the database");
+```
+
+This code will use the **DefaultAzureCredential** class from the MSAL library to get the access token for the managed identity which is identified by the **clientId**. It will then use the access token and make a request to the **listConnectionStringUrl** endpoint to get the connection string for the Azure CosmosDB database.
+
+> [!knowledge]
+> Azure CosmosDB with MongoDB API does not natively support the Microsoft Entra ID authentication with Azure RBAC. Instead, it requires a connection string to connect to the database. However, the **listConnectionStringUrl** endpoint is a special endpoint that allows you to get the connection string for the Azure CosmosDB database using the access token.
+
+With the connection string retrieved, it will be passed to the **mongoose.connect** method to connect to the Azure CosmosDB database.
+
+Be sure to save the changes to the file, then commit and push the changes to your GitHub repository using VSCode. If you are using the integrated terminal, you can run the following commands to commit and push the changes.
+
+```bash
+git pull
+git add .
+git commit -m "feat: passwordless authentication for azure cosmosdb"
+git push
+```
+
+With the GitHub Actions workflow set up, the changes will be automatically deployed to your AKS cluster. You can view the deployment logs by clicking on the **Actions** tab in your GitHub repository.
+
+While that is deploying, let's set up the Service Connector to connect the application to the Azure CosmosDB database.
+
 ### Service Connector setup
 
 In the left-hand menu, click on **Service Connector** under **Settings** then click on the **+ Create** button.
@@ -268,7 +374,7 @@ In the **Authentication** tab, select the **Workload Identity** option. You shou
 ![AKS service connector authentication](./assets/aks-automatic/service-connector-auth.png)
 
 > [!hint]
-> Optionally, you can expand the **Advanced** section to customize the managed identity settings. By default, the **DocumentDB Account Contributor** role is assigned, granting permissions to read, write, and delete resources in the CosmosDB account. This role enables the workload identity to properly authenticate and interact with your database.
+> Optionally, you can expand the **Advanced** section to customize the managed identity settings. By default, the **DocumentDB Account Contributor** role is assigned, granting permissions to read, write, and delete resources in the CosmosDB account. This role enables the workload identity to properly authenticate and interact with your database. You'll also notice there's additional configuration information that Service Connector will set as environment variables in the application. These variables will be saved to a Kubernetes Secret which will then be used to configure the connection to the Azure CosmosDB database.
 
 Click **Next: Networking** then click **Next: Review + create** and finally click **Create**.
 
@@ -276,6 +382,7 @@ Click **Next: Networking** then click **Next: Review + create** and finally clic
 
 > [!knowledge]
 > This process will take a few minutes while Service Connector configures the Workload Identity infrastructure. Behind the scenes, it's:
+>
 > - Assigning appropriate Azure role permissions to the [managed identity](https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/overview) for CosmosDB access
 > - Creating a [Federated Credential](https://learn.microsoft.com/entra/workload-id/workload-identity-federation) that establishes trust between your Kubernetes cluster and the managed identity
 > - Setting up a Kubernetes [ServiceAccount](https://kubernetes.io/docs/concepts/security/service-accounts/) linked to the managed identity
@@ -322,16 +429,24 @@ Now, you can also enable the [Azure Monitor Application Insights for AKS](https:
 
 [Azure Monitor Application Insights](https://learn.microsoft.com/azure/azure-monitor/app/app-insights-overview) is an Application Performance Management (APM) solution designed for real-time monitoring and observability of your applications. Leveraging [OpenTelemetry (OTel)](https://opentelemetry.io/), it collects telemetry data from your applications and streams it to Azure Monitor. This enables you to evaluate application performance, monitor usage trends, pinpoint bottlenecks, and gain actionable insights into application behavior. With AKS, you can enable the [AutoInstrumentation](https://learn.microsoft.com/azure/azure-monitor/app/kubernetes-codeless) feature which allows you to collect telemetry for your applications without requiring any code changes.
 
-
 > [!alert]
 > At the time of this writing, the AutoInstrumentation feature is in public preview. Please refer to the [official documentation](https://learn.microsoft.com/azure/azure-monitor/app/kubernetes-codeless#register-the-azuremonitorappmonitoringpreview-feature-flag) for the most up-to-date information.
 
-You can enable the feature on your AKS cluster with the following command.
+You can enable the feature on your AKS cluster with the following command:
+
+Before you run the command below, make sure you are logged into Azure CLI and have variables set for the resource group name and AKS cluster name.
+
+```bash
+RG_NAME=myresourcegroup
+AKS_NAME=$(az aks list -g $RG_NAME --query "[0].name" -o tsv)
+```
+
+With the variables set, run the following command to enable the AutoInstrumentation feature on your AKS cluster.
 
 ```bash
 az aks update \
 -g ${RG_NAME} \
--n myakscluster \
+-n ${AKS_NAME} \
 --enable-azure-monitor-app-monitoring
 ```
 
@@ -344,7 +459,7 @@ az extension add --name aks-preview
 
 With this feature enabled, you can now deploy a new Instrumentation custom resource to your AKS cluster to automatically instrument your applications without any modifications to the code.
 
-Before proceeding, retrieve the Application Insights connection string from your Azure deployment by running the command below and saving the result to an environment variable.
+Before proceeding, retrieve the Application Insights connection string from your Azure deployment by running the command below and saving the result to an environment variable:
 
 ```bash
 APPLICATION_INSIGHTS_CONNECTION_STRING=$(az monitor app-insights component show \
@@ -363,7 +478,7 @@ az extension add --name application-insights
 Connect to the AKS cluster by running the following command.
 
 ```bash
-az aks get-credentials -g ${RG_NAME} -n myakscluster
+az aks get-credentials -g ${RG_NAME} -n ${AKS_NAME}
 ```
 
 Now, you can deploy the Instrumentation custom resource to the AKS cluster.
@@ -387,7 +502,7 @@ EOF
 This will deploy the Instrumentation custom resource called `default` and instrument all Node.js applications running in the `dev` namespace.
 
 > [!note]
-> With Microsoft Entra ID authentication with Azure RBAC in place, you will be asked to login to your Azure account.
+> AKS Automatic clusters are secured using Microsoft Entra ID and Azure RBAC, so you will be prompted to log in to your Azure account. Follow the instructions in the terminal to complete the login process.
 
 Now you need to restart the application pods to apply the changes. Run the following command to restart the application pods.
 
@@ -410,7 +525,7 @@ Navigate to the **Application Insights** resource in your resource group.
 
 ![Application Insights resource](./assets/aks-automatic/app-insights.png)
 
-Click on the **Application map** in the left-hand menu to view a high-level overview of the application components, their dependencies, and number of calls. 
+Click on the **Application map** under **Investigate** in the left-hand menu to view a high-level overview of the application components, their dependencies, and number of calls.
 
 > [!hint]
 > If the MongoDB does not appear in the application map, return to the Contoso Air website and book a flight to generate some data. Then, in the Application Map, click the **Refresh** button. The map will update in real time and should now display the MongoDB database connected to the application, along with the request latency to the database.
@@ -453,7 +568,6 @@ With Container Insights enabled, you can query logs using Kusto Query Language (
 > The workbook visuals will include a query button that you can click to view the KQL query that powers the visual. This is a great way to learn how to write your own queries.
 
 Refer back to the earlier step where we troubleshot the Contoso Air app using the **Logs** section in the left-hand menu. Here, you can create custom KQL queries or use pre-configured ones to analyze logs from your cluster and applications. The **Queries hub** offers a variety of pre-configured queries—simply navigate to the **Container Logs** table in the left-hand menu under **All Queries**, choose a query, and click **Run** to view the results.
-
 
 > [!note]
 > Some of the queries might not have enough data to return results.
@@ -539,7 +653,7 @@ When the VPA manifest is generated, click the **Accept all** button to accept th
 
 ![VPA manifest](./assets/aks-automatic/custom-resources-vpa-add.png)
 
-> [+alert] 
+> [+alert]
 > Microsoft Copilot in Azure may provide different results. If your results are different, simply copy the following VPA manifest and paste it into the **Apply with YAML** editor.
 > <br>
 > ```yaml
@@ -567,7 +681,7 @@ When the VPA manifest is generated, click the **Accept all** button to accept th
 >         controlledResources: ["cpu", "memory"]
 > ```
 
-> [!hint]
+> [!knowledge]
 > The VPA resource will only update the CPU and memory requests and limits for the pods in the deployment if the number of replicas is greater than 1. Also the pod will be restarted when the VPA resource updates the pod configuration so it is important to create [Pod Disruption Budgets (PDBs)](https://kubernetes.io/docs/concepts/workloads/pods/disruptions/#pod-disruption-budgets) to ensure that the pods are not restarted all at once.
 
 ### KEDA scaler setup
@@ -599,16 +713,15 @@ Click **Save and create** to create the ScaledObject resource.
 
 Head over to the **Workloads** section in the left-hand menu under **Kubernetes resources**. In the **Filter by namespace** drop down list, select **dev**. You should see the **contoso-air** deployment is now running (or starting) 3 replicas.
 
-> [!note]
-> Now that the number of replicas has been increased, the VPA resource will be able to adjust the CPU and memory requests and limits for the pods in the deployment based on the actual resource utilization of the pods the next time it reconciles.
+Now that the number of replicas has been increased, the VPA resource will be able to adjust the CPU and memory requests and limits for the pods in the deployment based on the actual resource utilization of the pods the next time it reconciles.
 
-> [!hint]
+> [!knowledge]
 > This was a simple example of using using KEDA. The real power of KEDA comes from its ability to scale your application based on external metrics. There are many [scalers](https://keda.sh/docs/scalers/) available for KEDA that you can use to scale your application based on a variety of external metrics.
 
 If you have time, try to run a simple load test to see the scaling in action. You can use the [hey](https://github.com/rakyll/hey) tool to generate some traffic to the application.
 
 > [!note]
-> If you don't have the `hey` tool installed, checkout the [installation guide](https://github.com/rakyll/hey?tab=readme-ov-file#installation) and follow the instructions based on your operating system.
+> If you don't have the **hey** tool installed, checkout the [installation guide](https://github.com/rakyll/hey?tab=readme-ov-file#installation) and follow the instructions based on your operating system.
 
 Run the following command to generate some traffic to the application:
 
