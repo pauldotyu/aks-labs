@@ -42,51 +42,150 @@ This workshop uses the [GitOps Bridge Pattern](https://github.com/gitops-bridge-
 
 :::
 
-## Step 1: Create the AKS cluster
+### Step 1: Create the AKS cluster
 
-  ```bash
-  RESOURCE_GROUP="rg-aks-platform"
-  LOCATION="westus3"
-  AKS_CLUSTER_NAME="aks-platform"
-  ```
+```bash
+# Environment variables
+export AZURE_SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+export AZURE_TENANT_ID=$(az account show --query tenantId -o tsv)
+
+# AKS
+export AKS_CLUSTER_NAME="aks-labs"
+export RESOURCE_GROUP="rg-aks-labs"
+export LOCATION="westus3"
+export MANAGED_IDENTITY_NAME="akspe"
+
+# Argo CD
+export GITOPS_ADDONS_ORG="https://github.com/dcasati"
+export GITOPS_ADDONS_REPO="gitops"
+export GITOPS_ADDONS_BASEPATH="base/"
+export GITOPS_ADDONS_PATH="bootstrap/control-plane/addons"
+export GITOPS_ADDONS_REVISION="main"
+```
 
 1. Create the resource group
 
-  ```bash
-  # Create resource group
-  az group create --name ${RESOURCE_GROUP} --location ${LOCATION}
-  ```
+```bash
+# Create resource group
+az group create --name ${RESOURCE_GROUP} --location ${LOCATION}
+```
 
 2. Create the AKS cluster:
 
-  ```bash
-  az aks create \
-    --name ${AKS_CLUSTER_NAME} \
-    --resource-group ${RESOURCE_GROUP} \
-    --enable-managed-identity \
-    --node-count 3 \
-    --generate-ssh-keys \
-    --enable-oidc-issuer \
-    --enable-workload-identity
-  ```
+```bash
+az aks create \
+  --name ${AKS_CLUSTER_NAME} \
+  --resource-group ${RESOURCE_GROUP} \
+  --enable-managed-identity \
+  --node-count 3 \
+  --generate-ssh-keys \
+  --enable-oidc-issuer \
+  --enable-workload-identity
+```
 
 3. Get the credentials to access the cluster:
 
-  ```bash
-  az aks get-credentials \
-    --name ${AKS_CLUSTER_NAME} \
-    --resource-group ${RESOURCE_GROUP} \
-    --file aks-platform.config
+```bash
+az aks get-credentials \
+  --name ${AKS_CLUSTER_NAME} \
+  --resource-group ${RESOURCE_GROUP} \
+  --file aks-platform.config
   ```
 
-### Step 2: Install ArgoCD
+### Step 2: Create create an user-assigned managed identity for CAPZ
+
+In this step, we will do the following:
+
+* Create a user-assigned managed identity for CAPZ
+
+* Assign it the `Owner` role
+
+* Create two federated identity credentials: `aks-labs-capz-manager-credential` and serviceoperator`
+
+1. Create a user-assigned identity:
+
+  ```bash
+  export AKS_OIDC_ISSUER_URL=$(az aks show \
+    --resource-group ${RESOURCE_GROUP} \
+    --name ${AKS_CLUSTER_NAME} \
+    --query "oidcIssuerProfile.issuerUrl" \
+    -o tsv)
+  export MANAGED_IDENTITY_NAME="akspe"
+
+  az identity create \
+    --name "${MANAGED_IDENTITY_NAME}" \
+    --resource-group "${RESOURCE_GROUP}" \
+    --location "${LOCATION}"
+  ```
+
+2. Fetch the identity and subscription
+
+  ```bash
+  export AZURE_CLIENT_ID=$(az identity show \
+    --name "${MANAGED_IDENTITY_NAME}" \
+    --resource-group "${RESOURCE_GROUP}" \
+    --query "clientId" -o tsv)
+
+  export PRINCIPAL_ID=$(az identity show \
+    --name "${MANAGED_IDENTITY_NAME}" \
+    --resource-group "${RESOURCE_GROUP}" \
+    --query "principalId" -o tsv)
+
+  export AZURE_SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+  export AZURE_TENANT_ID=$(az account show --query tenantId -o tsv)
+  ```
+
+3. Patch the `aks-labs-gitops` secret:
+
+  ```bash
+  kubectl -n argocd annotate secret aks-labs-gitops \
+    akspe_identity_id="${AZURE_CLIENT_ID}" \
+    tenant_id="${AZURE_TENANT_ID}" \
+    subscription_id="${AZURE_SUBSCRIPTION_ID}" \
+    --overwrite
+  ```
+
+4. Assigning 'Owner' role to the identity
+
+  ```bash
+  az role assignment create \
+    --assignee "${PRINCIPAL_ID}" \
+    --role "Owner" \
+    --scope "/subscriptions/${AZURE_SUBSCRIPTION_ID}"
+  ```
+
+5. Creating federated identity credential: aks-labs-capz-manager-credential
+
+  ```bash
+  az identity federated-credential create \
+    --name "aks-labs-capz-manager-credential" \
+    --identity-name "${MANAGED_IDENTITY_NAME}" \
+    --resource-group "${RESOURCE_GROUP}" \
+    --issuer "${AKS_OIDC_ISSUER_URL}" \
+    --subject "system:serviceaccount:azure-infrastructure-system:capz-manager" \
+    --audiences "api://AzureADTokenExchange"
+  ```
+
+6. Creating federated identity credential: serviceoperator
+
+  ```bash
+  az identity federated-credential create \
+    --name "serviceoperator" \
+    --identity-name "${MANAGED_IDENTITY_NAME}" \
+    --resource-group "${RESOURCE_GROUP}" \
+    --issuer "${AKS_OIDC_ISSUER_URL}" \
+    --subject "system:serviceaccount:azure-infrastructure-system:azureserviceoperator-default" \
+    --audiences "api://AzureADTokenExchange"
+  ```
+
+### Step 3: Install ArgoCD
 
 1. Create a namespace for Argo CD and install it on the cluster:
 
-  ```bash
-  kubectl create namespace argocd
-  kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-  ```
+```bash
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+```
 
 2. Verify that the Argo CD pods are up and running:
 
@@ -107,7 +206,7 @@ This workshop uses the [GitOps Bridge Pattern](https://github.com/gitops-bridge-
   argocd-server-xxxxx                     1/1     Running
   ```
 
-## Step 2: Access ArgoCD UI
+### Step 4: Access ArgoCD UI
 
 1. Retrieve ArgoCD admin password and server IP
 
@@ -130,19 +229,11 @@ After you successfully login, you should see the Argo CD Applications - which at
 
 ![Argo CD Applications](assets/argoCD-InitialUI.png)
 
-## Step 3: Bootstrap the cluster addons using Argo CD
+### Step 5: Bootstrap the cluster addons using Argo CD
 
 1. Export the environment variables for your environment: 
 
 ```bash
-# Environment variables
-export GITOPS_ADDONS_ORG="https://github.com/dcasati"
-export GITOPS_ADDONS_REPO="aks-platform-engineering"
-export GITOPS_ADDONS_BASEPATH="gitops/"
-export GITOPS_ADDONS_PATH="bootstrap/control-plane/addons"
-export GITOPS_ADDONS_REVISION="main"
-export AKS_CLUSTER_NAME="aks-platform"
-
 # Create the secret manifest
 cat <<EOF > aks-labs-gitops.yaml
 apiVersion: v1
@@ -187,6 +278,9 @@ metadata:
     cluster_name: ${AKS_CLUSTER_NAME}
     environment: control-plane
     infrastructure_provider: capz
+    akspe_identity_id: "${AZURE_CLIENT_ID}"
+    tenant_id: "${AZURE_TENANT_ID}"
+    subscription_id: "${AZURE_SUBSCRIPTION_ID}"
 type: Opaque
 stringData:
   name: aks-labs-gitops
@@ -268,7 +362,7 @@ EOF
 In the next step we will install the `Cluster API Provider for Azure (CAPZ)`, that requires `cert-manager`. Argo CD should've have installed `cert-manager` during the previous step so we are just confirming it's running:
 
   ```bash
-  kubectl get pods -n cert-manager
+kubectl wait --for=condition=Ready pod --all -n cert-manager --timeout=300s
   ```
   Expect:
 
@@ -278,7 +372,6 @@ In the next step we will install the `Cluster API Provider for Azure (CAPZ)`, th
   cert-manager-cainjector-xxxxxxxxxx-xxxxx   1/1     Running
   cert-manager-webhook-xxxxxxxxx-xxxxx       1/1     Running
   ```
----
 
 5. You should now have all of the bootstrap applications deployed.
 
@@ -286,43 +379,35 @@ Click on `Applications` and verify that the statuses of the Argo CD applications
 
 ![Argo CD Applications](assets/argoCD-Applications.png)
 
-## Step 3: Install Cluster API Provider for Azure (CAPZ)
+### Step 6: Install Cluster API Provider for Azure (CAPZ)
 
 This section walks you through installing **Cluster API Provider for Azure (CAPZ)** and preparing your environment for provisioning AKS clusters using GitOps workflows.
+
 1. Generate a `values` file for the capi-operator:
 
 ```bash
 cat <<EOF > capi-operator-values.yaml
-core: "cluster-api:v1.8.4"
-infrastructure: "azure:v1.17.0"
-addon: "helm:v0.2.5"
-providers:
-  infrastructure:
-    azure:
-      namespace: azure-infrastructure-system
-      manager:
-        featureGates:
-          MachinePool: true
-      annotations:
-        helm.sh/hook: post-install,post-upgrade
-        helm.sh/hook-weight: "5"
+core:
+  cluster-api:
+    version: v1.8.4
+infrastructure:
+  azure:
+    version: v1.17.0
+addon:
+  helm:
+    version: v0.2.5
 manager:
   featureGates:
     core:
       ClusterTopology: true
       MachinePool: true
-    azure:
-      MachinePool: true
-      ASOAPI: true
-      ClusterResourceSet: true
-      ClusterTopology: true
 additionalDeployments:
   azureserviceoperator-controller-manager:
     deployment:
       containers:
         - name: manager
           args:
-            --crd-pattern: "documentdb.azure.com/*;managedidentity.azure.com/*;keyvault.azure.com/*"
+            --crd-pattern: "resources.azure.com/*;containerservice.azure.com/*;keyvault.azure.com/*;managedidentity.azure.com/*;eventhub.azure.com/*;storage.azure.com/*"
 EOF
 ```
 
@@ -349,97 +434,7 @@ EOF
   capz-controller-manager-xxxxx                   1/1   Running
   ```
 
-### Apply Workload Identity Credentials for CAPZ
-
-We now need to create an user-assigned managed identity for CAPZ. Here we will do the following:
-
-* Creates a user-assigned managed identity for CAPZ
-
-* Assigns it the `Owner` role
-
-* Creates two federated identity credentials
-
-* Generates a identity.yaml manifest with `${AZURE_CLIENT_ID}` and `${AZURE_TENANT_ID}` references
-
-* Applies the manifest via `kubectl`
-
-1. Create a user-assigned identity:
-
-  ```bash
-  export AKS_OIDC_ISSUER_URL=$(az aks show \
-    --resource-group ${RESOURCE_GROUP} \
-    --name ${AKS_CLUSTER_NAME} \
-    --query "oidcIssuerProfile.issuerUrl" \
-    -o tsv)
-  export MANAGED_IDENTITY_NAME="akspe"
-
-  az identity create \
-    --name "${MANAGED_IDENTITY_NAME}" \
-    --resource-group "${RESOURCE_GROUP}" \
-    --location "${LOCATION}"
-  ```
-
-2. Fetch the identity and subscription
-
-  ```bash
-  export AZURE_CLIENT_ID=$(az identity show \
-    --name "${MANAGED_IDENTITY_NAME}" \
-    --resource-group "${RESOURCE_GROUP}" \
-    --query "clientId" -o tsv)
-
-  export PRINCIPAL_ID=$(az identity show \
-    --name "${MANAGED_IDENTITY_NAME}" \
-    --resource-group "${RESOURCE_GROUP}" \
-    --query "principalId" -o tsv)
-
-  export AZURE_SUBSCRIPTION_ID=$(az account show --query id -o tsv)
-  export AZURE_TENANT_ID=$(az account show --query tenantId -o tsv)
-  ```
-
-3. Patch the `aks-labs-gitops` secret:
-
-  ```bash
-  kubectl -n argocd annotate secret aks-labs-gitops \
-    akspe_identity_id="${AZURE_CLIENT_ID}" \
-    tenant_id="${AZURE_TENANT_ID}" \
-    subscription_id="${AZURE_SUBSCRIPTION_ID}" \
-    --overwrite
-  ```
-
-4. Assigning 'Owner' role to the identity
-
-  ```bash
-  az role assignment create \
-    --assignee "${PRINCIPAL_ID}" \
-    --role "Owner" \
-    --scope "/subscriptions/${AZURE_SUBSCRIPTION_ID}"
-  ```
-
-5. Creating federated identity credential: aks-labs-capz-manager-credential
-
-  ```bash
-  az identity federated-credential create \
-    --name "aks-labs-capz-manager-credential" \
-    --identity-name "${MANAGED_IDENTITY_NAME}" \
-    --resource-group "${RESOURCE_GROUP}" \
-    --issuer "${AKS_OIDC_ISSUER_URL}" \
-    --subject "system:serviceaccount:azure-infrastructure-system:capz-manager" \
-    --audiences "api://AzureADTokenExchange"
-  ```
-
-6. Creating federated identity credential: serviceoperator
-
-  ```bash
-  az identity federated-credential create \
-    --name "serviceoperator" \
-    --identity-name "${MANAGED_IDENTITY_NAME}" \
-    --resource-group "${RESOURCE_GROUP}" \
-    --issuer "${AKS_OIDC_ISSUER_URL}" \
-    --subject "system:serviceaccount:azure-infrastructure-system:azureserviceoperator-default" \
-    --audiences "api://AzureADTokenExchange"
-  ```
-
-7. Generating identity.yaml
+4. Generating `identity.yaml`
 
 ```bash
 cat <<EOF > identity.yaml
@@ -461,8 +456,13 @@ spec:
   type: WorkloadIdentity
 EOF
 ```
+:::note
+As per the ASOv2 [best practices](https://azure.github.io/azure-service-operator/guide/authentication/), using a `Global` scoped credential isn't recommended. The following examples will use `Namespaced` scoped credentials.
 
-8. Applying identity.yaml to the cluster
+Please refer to this [link](https://azure.github.io/azure-service-operator/guide/authentication/) for more information.
+:::
+
+5. Applying `identity.yaml` to the cluster
 
   ```bash
   kubectl apply -f identity.yaml
@@ -470,7 +470,7 @@ EOF
 
 ---
 
-## Creating a new cluster and using the App of Apps pattern
+### Step 7: Create a new cluster and using the App of Apps pattern
 
 [The App of Apps Pattern](https://argo-cd.readthedocs.io/en/stable/operator-manual/cluster-bootstrapping/#app-of-apps-pattern) an approach where you use one parent Argo CD Application to declaratively manage many child Argo CD Applications.
 
@@ -478,7 +478,7 @@ This parent application acts as the single source of truth that bootstraps other
 
 Think of it as a recursive GitOps pattern: your Argo CD app deploys other Argo CD apps.
 
-### Sample: Create a new cluster as an Argo CD Application Set
+### Sample 1: Create a new cluster as an Argo CD Application Set
 
 1. Create the cluster:
 
@@ -523,7 +523,8 @@ Apply it:
 kubectl apply -f clusters-argo-applicationset.yaml
 ```
 
-2. Get the credentials for the new cluster
+2. Get the credentials for the new cluster named `aks1`
+
 ```bash
 az aks get-credentials -n aks1 -g aks1
 ```
@@ -557,7 +558,7 @@ Once deployed, you should now see a new application in your `aks1` cluster:
 
 ![aks pet store](assets/aks-store-demo.png)
 
-### Sample: Create a new cluster using ASOv2 (Azure Service Operator)
+### Sample 2: Create a new cluster using ASOv2 (Azure Service Operator)
 
 In this sample, we will create an AKS cluster based on an Azure Service Operator definition.  Before we can use ASO for this, we have to create a secret in our cluster for the operator to use later on when performing tasks on Azure. We will be using our previously created workload identity for this. 
 
@@ -615,7 +616,7 @@ EOF
 
 ![ASO Cluster](assets/aso-cluster.png)
 
-## Creating new ASOv2 resources
+### Sample 3: Create new ASOv2 resources
 
 To create other resources using ASOv2, you can follow the structure of the Git repo for this sample:
 
@@ -636,7 +637,22 @@ From now on, when creating resources with ASOv2, we need to include the followin
 ```
 :::
 
-Here is how the `cluster.yaml` manifest. Notice the inclusion of the `serviceoperator.azure.com/credential-from: aso-credentials` annotation:
+Here is how the `rg.yaml` looks like:
+
+```yaml
+resourcegroup.resources.azure.com/rg-cluster-aso
+apiVersion: resources.azure.com/v1api20200601
+kind: ResourceGroup
+metadata:
+  name: rg-cluster-aso
+  namespace: default
+  annotations:
+    serviceoperator.azure.com/credential-from: aso-credentials
+spec:
+  location: westus3
+```
+
+And here is how the `cluster.yaml` manifest. Notice the inclusion of the `serviceoperator.azure.com/credential-from: aso-credentials` annotation:
 
 ![ASO Annotation](assets/aso-annotation.png)
 
