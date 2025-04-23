@@ -110,8 +110,7 @@ In this step, we will do the following:
     --name ${AKS_CLUSTER_NAME} \
     --query "oidcIssuerProfile.issuerUrl" \
     -o tsv)
-  export MANAGED_IDENTITY_NAME="akspe"
-
+  
   az identity create \
     --name "${MANAGED_IDENTITY_NAME}" \
     --resource-group "${RESOURCE_GROUP}" \
@@ -130,9 +129,6 @@ In this step, we will do the following:
     --name "${MANAGED_IDENTITY_NAME}" \
     --resource-group "${RESOURCE_GROUP}" \
     --query "principalId" -o tsv)
-
-  export AZURE_SUBSCRIPTION_ID=$(az account show --query id -o tsv)
-  export AZURE_TENANT_ID=$(az account show --query tenantId -o tsv)
   ```
 
 3. Patch the `aks-labs-gitops` secret:
