@@ -131,17 +131,7 @@ In this step, we will do the following:
     --query "principalId" -o tsv)
   ```
 
-3. Patch the `aks-labs-gitops` secret:
-
-  ```bash
-  kubectl -n argocd annotate secret aks-labs-gitops \
-    akspe_identity_id="${AZURE_CLIENT_ID}" \
-    tenant_id="${AZURE_TENANT_ID}" \
-    subscription_id="${AZURE_SUBSCRIPTION_ID}" \
-    --overwrite
-  ```
-
-4. Assigning 'Owner' role to the identity
+3. Assigning 'Owner' role to the identity
 
   ```bash
   az role assignment create \
@@ -150,7 +140,7 @@ In this step, we will do the following:
     --scope "/subscriptions/${AZURE_SUBSCRIPTION_ID}"
   ```
 
-5. Creating federated identity credential: aks-labs-capz-manager-credential
+4. Creating federated identity credential: aks-labs-capz-manager-credential
 
   ```bash
   az identity federated-credential create \
@@ -162,7 +152,7 @@ In this step, we will do the following:
     --audiences "api://AzureADTokenExchange"
   ```
 
-6. Creating federated identity credential: serviceoperator
+5. Creating federated identity credential: serviceoperator
 
   ```bash
   az identity federated-credential create \
