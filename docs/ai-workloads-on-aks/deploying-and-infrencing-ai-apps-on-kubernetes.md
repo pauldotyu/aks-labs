@@ -417,6 +417,92 @@ EOF
 
 ### Test the RAG workspace
 
+To test the RAG workspace, let's first test the workspace without RAG. In the Contoso Pet Supply store demo application, there are some sample product data that we can use to test how RAG can help us find the right product for our customers.
+
+The sample data can be found [here](https://github.com/Azure-Samples/aks-store-demo/blob/main/src/product-service/src/data.rs).
+
+To test the workspace without RAG support, run the following command to port-forward the workspace service to your local machine.
+
+```bash
+kubectl port-forward service/workspace-phi-3-mini-128k-instruct 8080:80
+```
+
+Press `Ctrl + z`, then press `bg`, and press `Enter` to move the process to the background.
+
+Ask the LLM to suggest a product for your cat. As a potential shopping assistant for the Contoso Pet Supply store, I'd expect to see it suggest the [Seashell Snuggle Bed](https://github.com/Azure-Samples/aks-store-demo/blob/b07b73215c4e7f3d8f1aaabe20956473c7ff1a1a/src/product-service/src/data.rs#L50)
+
+Run the following command to send a request to the workspace.
+
+```bash
+curl -s http://localhost:8080/v1/chat/completions \
+-H "Content-Type: application/json" \
+-d '{
+      "model": "phi-3-mini-128k-instruct",
+      "messages": [
+        {
+          "role": "user",
+          "content": "I need a new bed for my cat. Can you help me?"
+        }
+      ],
+      "top_k": 5,
+      "temperature": 0.7,
+      "max_tokens": 2048
+    }' | jq
+```
+
+We can see that the LLM is not able to suggest the expected product. This is because the LLM is not grounded with the Contoso Pet Supply store product data.
+
+Press `fg` to bring the port forward process back to the foreground, then press `Ctrl + c` to stop the port forward process.
+
+### Test the RAG Engine
+
+Let's ground the LLM with the product data using the KAITO's RAG Engine.
+
+Start by port-forwarding the RAG Engine service to your local machine.
+
+```bash
+kubectl port-forward service/ragengine-start 8080:80
+```
+
+Press `Ctrl + z`, then press `bg`, and press `Enter` to move the process to the background.
+
+Download the sample JSON file to index the RAG Engine.
+
+```bash
+curl -o /tmp/store_index.json https://gist.githubusercontent.com/pauldotyu/7643742a251d3f1d06d8a3c38d0b432d/raw/f4343732fd7a97017afc147ca56fd1c72550a9e2/store_index.json
+```
+
+Create the RAG Engine index.
+
+```bash
+curl -X POST http://localhost:8080/index \
+-H "Content-Type: application/json" \
+-d @/tmp/store_index.json | jq
+```
+
+List the RAG Engine index.
+
+```bash
+curl -s http://localhost:8080/indexes | jq
+```
+
+Query the RAG Engine.
+
+```bash
+curl -s http://localhost:8080/query -X POST \
+-H 'Content-Type: application/json' \
+-d '{
+      "index_name": "store_index",
+      "query": "I need a new bed for my cat. Can you help me?",
+      "top_k": 5,
+      "llm_params": {"temperature": 0.7, "max_tokens": 2048}
+    }' | jq
+```
+
+You should see that the RAG Engine is able to suggest the expected product. This is because the RAG Engine is able to ground the LLM with the product data!
+
+With KAITO's RAG Engine, you can easily ground the LLM with your own data and use it to answer questions or provide suggestions based on the data.
+
 ## Summary
 
 In this lab, you learned how to deploy a KAITO workspace and monitor it with Grafana. You also learned how to use the KAITO extension in VSCode to develop and run your code.
@@ -439,3 +525,5 @@ https://github.com/vllm-project/vllm/tree/main/examples/online_serving/prometheu
 https://docs.chainlit.io/integrations/openai
 https://docs.chainlit.io/concepts/message
 https://docs.astral.sh/uv/
+https://huggingface.co/BAAI/bge-small-en-v1.5
+https://faiss.ai/
