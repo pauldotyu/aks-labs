@@ -145,7 +145,7 @@ In order to scrap metrics from the KAITO workspace, you need to label the worksp
 Run the following command to label the workspace.
 
 ```bash
-kubectl label service workspace-phi-3-mini-128k-instruct app=phi-3-mini-128k-instruct
+kubectl label service workspace-phi-3-mini-128k-instruct kaito.sh/workspace=workspace-phi-3-mini-128k-instruct
 ```
 
 Deploy a ServiceMonitor to monitor the workspace
@@ -159,7 +159,7 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: phi-3-mini-128k-instruct
+      kaito.sh/workspace: workspace-phi-3-mini-128k-instruct
   endpoints:
   - port: http
     path: /metrics
@@ -216,9 +216,204 @@ This is new for v0.5.0.
 
 ### Uninstall the KAITO add-on
 
+```bash
+export RG_NAME=<your_resource_group_name>
+export AKS_NAME=$(az aks list -g $RG_NAME --query "[0].name" -o tsv)
+
+# remove kaito add-on
+az aks update \
+-g $RG_NAME \
+-n $AKS_NAME \
+--disable-ai-toolchain-operator
+
+# clean up custom resource definitions
+kubectl delete crd workspaces.kaito.sh
+kubectl delete crd aksnodeclasses.karpenter.azure.com
+kubectl delete crd ec2nodeclasses.karpenter.k8s.aws
+kubectl delete crd nodeclaims.karpenter.sh
+```
+
 ### Open source installation
 
+Deploying the open-source version of KAITO is a bit more involved than using the Azure add-on. But it worth knowing the steps.
+
+#### Deploy the KAITO workspace operator
+
+```bash
+helm install kaito-workspace https://github.com/kaito-project/kaito/raw/gh-pages/charts/kaito/workspace-0.4.5.tgz \
+--namespace kaito-workspace \
+--create-namespace \
+--wait
+```
+
+#### Deploy the KAITO GPU provisioner
+
+Set some local variables to make it easier to work with the gpu-provisioner.
+
+```bash
+AKS_RESOURCE=$(az aks show -g $RG_NAME -n $AKS_NAME)
+AKS_RESOURCE_ID=$(echo $AKS_RESOURCE | jq -r '.id')
+AKS_LOCATION=$(echo $AKS_RESOURCE | jq -r '.location')
+AKS_NRG_NAME=$(echo $AKS_RESOURCE | jq -r '.nodeResourceGroup')
+AKS_OIDC_ISSUER=$(echo $AKS_RESOURCE | jq -r '.oidcIssuerProfile.issuerUrl')
+AZURE_TENANT_ID=$(echo $AKS_RESOURCE | jq -r '.identity.tenantId')
+AZURE_SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+```
+
+##### Create a user-assigned managed identity for the gpu-provisioner
+
+Create a user-assigned managed identity for the gpu-provisioner and set the principal ID and client ID as local variables.
+
+```bash
+KAITO_IDENTITY_PRINCIPAL_ID=$(az identity create \
+--name kaito-gpu-provisioner \
+-g $RG_NAME --query principalId \
+-o tsv)
+
+KAITO_IDENTITY_CLIENT_ID=$(az identity show \
+--name kaito-gpu-provisioner \
+-g $RG_NAME \
+--query clientId \
+-o tsv)
+```
+
+##### Create a role assignment for the gpu-provisioner identity
+
+Create a role assignment for the gpu-provisioner identity. This will allow the gpu-provisioner to create VM resources in the AKS node resource group.
+
+```bash
+az role assignment create \
+--assignee $KAITO_IDENTITY_PRINCIPAL_ID \
+--scope $AKS_RESOURCE_ID \
+--role "Contributor"
+```
+
+##### Create a federated credential for the gpu-provisioner identity
+
+Create a federated credential for the gpu-provisioner identity. This will allow the gpu-provisioner to authenticate using workload identity.
+
+```bash
+az identity federated-credential create \
+--name kaito-gpu-provisioner \
+--identity-name kaito-gpu-provisioner \
+-g $RG_NAME \
+--issuer $AKS_OIDC_ISSUER \
+--subject system:serviceaccount:"gpu-provisioner:gpu-provisioner" \
+--audience api://AzureADTokenExchange \
+--subscription $AZURE_SUBSCRIPTION_ID
+```
+
+##### Deploy the gpu-provisioner
+
+Create a values.yaml file to configure the gpu-provisioner.
+
+```bash
+cat <<EOF > values.yaml
+controller:
+  env:
+  - name: ARM_SUBSCRIPTION_ID
+    value: ${AZURE_SUBSCRIPTION_ID}
+  - name: LOCATION
+    value: ${AKS_LOCATION}
+  - name: AZURE_CLUSTER_NAME
+    value: ${AKS_NAME}
+  - name: AZURE_NODE_RESOURCE_GROUP
+    value: ${AKS_NRG_NAME}
+  - name: ARM_RESOURCE_GROUP
+    value: ${RG_NAME}
+  - name: LEADER_ELECT
+    value: "false"
+workloadIdentity:
+  clientId: ${KAITO_IDENTITY_CLIENT_ID}
+  tenantId: ${AZURE_TENANT_ID}
+settings:
+  azure:
+    clusterName: ${AKS_NAME}
+EOF
+```
+
+Install the gpu-provisioner.
+
+```bash
+helm install gpu-provisioner https://github.com/Azure/gpu-provisioner/raw/gh-pages/charts/gpu-provisioner-0.3.3.tgz \
+--namespace gpu-provisioner \
+--create-namespace \
+--values values.yaml \
+--wait
+```
+
+### Deploy an inference workspace
+
+```bash
+kubectl apply -f - <<EOF
+apiVersion: kaito.sh/v1alpha1
+kind: Workspace
+metadata:
+  name: workspace-phi-3-mini-128k-instruct
+resource:
+  instanceType: Standard_NC24ads_A100_v4
+  labelSelector:
+    matchLabels:
+      apps: phi-3
+inference:
+  preset:
+    name: phi-3-mini-128k-instruct
+EOF
+```
+
 ### Deploy a RAG workspace
+
+Build from source. This is temporary until the image is published by the KAITO team.
+
+Clone the KAITO repository.
+
+```bash
+git clone https://github.com/kaito-project/kaito.git
+cd kaito
+```
+
+Build the RAG Engine image and push to an ephemeral registry.
+
+```bash
+export REGISTRY=ttl.sh 
+export RAGENGINE_IMAGE_NAME=$(uuidgen | tr '[:upper:]' '[:lower:]')
+export IMG_TAG=8h 
+make docker-build-ragengine
+```
+
+Install the RAG Engine controller.
+
+```bash
+helm install ragengine ./charts/kaito/ragengine \
+--namespace kaito-ragengine \
+--create-namespace \
+--set image.repository=$REGISTRY/$RAGENGINE_IMAGE_NAME \
+--set image.tag=$IMG_TAG
+```
+
+Deploy a RAG Engine resource
+
+```bash
+kubectl apply -f - <<EOF
+apiVersion: kaito.sh/v1alpha1
+kind: RAGEngine
+metadata:
+  name: ragengine-start
+  annotations:
+    llm_model: phi-3-mini-128k-instruct
+spec:
+  compute:
+    instanceType: Standard_NC6s_v3
+    labelSelector:
+      matchLabels:
+        apps: phi-3
+  embedding:
+    local:
+      modelID: BAAI/bge-small-en-v1.5
+  inferenceService:  
+    url: http://workspace-phi-3-mini-128k-instruct/v1/completions
+EOF
+```
 
 ### Test the RAG workspace
 
@@ -233,11 +428,14 @@ Agents
 
 ## Resources
 
+https://kaito.sh
+https://github.com/kaito-project/kaito
+https://learn.microsoft.com/azure/aks/ai-toolchain-operator
+https://learn.microsoft.com/azure/aks/ai-toolchain-operator-monitoring
+https://learn.microsoft.com/azure/azure-monitor/containers/prometheus-metrics-scrape-crd#create-a-pod-or-service-monitor
+https://docs.vllm.ai/en/latest/design/v1/metrics.html
+https://docs.vllm.ai/en/latest/getting_started/examples/prometheus_grafana.html
+https://github.com/vllm-project/vllm/tree/main/examples/online_serving/prometheus_grafana
 https://docs.chainlit.io/integrations/openai
 https://docs.chainlit.io/concepts/message
 https://docs.astral.sh/uv/
-https://learn.microsoft.com/en-us/azure/aks/ai-toolchain-operator-monitoring
-https://docs.vllm.ai/en/latest/getting_started/examples/prometheus_grafana.html
-https://github.com/vllm-project/vllm/tree/main/examples/online_serving/prometheus_grafana
-https://docs.vllm.ai/en/latest/design/v1/metrics.html
-https://learn.microsoft.com/en-us/azure/azure-monitor/containers/prometheus-metrics-scrape-crd#create-a-pod-or-service-monitor
