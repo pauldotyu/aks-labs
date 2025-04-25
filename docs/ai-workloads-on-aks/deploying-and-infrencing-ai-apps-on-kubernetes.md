@@ -304,13 +304,23 @@ Click on the **vLLM** dashboard to open it. You should see a dashboard with vari
 
 ## RAG with KAITO
 
-This is new for v0.5.0.
+As you build AI applications and work with LLMs, you will often need to ground the LLM with your own data. This is where the KAITO RAG Engine comes in. The RAG Engine allows you to index your data and use it to answer questions or provide suggestions based on the data.
+
+The RAG Engine is a separate component that works with the KAITO workspace. It uses the same architecture as the KAITO workspace and is deployed as a separate custom resource. When you deploy a RAG Engine custom resource, it will create an application Pod includes an vector database and lightweight embedding model which is used to create embeddings for the data and store them in the vector database. The RAG Engine will also create a service that exposes several endpoints for indexing and querying the data.
+
+When you query the RAG Engine, it will use the in-memory vector database to find the most relevant data based on the query then send the data to the KAITO workspace for inference.
+
+> [!note]
+> At the time of this writing, the RAG Engine is not yet available as an AKS add-on. You will need to deploy it using the open-source version of KAITO.
 
 ### Uninstall the KAITO add-on
 
 ```bash
 RG_NAME=<your_resource_group_name>
 AKS_NAME=$(az aks list -g $RG_NAME --query "[0].name" -o tsv)
+
+# delete the workspace
+kubectl delete workspace workspace-phi-3-mini-128k-instruct
 
 # remove kaito add-on
 az aks update \
@@ -319,17 +329,16 @@ az aks update \
 --disable-ai-toolchain-operator
 
 # clean up custom resource definitions
-kubectl delete crd workspaces.kaito.sh
 kubectl delete crd aksnodeclasses.karpenter.azure.com
-kubectl delete crd ec2nodeclasses.karpenter.k8s.aws
 kubectl delete crd nodeclaims.karpenter.sh
+kubectl delete crd workspaces.kaito.sh
 ```
 
 ### Open source installation
 
-Deploying the open-source version of KAITO is a bit more involved than using the Azure add-on. But it worth knowing the steps.
+Deploying the open-source version of KAITO is a bit more involved than using the Azure add-on. You will need to deploy the KAITO workspace operator and the GPU provisioner separately. Before you deploy the GPU provisioner, you will need to create a user-assigned managed identity for the GPU provisioner and assign it the necessary permissions to create VM resources in the AKS node resource group.
 
-#### Deploy the KAITO workspace operator
+Run the following command to install the KAITO workspace Helm chart.
 
 ```bash
 helm install kaito-workspace https://github.com/kaito-project/kaito/raw/gh-pages/charts/kaito/workspace-0.4.5.tgz \
@@ -338,9 +347,7 @@ helm install kaito-workspace https://github.com/kaito-project/kaito/raw/gh-pages
 --wait
 ```
 
-#### Deploy the KAITO GPU provisioner
-
-Set some local variables to make it easier to work with the gpu-provisioner.
+Deploying the GPU provisioner requires a few variables. Run the following command to get the AKS resource and pull out the necessary variables.
 
 ```bash
 AKS_RESOURCE=$(az aks show -g $RG_NAME -n $AKS_NAME)
@@ -351,8 +358,6 @@ AKS_OIDC_ISSUER=$(echo $AKS_RESOURCE | jq -r '.oidcIssuerProfile.issuerUrl')
 AZURE_TENANT_ID=$(echo $AKS_RESOURCE | jq -r '.identity.tenantId')
 AZURE_SUBSCRIPTION_ID=$(az account show --query id -o tsv)
 ```
-
-##### Create a user-assigned managed identity for the gpu-provisioner
 
 Create a user-assigned managed identity for the gpu-provisioner and set the principal ID and client ID as local variables.
 
@@ -369,8 +374,6 @@ KAITO_IDENTITY_CLIENT_ID=$(az identity show \
 -o tsv)
 ```
 
-##### Create a role assignment for the gpu-provisioner identity
-
 Create a role assignment for the gpu-provisioner identity. This will allow the gpu-provisioner to create VM resources in the AKS node resource group.
 
 ```bash
@@ -380,7 +383,8 @@ az role assignment create \
 --role "Contributor"
 ```
 
-##### Create a federated credential for the gpu-provisioner identity
+> [!note]
+> If this command fails, wait a few seconds and try again.
 
 Create a federated credential for the gpu-provisioner identity. This will allow the gpu-provisioner to authenticate using workload identity.
 
@@ -394,8 +398,6 @@ az identity federated-credential create \
 --audience api://AzureADTokenExchange \
 --subscription $AZURE_SUBSCRIPTION_ID
 ```
-
-##### Deploy the gpu-provisioner
 
 Create a values.yaml file to configure the gpu-provisioner.
 
@@ -424,7 +426,7 @@ settings:
 EOF
 ```
 
-Install the gpu-provisioner.
+Now, you have enough information to deploy the gpu-provisioner. Run the following command to deploy the gpu-provisioner Helm chart.
 
 ```bash
 helm install gpu-provisioner https://github.com/Azure/gpu-provisioner/raw/gh-pages/charts/gpu-provisioner-0.3.3.tgz \
@@ -436,35 +438,45 @@ helm install gpu-provisioner https://github.com/Azure/gpu-provisioner/raw/gh-pag
 
 ### Deploy an inference workspace
 
+With the open-source KAITO fully installed, you can now deploy a workspace.
+
 ```bash
 kubectl apply -f - <<EOF
 apiVersion: kaito.sh/v1alpha1
 kind: Workspace
 metadata:
-  name: workspace-phi-3-mini-128k-instruct
+  name: phi-3-mini-128k-instruct-wks
 resource:
   instanceType: Standard_NC24ads_A100_v4
   labelSelector:
     matchLabels:
-      apps: phi-3
+      apps: phi-3-wks
 inference:
   preset:
     name: phi-3-mini-128k-instruct
 EOF
 ```
 
-### Deploy a RAG workspace
+This will deploy a workspace with the `phi-3-mini-128k-instruct` model as we did with the AKS add-on. You can check the status of the workspace by running the following command.
 
-Build from source. This is temporary until the image is published by the KAITO team.
+```bash
+kubectl get workspace
+```
 
-Clone the KAITO repository.
+While the workspace is being deployed, let's move on to the next step.
+
+### Build the RAG Engine from source
+
+At the time of this writing, the RAG Engine container image is not yet available in a public registry. You will need to build the image from source and push it to a temporary registry provided by friends at [ttl.sh](https://ttl.sh). The KAITO team is working on publishing the image to a public registry, so this step will not be necessary in the future.
+
+Run the following command to clone the KAITO repository.
 
 ```bash
 git clone https://github.com/kaito-project/kaito.git
 cd kaito
 ```
 
-Build the RAG Engine image and push to an ephemeral registry.
+Run the following commands to set environment variables for the RAG Engine image and build the image.
 
 ```bash
 export REGISTRY=ttl.sh 
@@ -473,7 +485,9 @@ export IMG_TAG=8h
 make docker-build-ragengine
 ```
 
-Install the RAG Engine controller.
+### Install the RAG Engine
+
+Run the following command to deploy the RAG Engine Helm chart.
 
 ```bash
 helm install ragengine ./charts/kaito/ragengine \
@@ -483,22 +497,20 @@ helm install ragengine ./charts/kaito/ragengine \
 --set image.tag=$IMG_TAG
 ```
 
-Deploy a RAG Engine resource
+Deploy a RAG Engine custom resource.
 
 ```bash
 kubectl apply -f - <<EOF
 apiVersion: kaito.sh/v1alpha1
 kind: RAGEngine
 metadata:
-  name: ragengine-start
-  annotations:
-    llm_model: phi-3-mini-128k-instruct
+  name: phi-3-mini-128k-instruct-rag
 spec:
   compute:
     instanceType: Standard_NC6s_v3
     labelSelector:
       matchLabels:
-        apps: phi-3
+        apps: phi-3-rag
   embedding:
     local:
       modelID: BAAI/bge-small-en-v1.5
@@ -506,6 +518,8 @@ spec:
     url: http://workspace-phi-3-mini-128k-instruct/v1/completions
 EOF
 ```
+
+This custom resource will deploy a RAG Engine on a new AKS node with a local embedding model and reference to the KAITO workspace for inference. The embedding model is used to create vector embeddings for the data that you want to index and query. The inference service URL is the URL of the KAITO workspace that you deployed earlier.
 
 ### Test the RAG workspace
 
