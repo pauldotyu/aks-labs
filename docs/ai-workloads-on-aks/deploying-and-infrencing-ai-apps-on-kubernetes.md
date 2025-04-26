@@ -302,7 +302,7 @@ Click on the **vLLM** dashboard to open it. You should see a dashboard with vari
 
 > [!note] The dashboard may not have metrics to display yet if you have not run any inference requests yet. You can run some inference requests using the Chainlit app that you created earlier to generate some metrics.
 
-## RAG with KAITO
+## Install KAITO RAG Engine
 
 As you build AI applications and work with LLMs, you will often need to ground the LLM with your own data. This is where the KAITO RAG Engine comes in. The RAG Engine allows you to index your data and use it to answer questions or provide suggestions based on the data.
 
@@ -436,7 +436,7 @@ helm install gpu-provisioner https://github.com/Azure/gpu-provisioner/raw/gh-pag
 --wait
 ```
 
-### Deploy an inference workspace
+### Deploy inference workspace
 
 With the open-source KAITO fully installed, you can now deploy a workspace.
 
@@ -485,7 +485,7 @@ export IMG_TAG=8h
 make docker-build-ragengine
 ```
 
-### Install the RAG Engine
+### Deploy RAG Engine
 
 Run the following command to deploy the RAG Engine Helm chart.
 
@@ -515,27 +515,31 @@ spec:
     local:
       modelID: BAAI/bge-small-en-v1.5
   inferenceService:  
-    url: http://workspace-phi-3-mini-128k-instruct/v1/completions
+    url: http://phi-3-mini-128k-instruct-wks/v1/completions
 EOF
 ```
 
 This custom resource will deploy a RAG Engine on a new AKS node with a local embedding model and reference to the KAITO workspace for inference. The embedding model is used to create vector embeddings for the data that you want to index and query. The inference service URL is the URL of the KAITO workspace that you deployed earlier.
 
-### Test the RAG workspace
+## Grounding LLMs with RAG Engine
 
-To test the RAG workspace, let's first test the workspace without RAG. In the Contoso Pet Supply store demo application, there are some sample product data that we can use to test how RAG can help us find the right product for our customers.
+Before we test the RAG workspace, let's first test the workspace LLM without RAG for a specific use case.
 
-The sample data can be found [here](https://github.com/Azure-Samples/aks-store-demo/blob/main/src/product-service/src/data.rs).
+### Test workspace without RAG
+
+In the [Contoso Pet Supply store demo application for AKS](https://learn.microsoft.com/azure/aks/tutorial-kubernetes-prepare-app?tabs=azure-cli), there's sample product data that we can use to see how RAG can help customers find the right product.
+
+The sample product catalog can be found [here](https://github.com/Azure-Samples/aks-store-demo/blob/main/src/product-service/src/data.rs).
 
 To test the workspace without RAG support, run the following command to port-forward the workspace service to your local machine.
 
 ```bash
-kubectl port-forward service/workspace-phi-3-mini-128k-instruct 8080:80
+kubectl port-forward service/phi-3-mini-128k-instruct-wks 8080:80
 ```
 
 Press `Ctrl + z`, then press `bg`, and press `Enter` to move the process to the background.
 
-Ask the LLM to suggest a product for your cat. As a potential shopping assistant for the Contoso Pet Supply store, I'd expect to see it suggest the [Seashell Snuggle Bed](https://github.com/Azure-Samples/aks-store-demo/blob/b07b73215c4e7f3d8f1aaabe20956473c7ff1a1a/src/product-service/src/data.rs#L50)
+Query the LLM to suggest a product for your cat. Implementing this LLM as a potential shopping assistant for the Contoso Pet Supply store, we'd want the LLM to suggest the [Seashell Snuggle Bed](https://github.com/Azure-Samples/aks-store-demo/blob/b07b73215c4e7f3d8f1aaabe20956473c7ff1a1a/src/product-service/src/data.rs#L50)
 
 Run the following command to send a request to the workspace.
 
@@ -556,29 +560,46 @@ curl -s http://localhost:8080/v1/chat/completions \
     }' | jq
 ```
 
-We can see that the LLM is not able to suggest the expected product. This is because the LLM is not grounded with the Contoso Pet Supply store product data.
+We can see that the LLM is not able to suggest the expected Seashell Snuggle Bed product. This is because the LLM is not grounded with Contoso Pet Supply store product catalog data.
 
-Press `fg` to bring the port forward process back to the foreground, then press `Ctrl + c` to stop the port forward process.
+Press `fg` to bring the port forward process back to the foreground, then press `Ctrl + c` to stop the port forward process to the workspace.
 
-### Test the RAG Engine
+### Index product data
 
-Let's ground the LLM with the product data using the KAITO's RAG Engine.
-
-Start by port-forwarding the RAG Engine service to your local machine.
+Let's ground the LLM with the Contoso Pet Supply's product catalog data using. Start by port-forwarding the RAG Engine service to your local machine.
 
 ```bash
-kubectl port-forward service/ragengine-start 8080:80
+kubectl port-forward service/phi-3-mini-128k-instruct-rag 8080:80
 ```
 
 Press `Ctrl + z`, then press `bg`, and press `Enter` to move the process to the background.
 
-Download the sample JSON file to index the RAG Engine.
+To index product data, we need to upload a JSON file that contains the product data in the following format:
+
+```json
+{
+  "index_name": "<index_name>",
+  "documents": [
+    {
+      "text": "<document_text>",
+      "metadata": {
+        "author": "<document_author>",
+        "category": "<document_category>"
+      }
+    }
+  ]
+}
+```
+
+The metadata is optional and can be used to store additional information about the document. The `index_name` is the name of the index that you want to create.
+
+Run the following command to download a sample JSON file that has already been prepared for indexing.
 
 ```bash
 curl -o /tmp/store_index.json https://gist.githubusercontent.com/pauldotyu/7643742a251d3f1d06d8a3c38d0b432d/raw/f4343732fd7a97017afc147ca56fd1c72550a9e2/store_index.json
 ```
 
-Create the RAG Engine index.
+Next, run the following command to send the product data to the RAG Engine index endpoint.
 
 ```bash
 curl -X POST http://localhost:8080/index \
@@ -586,13 +607,21 @@ curl -X POST http://localhost:8080/index \
 -d @/tmp/store_index.json | jq
 ```
 
-List the RAG Engine index.
+Confirm the **store_index** exists in the RAG Engine.
 
 ```bash
 curl -s http://localhost:8080/indexes | jq
 ```
 
-Query the RAG Engine.
+Now we're ready to query the RAG Engine with the product data indexed.
+
+### Query the RAG Engine
+
+To query the LLM with grounded data, instead of querying the LLM directly, you will query the RAG Engine's **/query** endpoint. In addition to the query, you will also need to specify the index name and optionally prompt parameters such as **top_k**, **temperature**, and **max_tokens**.
+
+The RAG Engine will use the query to find the most relevant data in the index and send the data to the LLM for inference. The LLM will then use the data to generate a response.
+
+Run the following command to query the RAG Engine.
 
 ```bash
 curl -s http://localhost:8080/query -X POST \
@@ -605,16 +634,37 @@ curl -s http://localhost:8080/query -X POST \
     }' | jq
 ```
 
-You should see that the RAG Engine is able to suggest the expected product. This is because the RAG Engine is able to ground the LLM with the product data!
+You should see that the RAG Engine is able to suggest the expected product; the Seashell Snuggle Bed. This is because the RAG Engine is able to ground the LLM with the product data!
 
-With KAITO's RAG Engine, you can easily ground the LLM with your own data and use it to answer questions or provide suggestions based on the data.
+## Summary
+
+In this workshop, you learned how to deploy and manage AI/ML workloads on Azure Kubernetes Service (AKS) using the KAITO operator. You learned how to use Visual Studio Code to deploy the KAITO add-on for AKS and work with the inferencing workspace. You also learned how to monitor the KAITO workspace by scraping metrics with Azure Managed Prometheus and ServiceMonitor CRD and visualizing the metrics by importing the vLLM Grafana dashboard into Azure Managed Grafana.
+
+Finally, you learned how to install the open-source version of KAITO and deploy the RAG Engine to ground LLMs with your own data. This included indexing the product data from the Contoso Pet Supply store and querying the RAG Engine to get grounded responses from the LLM.
+
+With Kubernetes and KAITO, you can see how much of the heavy lifting is done for you and you can focus on building your AI applications. The KAITO operator automates the deployment and management of AI/ML workloads, allowing you to easily deploy and manage large models on AKS. The RAG Engine allows you to ground LLMs with your own data, reducing the need to build custom RAG pipelines.
+
+## What's next?
+
+There are a few more features of KAITO that we didn't cover in this workshop, like fine-tuning models, but you can find more information about that in this [blog post](https://azure.github.io/AKS/2024/08/23/fine-tuning-language-models-with-kaito).
+
+The KAITO team is continuously working on improving the KAITO experience and would love to hear your feedback. You can find the KAITO team on [GitHub](https://github.com/kaito-project/kaito) so feel free to open issues or pull requests!
 
 ### Clean up
 
+To uninstall the open-source KAITO installation, you can run the following command to delete the workspace and RAG Engine, then uninstall the Helm charts, and finally delete the custom resource definitions.
+
 ```bash
+# delete kaito custom resources
+kubectl delete workspace phi-3-mini-128k-instruct-wks
+kubectl delete ragengine phi-3-mini-128k-instruct-rag
+
+# uninstall kaito operators
 helm uninstall gpu-provisioner --namespace gpu-provisioner
 helm uninstall kaito-workspace --namespace kaito-workspace
 helm uninstall ragengine --namespace kaito-ragengine
+
+# remove custom resource definitions
 kubectl delete crd aksnodeclasses.karpenter.azure.com
 kubectl delete crd ec2nodeclasses.karpenter.k8s.aws
 kubectl delete crd nodeclaims.karpenter.sh
@@ -622,27 +672,18 @@ kubectl delete crd ragengines.kaito.sh
 kubectl delete crd workspaces.kaito.sh
 ```
 
-## Summary
-
-In this lab, you learned how to deploy a KAITO workspace and monitor it with Grafana. You also learned how to use the KAITO extension in VSCode to develop and run your code.
-
-## What's next?
-
-Fine tuning with KAITO
-Agents
-
 ## Resources
 
-https://kaito.sh
-https://github.com/kaito-project/kaito
-https://learn.microsoft.com/azure/aks/ai-toolchain-operator
-https://learn.microsoft.com/azure/aks/ai-toolchain-operator-monitoring
-https://learn.microsoft.com/azure/azure-monitor/containers/prometheus-metrics-scrape-crd#create-a-pod-or-service-monitor
-https://docs.vllm.ai/en/latest/design/v1/metrics.html
-https://docs.vllm.ai/en/latest/getting_started/examples/prometheus_grafana.html
-https://github.com/vllm-project/vllm/tree/main/examples/online_serving/prometheus_grafana
-https://docs.chainlit.io/integrations/openai
-https://docs.chainlit.io/concepts/message
-https://docs.astral.sh/uv/
-https://huggingface.co/BAAI/bge-small-en-v1.5
-https://faiss.ai/
+To learn more about KAITO and the features it provides, check out the following resources:
+
+- [Kubernetes AI Toolchain Operator](https://github.com/kaito-project/kaito)
+- [AKS KAITO add-on](https://learn.microsoft.com/azure/aks/ai-toolchain-operator)
+- [AKS KAITO Monitoring](https://learn.microsoft.com/azure/aks/ai-toolchain-operator-monitoring)
+- [Azure Managed Prometheus - Create a Pod or Service Monitor](https://learn.microsoft.com/azure/azure-monitor/containers/prometheus-metrics-scrape-crd#create-a-pod-or-service-monitor)
+- [vLLM Metrics](https://docs.vllm.ai/en/latest/design/v1/metrics.html)
+- [vLLM Prometheus and Grafana](https://docs.vllm.ai/en/latest/getting_started/examples/prometheus_grafana.html)
+- [Chainlit OpenAI integrations](https://docs.chainlit.io/integrations/openai)
+- [Chainlit messages](https://docs.chainlit.io/concepts/message)
+- [uv](https://docs.astral.sh/uv/)
+- [BAAI/bge-small-en-v1.5 embedding model on HuggingFace](https://huggingface.co/BAAI/bge-small-en-v1.5)
+- [Faiss Vector Database](https://faiss.ai/)
