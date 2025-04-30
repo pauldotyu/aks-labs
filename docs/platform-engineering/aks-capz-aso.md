@@ -89,8 +89,13 @@ az aks create \
 az aks get-credentials \
   --name ${AKS_CLUSTER_NAME} \
   --resource-group ${RESOURCE_GROUP} \
-  --file aks-platform.config
+  --file aks-labs.config
   ```
+Use the `aks-labs.config` file this as your KUBECONFIG
+
+```bash
+export KUBECONFIG=$PWD/aks-labs.config
+```
 
 ### Step 2: Create create an user-assigned managed identity for CAPZ
 
@@ -117,7 +122,7 @@ In this step, we will do the following:
     --location "${LOCATION}"
   ```
 
-2. Fetch the identity and subscription
+2. Retrieve Azure Managed Identity Client and Principal IDs
 
   ```bash
   export AZURE_CLIENT_ID=$(az identity show \
@@ -131,7 +136,7 @@ In this step, we will do the following:
     --query "principalId" -o tsv)
   ```
 
-3. Assigning 'Owner' role to the identity
+3. Assigning `Owner` role to the identity
 
   ```bash
   az role assignment create \
@@ -140,7 +145,7 @@ In this step, we will do the following:
     --scope "/subscriptions/${AZURE_SUBSCRIPTION_ID}"
   ```
 
-4. Creating federated identity credential: aks-labs-capz-manager-credential
+4. Creating federated identity credential: **aks-labs-capz-manager-credential**
 
   ```bash
   az identity federated-credential create \
@@ -152,7 +157,7 @@ In this step, we will do the following:
     --audiences "api://AzureADTokenExchange"
   ```
 
-5. Creating federated identity credential: serviceoperator
+5. Creating federated identity credential: **serviceoperator**
 
   ```bash
   az identity federated-credential create \
@@ -221,7 +226,7 @@ After you successfully login, you should see the Argo CD Applications - which at
 
 ```bash
 # Create the secret manifest
-cat <<EOF > aks-labs-gitops.yaml
+cat <<EOF> aks-labs-gitops.yaml
 apiVersion: v1
 kind: Secret
 metadata:
@@ -289,7 +294,7 @@ EOF
 3. Bootstrap the Argo CD applications in the cluster:
 
 ```bash
-cat <<EOF > bootstrap-addons.yaml
+cat <<EOF> bootstrap-addons.yaml
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
@@ -372,16 +377,16 @@ This section walks you through installing **Cluster API Provider for Azure (CAPZ
 1. Generate a `values` file for the capi-operator:
 
 ```bash
-cat <<EOF > capi-operator-values.yaml
+cat <<EOF> capi-operator-values.yaml
 core:
   cluster-api:
-    version: v1.8.4
+    version: v1.9.6
 infrastructure:
   azure:
-    version: v1.17.0
+    version: v1.19.2
 addon:
   helm:
-    version: v0.2.5
+    version: v0.3.1
 manager:
   featureGates:
     core:
@@ -420,10 +425,10 @@ EOF
   capz-controller-manager-xxxxx                   1/1   Running
   ```
 
-4. Generating `identity.yaml`
+4. Generating a CAPZ `AzureClusterIdentity`
 
 ```bash
-cat <<EOF > identity.yaml
+cat <<EOF> identity.yaml
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: AzureClusterIdentity
 metadata:
@@ -442,11 +447,6 @@ spec:
   type: WorkloadIdentity
 EOF
 ```
-:::note
-As per the ASOv2 [best practices](https://azure.github.io/azure-service-operator/guide/authentication/), using a `Global` scoped credential isn't recommended. The following examples will use `Namespaced` scoped credentials.
-
-Please refer to this [link](https://azure.github.io/azure-service-operator/guide/authentication/) for more information.
-:::
 
 5. Applying `identity.yaml` to the cluster
 
@@ -466,10 +466,17 @@ Think of it as a recursive GitOps pattern: your Argo CD app deploys other Argo C
 
 ### Sample 1: Create a new cluster as an Argo CD Application Set
 
+In this first sample, we will create an Argo CD ApplicationSet that will deploy a new AKS cluster using a Helm Chart. The [Cluster API Provider Azure Managed Cluster Helm Chart
+](https://github.com/mboersma/cluster-api-charts/tree/main/charts/azure-managed-cluster) will create CAPZ resources. 
+
+:::info 
+This example is a simplified version of the [Building a Platform Engineering Environment on Azure Kubernetes Service (AKS)](https://github.com/Azure-Samples/aks-platform-engineering/tree/main) repo. For a full, end to end solution, please check the Microsoft Learn documentation on [Building a Platform Engineering Environment on Azure Kubernetes Service (AKS)](https://learn.microsoft.com/en-us/samples/azure-samples/aks-platform-engineering/aks-platform-engineering/) showcases this example and more in details, including how to setup a platform engineering solution using Infrastructure as Code with Terraform.
+:::
+
 1. Create the cluster:
 
 ```bash
-cat <<EOF > clusters-argo-applicationset.yaml
+cat <<EOF> clusters-argo-applicationset.yaml
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
@@ -491,7 +498,7 @@ spec:
       source:
         repoURL: '{{metadata.annotations.addons_repo_url}}'
         targetRevision: '{{metadata.annotations.addons_repo_revision}}'
-        path: 'gitops/clusters/{{metadata.annotations.infrastructure_provider}}'
+        path: 'base/clusters/{{metadata.annotations.infrastructure_provider}}'
       destination:
         name: '{{name}}'
         namespace: workload
@@ -571,30 +578,47 @@ EOF
 kubectl apply -f aso-credentials.yaml
 ```
 
-3. Create the new ManagedCluster
+3. Create the new `ManagedCluster`
 
 ```bash
 kubectl apply -f - <<EOF
 apiVersion: argoproj.io/v1alpha1
-kind: Application
+kind: ApplicationSet
 metadata:
-  name: aso-aks
+  name: aso-aks-appset
   namespace: argocd
 spec:
-  project: default
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: default
-  source:
-    repoURL: https://github.com/dcasati/capz-aso-samples.git
-    targetRevision: main
-    path: samples/aks/
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-    syncOptions:
-      - CreateNamespace=true
+  generators:
+    - clusters:
+        selector:
+          matchExpressions:
+            - key: akuity.io/argo-cd-cluster-name
+              operator: NotIn
+              values: [in-cluster]
+  template:
+    metadata:
+      name: aso-aks-{{name}}
+      namespace: argocd
+    spec:
+      project: default
+      destination:
+        server: '{{server}}'
+        namespace: default
+      source:
+        repoURL: https://github.com/dcasati/capz-aso-samples.git
+        targetRevision: main
+        path: samples/aks/
+      syncPolicy:
+        automated:
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+        retry:
+          limit: -1
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 60m
 EOF
 ```
 
@@ -621,26 +645,90 @@ From now on, when creating resources with ASOv2, we need to include the followin
   annotations:
     serviceoperator.azure.com/credential-from: aso-credentials
 ```
-:::
+Here is how the `cluster.yaml` manifest. Notice the inclusion of the `serviceoperator.azure.com/credential-from: aso-credentials` annotation:
 
-Here is how the `rg.yaml` looks like:
+![ASO Annotation](assets/aso-annotation.png)
 
-```yaml
-resourcegroup.resources.azure.com/rg-cluster-aso
+To illustrate this concept, lets create a new resource group:
+
+1. Create a new `namespace`
+
+```bash
+kubectl create ns rg-example
+```
+
+2. Create a new `secret` scoped to the namespace
+
+```bash
+cat <<EOF> rg-example-aso-credentials.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+ name: rg-example-aso-credentials
+ namespace: rg-example
+stringData:
+ AZURE_SUBSCRIPTION_ID: "$AZURE_SUBSCRIPTION_ID"
+ AZURE_TENANT_ID: "$AZURE_TENANT_ID"
+ AZURE_CLIENT_ID: "$AZURE_CLIENT_ID"
+ USE_WORKLOAD_IDENTITY_AUTH: "true"
+EOF
+```
+
+Apply it:
+
+```bash
+kubectl apply -f rg-example-aso-credentials.yaml
+```
+
+3. Create the resource
+
+```bash
+cat <<EOF> rg-example.yaml
 apiVersion: resources.azure.com/v1api20200601
 kind: ResourceGroup
 metadata:
-  name: rg-cluster-aso
-  namespace: default
+  name: my-rg-example
+  namespace: rg-example
   annotations:
-    serviceoperator.azure.com/credential-from: aso-credentials
+    serviceoperator.azure.com/credential-from: rg-example-aso-credentials
 spec:
   location: westus3
+EOF
 ```
 
-And here is how the `cluster.yaml` manifest. Notice the inclusion of the `serviceoperator.azure.com/credential-from: aso-credentials` annotation:
+Apply it:
 
-![ASO Annotation](assets/aso-annotation.png)
+```bash
+kubectl apply -f rg-example.yaml
+```
+
+Verify that it was created:
+
+```bash
+az group show -n my-rg-example
+```
+
+Expect:
+
+```bash
+{
+  "id": "/subscriptions/6edaa0d4-86e4-431f-a3e2-d027a34f03c9/resourceGroups/my-rg-example",
+  "location": "westus3",
+  "managedBy": null,
+  "name": "my-rg-example",
+  "properties": {
+    "provisioningState": "Succeeded"
+  },
+  "tags": null,
+  "type": "Microsoft.Resources/resourceGroups"
+}
+```
+
+To remove this resource, you can do use kubectl as such:
+
+```bash
+kubectl delete resourcegroup/my-rg-example -n rg-example
+```
 
 ---
 
@@ -702,6 +790,8 @@ b) Create an ASO identity on this new namespace - As before with the ASO example
 c) Create a new `ResourceGraphDefinition` with the `serviceoperator.azure.com/credential-from: aso-credentials` annotation.
 d) Deploy a new instance of our resource group (defined in the `ResourceGraphDefinition` on step c)
 
+##### Quick 'Hello World' example using `kro`
+
 1. Create a namespace
 
 ```bash
@@ -712,7 +802,7 @@ kubectl create ns rg-kro-aks-labs
 2. Create the ASO identity in the `rg-aks-labs` namespace
 
 ```bash
-cat <<EOF > kro-aso-credentials.yaml
+cat <<EOF> kro-aso-credentials.yaml
 apiVersion: v1
 kind: Secret
 metadata:
@@ -792,7 +882,7 @@ azurecontainer.kro.run   v1alpha1     AzureContainerDeployment   Active   3m
 6. Create an instance of the Azure Resource Group as specified by the `ResourceGroupDefinition`
 
 ```bash
-cat <<EOF > instance.yaml
+cat <<EOF> instance.yaml
 apiVersion: kro.run/v1alpha1
 kind: AzureResourceGroup
 metadata:
@@ -815,7 +905,7 @@ kubectl apply -f instance.yaml
 8. Verify that the resource was created:
 
 ```bash
-kubectl get resourcegroups -n rg-kro-aks-labs
+kubectl get -n rg-kro-aks-labs resourcegroups
 ```
 
 Expect:
@@ -829,6 +919,10 @@ You can also verify it using `az cli`:
 
 ```bash
  az group show -n rg-kro-aks-labs
+```
+Expect:
+
+```bash
 {
   "id": "/subscriptions/XXXXXX-XXXXXX-XXXX-XXXX-XXXXXXXXX/resourceGroups/rg-kro-aks-labs",
   "location": "westus2",
@@ -841,9 +935,16 @@ You can also verify it using `az cli`:
   "type": "Microsoft.Resources/resourceGroups"
 }
 ```
+
+To remove the resource group:
+
+```bash
+kubectl delete -n rg-kro-aks-labs resourceGroups/rg-kro-aks-labs
+```
+
 ---
 
-#### Bonus: End to end example using kro + ASO 
+#### Bonus: End to end example using kro + ASO
 
 As a final example, lets look at a scenario where a developer asks for an new AKS cluster using a new `ResourceGraphDefinition` named `AzureStoreDemoDeployment`. This will be deployed on a new namespace called `store-demo`. As before, we will create a new namespace as well as the `aso-credentials` scoped to the namespace:
 
@@ -856,7 +957,7 @@ kubectl create ns store-demo
 2. Create the `aso-credentials` secret on the namespace
 
 ```bash
-cat <<EOF  > kro-aks-store-demo.yaml
+cat <<EOF> kro-aks-store-demo.yaml
 apiVersion: v1
 kind: Secret
 metadata:
@@ -868,6 +969,12 @@ stringData:
  AZURE_CLIENT_ID: "$AZURE_CLIENT_ID"
  USE_WORKLOAD_IDENTITY_AUTH: "true"
 EOF
+```
+
+Apply it:
+
+```bash
+kubectl apply -f kro-aks-store-demo.yaml
 ```
 
 3. Create a new `ResourceGraphDefinition`
@@ -929,6 +1036,26 @@ EOF
 
 ```bash
 kubectl apply -f rgd-aks-store.yaml
+```
+3. Create an `AzureStoreDemoDeployment` file
+
+```bash
+cat <<EOF> aks-store-instance.yaml
+apiVersion: kro.run/v1alpha1
+kind: AzureStoreDemoDeployment
+metadata:
+  name: store-demo-instance
+  namespace: store-demo
+spec:
+  location: westus3
+  namespace: store-demo
+EOF
+```
+
+Apply it:
+
+```bash
+kubectl apply -f aks-store-instance.yaml
 ```
 
 Check is the cluster is now running:
