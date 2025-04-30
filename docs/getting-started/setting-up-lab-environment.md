@@ -212,6 +212,8 @@ AKS_NAME=$(az aks create \
 --network-policy cilium \
 --ssh-access disabled \
 --enable-managed-identity \
+--enable-workload-identity \
+--enable-oidc-issuer \
 --enable-acns \
 --generate-ssh-keys \
 --query name -o tsv)
