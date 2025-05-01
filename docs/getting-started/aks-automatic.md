@@ -90,7 +90,9 @@ In the [Azure portal](https://portal.azure.com/) type **Kubernetes services** in
 
 ![Kubernetes services](./assets/aks-automatic/aks-search.png)
 
-In the upper left portion of the screen, click the **+ Create** button to view all the available options for creating a new AKS cluster. Click on the **Deploy application (new)** option.
+In the upper left portion of the screen, click the **+ Create** button to view all the available options for creating a new AKS cluster. 
+
+Click on the **Deploy application (new)** option.
 
 ![Deploy application with Automated Deployment](./assets/aks-automatic/deploy-app.png)
 
@@ -101,13 +103,15 @@ In the **Basics** tab, click on the **Deploy your application** option, then sel
 
 ![Automated Deployment basics](./assets/aks-automatic/deploy-app-basics.png)
 
-In the **Repository details** section, type `contoso-air` as your **Workflow name**.
+In the **Repository details** section set **Workflow name** to `contoso-air`.
 
 If you have not already authorized Azure to access your GitHub account, you will be prompted to do so. Click the **Authorize access** button to continue.
 
 ![GitHub authorization](./assets/aks-automatic/deploy-app-repo-auth.png)
 
-Once your GitHub account is authorized, you will be able to select the repository you forked earlier. Click the **Select repository** drop down, then select the **contoso-air** repository you forked earlier and select the **main** branch.
+Once your GitHub account is authorized, you will be able to select the repository you forked earlier. 
+
+Click the **Select repository** drop down, then select the **contoso-air** repository you forked earlier, and select the **main** branch.
 
 ![GitHub repo selection](./assets/aks-automatic/deploy-app-repo-selection.png)
 
@@ -143,7 +147,10 @@ In the **Cluster configuration** section, ensure the **Create Automatic Kubernet
 
 ![AKS Automatic cluster creation](./assets/aks-automatic/deploy-app-cluster-new.png)
 
-For **Namespace**, select **Create new** and enter `dev`.
+For **Namespace**, select **Create new** and type `dev`.
+
+> [!alert]
+> Be sure to set the namespace to `dev` as instructions later in the workshop will use this namespace.
 
 You can leave the remaining fields as their default values.
 
@@ -233,6 +240,8 @@ Let's find out...
 Navigate back to the Azure portal and select **Logs** from the **Monitoring** section in the AKS cluster's left-hand menu. This section allows you to access the logs gathered by the Azure Monitor agent operating on the cluster nodes.
 
 ![Contoso Air container logs](./assets/aks-automatic/logs.png)
+
+If you are presented with a **Welcome to Log Analytics** pop-up, close it to access the query editor.
 
 Close the **Queries hub** pop-up to get to the query editor, type the following query, then click the **Run** button to view container logs.
 
@@ -330,6 +339,9 @@ mongoose.Promise = global.Promise;
 
 console.log("Connected to the database");
 ```
+
+> [!hint]
+> You might have to fix the indentation of the code.
 
 This code will use the **DefaultAzureCredential** class from the MSAL library to get the access token for the managed identity which is identified by the **clientId**. It will then use the access token and make a request to the **listConnectionStringUrl** endpoint to get the connection string for the Azure CosmosDB database.
 
@@ -440,6 +452,9 @@ Before you run the command below, make sure you are logged into Azure CLI and ha
 RG_NAME=myresourcegroup
 AKS_NAME=$(az aks list -g $RG_NAME --query "[0].name" -o tsv)
 ```
+
+> [!alert]
+> If you have not already logged into Azure CLI, you can do so by running the following command: `az login`.
 
 With the variables set, run the following command to enable the AutoInstrumentation feature on your AKS cluster.
 
@@ -594,7 +609,7 @@ Filter the **namespace** to **dev** the **type** to **deployment**, and the **wo
 
 #### Querying metrics with PromQL
 
-If you prefer to write your own queries to visualize the data, you can use the **Explore** feature in Grafana. In the Grafana home page, click on the **Explore** link in the left-hand menu, and select the **Managed_Prometheus_defaultazuremonitorworkspace** data source.
+If you prefer to write your own queries to visualize the data, you can use the **Explore** feature in Grafana. In the Grafana home page, click on the **Explore** link in the left-hand menu, and select the data source name that begins with **Managed_Prometheus_**.
 
 The query editor supports a graphical query builder and a text-based query editor. The graphical query builder is a great way to get started with PromQL. You can select the metric you want to query, the aggregation function, and any filters you want to apply.
 
