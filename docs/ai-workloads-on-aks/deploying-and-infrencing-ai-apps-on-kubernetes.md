@@ -24,6 +24,16 @@ Before you begin, make sure you have the following:
 - [Python 3.13 or later](https://www.python.org/downloads/)
 - POSIX-compliant shell (i.e. bash, zsh, etc.)
 
+The Azure resources needed for this workshop are already created for you. You can find the name of the resource group in the **Resources** tab of the lab environment.
+
+To use the **kubectl** tool, you need to connect to the AKS cluster. You can do this by running the following command in the terminal.
+
+```bash
+RG_NAME=@lab.CloudResourceGroup(ResourceGroup1).Name
+AKS_NAME=$(az aks list -g $RG_NAME --query "[0].name" -o tsv)
+az aks get-credentials -g $RG_NAME -n $AKS_NAME
+```
+
 ## What is KAITO?
 
 KAITO is a tool designed to automate AI/ML model inference and tuning workloads within Kubernetes clusters, focusing on popular large models like Falcon, Phi-3, and more. Key features include managing large model files using container images, providing preset configurations for different GPU hardware, and supporting popular open-source inference runtimes such as vLLM and transformers.
@@ -316,9 +326,6 @@ When you query the RAG Engine, it will use the in-memory vector database to find
 ### Uninstall the KAITO add-on
 
 ```bash
-RG_NAME=<your_resource_group_name>
-AKS_NAME=$(az aks list -g $RG_NAME --query "[0].name" -o tsv)
-
 # delete the workspace
 kubectl delete workspace workspace-phi-3-mini-128k-instruct
 
