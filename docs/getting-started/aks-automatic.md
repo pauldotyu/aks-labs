@@ -668,33 +668,33 @@ When the VPA manifest is generated, click the **Accept all** button to accept th
 
 ![VPA manifest](./assets/aks-automatic/custom-resources-vpa-add.png)
 
-> [+alert]
+> [!alert]
 > Microsoft Copilot in Azure may provide different results. If your results are different, simply copy the following VPA manifest and paste it into the **Apply with YAML** editor.
-> <br>
-> ```yaml
-> apiVersion: autoscaling.k8s.io/v1
-> kind: VerticalPodAutoscaler
-> metadata:
->   name: contoso-air-vpa
->   namespace: dev
-> spec:
->   targetRef:
->     apiVersion: apps/v1
->     kind: Deployment
->     name: contoso-air
->   updatePolicy:
->     updateMode: Auto
->   resourcePolicy:
->     containerPolicies:
->       - containerName: contoso-air
->         minAllowed:
->           cpu: 100m
->           memory: 256Mi
->         maxAllowed:
->           cpu: 1
->           memory: 512Mi
->         controlledResources: ["cpu", "memory"]
-> ```
+
+```yaml
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: contoso-air-vpa
+  namespace: dev
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: contoso-air
+  updatePolicy:
+    updateMode: Auto
+  resourcePolicy:
+    containerPolicies:
+      - containerName: contoso-air
+        minAllowed:
+          cpu: 100m
+          memory: 256Mi
+        maxAllowed:
+          cpu: 1
+          memory: 512Mi
+        controlledResources: ["cpu", "memory"]
+```
 
 > [!knowledge]
 > The VPA resource will only update the CPU and memory requests and limits for the pods in the deployment if the number of replicas is greater than 1. Also the pod will be restarted when the VPA resource updates the pod configuration so it is important to create [Pod Disruption Budgets (PDBs)](https://kubernetes.io/docs/concepts/workloads/pods/disruptions/#pod-disruption-budgets) to ensure that the pods are not restarted all at once.
