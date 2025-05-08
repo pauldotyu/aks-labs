@@ -26,11 +26,19 @@ Before you begin, make sure you have the following:
 
 The Azure resources needed for this workshop are already created for you. You can find the name of the resource group in the **Resources** tab of the lab environment.
 
-To use the **kubectl** tool, you need to connect to the AKS cluster. You can do this by running the following command in the terminal.
+Start by opening VSCode.
+
+![VSCode](./assets/kaito/vscode.png)
+
+To use the **kubectl** tool, you need to connect to the AKS cluster. You can do this by running the following command in the VSCode terminal.
+
+> [!hint]
+> Press `Ctrl + Shift + P` then type **Toggle Terminal** to open the terminal in VSCode.
 
 ```bash
 RG_NAME=@lab.CloudResourceGroup(ResourceGroup1).Name
 AKS_NAME=$(az aks list -g $RG_NAME --query "[0].name" -o tsv)
+GRAFANA_NAME=$(az grafana list -g $RG_NAME --query "[0].name" -o tsv)
 az aks get-credentials -g $RG_NAME -n $AKS_NAME
 ```
 
@@ -61,79 +69,65 @@ In this workshop, we will be using the AKS add-on to deploy KAITO on AKS. This i
 
 ### Install with Visual Studio Code
 
-Start by opening VSCode.
+In VSCode, click on the Kubernetes extension.
 
-![VSCode](https://placehold.co/600x400)
+![Kubernetes extension](./assets/kaito/vscode-k8s-ext.png)
 
-Click on the Kubernetes extension.
+Expand the **Clouds** section, then expand **Azure** section and login into your Azure account. If your Azure account is tied to multiple tenants, you will be prompted to select a tenant. Select the tenant that contains your AKS cluster. You should see a list of your Azure subscriptions. Select the subscription that contains your AKS cluster. Expand the subscription and find your AKS cluster.
 
-![Kubernetes extension](https://placehold.co/600x400)
-
-Expand the **Clouds** section, then expand **Azure** section and login into your Azure account. If your Azure account is tied to multiple tenants, you will be prompted to select a tenant. Select the tenant that contains your AKS cluster.
-
-![Azure login](https://placehold.co/600x400)
-
-You should see a list of your Azure subscriptions. Select the subscription that contains your AKS cluster.
-
-![Azure subscriptions](https://placehold.co/600x400)
-
-Expand the subscription and find your AKS cluster.
-
-![AKS cluster](https://placehold.co/600x400)
+![Azure subscriptions](./assets/kaito/vscode-k8s-cloud-clusters.png)
 
 Right-click your AKS cluster and select **Deploy an LLM with KAITO** and click **Install KAITO**.
 
-![Install KAITO](https://placehold.co/600x400)
+![Install KAITO](./assets/kaito/vscode-k8s-kaito-install.png)
 
-In the panel that opens, click the **Install KAITO** button. Installing KAITO will take a few minutes to complete.
+In the panel that opens, click the **Install KAITO** button at the bottom. Installing KAITO will take a few minutes to complete.
 
-![Install KAITO panel](https://placehold.co/600x400)
+![Install KAITO panel](./assets/kaito/vscode-k8s-kaito-install-button.png)
 
 Once the installation is complete, you will see a message in the panel.
-
-![KAITO installed](https://placehold.co/600x400)
 
 ### Deploy a workspace
 
 With the KAITO add-on installed, you can now deploy a Workspace by clicking on the **Generate Workspace** button.
 
-![Generate workspace](https://placehold.co/600x400)
+![Generate workspace](./assets/kaito/vscode-k8s-kaito-workspace-button.png)
 
 Here you will see a list of available Workspace presets. These are the available models that you can deploy with KAITO.
 
-![Available models](https://placehold.co/600x400)
+![Available models](./assets/kaito/vscode-k8s-kaito-workspace-list.png)
 
 Expand the **Phi-3** family of models and select **phi-3-mini-128k-instruct**.
 
-![Select phi-3-mini-128k-instruct](https://placehold.co/600x400)
+![Select phi-3-mini-128k-instruct](./assets/kaito/vscode-k8s-kaito-workspace-phi-3-mini.png)
 
 Here you have the option to deploy the default workspace or a custom workspace. If you click on the **Customize workspace CRD** button, the YAML manifest will be displayed in a new tab. You can modify the YAML manifest to customize the workspace deployment then apply the manifest using the **kubectl apply** command.
 
-Click the **Deploy default workspace CRD" and wait 10 minutes for it to be ready. Keep an eye on the **Resource Ready** and **Inference Ready** statuses. Also as part of this process, subscription quota will be checked and if you don't have enough quota, the workspace will not be deployed.
+Click the **Deploy default workspace CRD** and wait 10 minutes for it to be ready. Keep an eye on the **Resource Ready** and **Inference Ready** statuses. Also as part of this process, subscription quota will be checked and if you don't have enough quota, the workspace will not be deployed.
 
-![Deploy workspace CRD](https://placehold.co/600x400)
+![Deploy workspace CRD](./assets/kaito/vscode-k8s-kaito-workspace-deploy.png)
 
 With the workspace successfully deployed, click the **View deployed models** button to test the workspace.
 
-![View deployed models](https://placehold.co/600x400)
+![View deployed models](./assets/kaito/vscode-k8s-kaito-view-deployed-model.png)
 
 In the workspace panel you can see it's a place where you can quickly test the inference endpoint, view logs, and delete the workspace.
 
-![View workspace panel](https://placehold.co/600x400)
+![View workspace panel](./assets/kaito/vscode-k8s-kaito-workspace-actions.png)
 
 Click the **Test** button to open the testing panel.
 
-![Test workspace](https://placehold.co/600x400)
+![Test workspace](./assets/kaito/vscode-k8s-kaito-workspace-test-button.png)
 
 Here you can enter a prompt and configure the prompt parameters such as **Temperature**, **Top P**, **Top K**, and **Max Length**.
 
 Enter a prompt and optionally set prompt parameters, then click the **Submit prompt** button to send the prompt to the workspace.
 
-![Submit prompt](https://placehold.co/600x400)
+![Submit prompt](./assets/kaito/vscode-k8s-kaito-workspace-test.png)
 
 The response will be displayed in the panel.
 
-![Response](https://placehold.co/600x400)
+![Response](./assets/kaito/vscode-k8s-kaito-workspace-test-response.png)
 
 ## Developing with KAITO
 
@@ -143,7 +137,7 @@ With a workspace deployed, you can now start developing your code. In this lab, 
 
 Chainlit is a Python library that allows you to create interactive web applications for interacting with models. It provides a simple way to create a web UI for your model and allows you to quickly build prototypes and test using a web browser.
 
-Run the following command to create a new directory for the project.
+Open the VSCode terminal then run the following command to create a new directory for the project.
 
 ```bash
 mkdir -p /tmp/app
@@ -156,10 +150,10 @@ Download the sample code.
 curl -o main.py https://raw.githubusercontent.com/kaito-project/kaito/refs/heads/main/demo/inferenceUI/chainlit_openai.py
 ```
 
-Run the following command to view the code file.
+Run the following command to open the `main.py` file.
 
 ```bash
-cat main.py
+code main.py
 ```
 
 The code uses the OpenAI library to send requests to the KAITO workspace and display the responses in the web UI which is created using Chainlit.
@@ -210,7 +204,7 @@ This will start a local web server that you can access in your browser at `http:
 
 You can enter a prompt in the text box and click the submit button to send the prompt to the KAITO workspace. The response will be displayed in the web UI.
 
-![Chainlit app](https://placehold.co/600x400)
+![Chainlit app](./assets/kaito/chainlit-response.png)
 
 As you can see, developing against the KAITO workspace simple. Using the OpenAI library to send requests makes it compatible with any code that uses the OpenAI API.
 
@@ -278,8 +272,8 @@ Create a folder in Azure Managed Grafana to store the dashboard.
 
 ```bash
 az grafana folder create \
--n <your_grafana_name> \
--g <your_resource_group_name> \
+-n $GRAFANA_NAME \
+-g $RG_NAME \
 --title "KAITO"
 ```
 
@@ -287,8 +281,8 @@ Import the JSON file into Azure Managed Grafana.
 
 ```bash
 az grafana dashboard create \
--n <your_grafana_name> \
--g <your_resource_group_name> \
+-n $GRAFANA_NAME \
+-g $RG_NAME \
 --title "vLLM" \
 --folder "KAITO" \
 --definition "$(cat grafana.json)"
@@ -296,19 +290,19 @@ az grafana dashboard create \
 
 In the Azure portal, navigate to the Azure Managed Grafana instance and click on the endpoint URL to open the Grafana dashboard.
 
-![Grafana endpoint](https://placehold.co/600x400)
+![Grafana endpoint](./assets/kaito/azure-grafana-endpoint.png)
 
 Log into the Grafana dashboard using your Azure credentials, then click on the **Dashboards** tab on the left side of the screen.
 
-![Grafana dashboards](https://placehold.co/600x400)
+![Grafana dashboards](./assets/kaito/azure-grafana-dashboard-button.png)
 
 You should see a folder named **KAITO**. Click on it to open the folder.
 
-![KAITO folder](https://placehold.co/600x400)
+![KAITO folder](./assets/kaito/azure-grafana-dashboard-kaito-folder.png)
 
 Click on the **vLLM** dashboard to open it. You should see a dashboard with various metrics related to the KAITO workspace.
 
-![vLLM dashboard](https://placehold.co/600x400)
+![vLLM dashboard](./assets/kaito/azure-grafana-dashboard-kaito.png)
 
 > [!note] The dashboard may not have metrics to display yet if you have not run any inference requests yet. You can run some inference requests using the Chainlit app that you created earlier to generate some metrics.
 
@@ -436,7 +430,7 @@ EOF
 Now, you have enough information to deploy the gpu-provisioner. Run the following command to deploy the gpu-provisioner Helm chart.
 
 ```bash
-helm install gpu-provisioner https://github.com/Azure/gpu-provisioner/raw/gh-pages/charts/gpu-provisioner-0.3.3.tgz \
+helm install gpu-provisioner https://github.com/Azure/gpu-provisioner/raw/gh-pages/charts/gpu-provisioner-0.3.4.tgz \
 --namespace gpu-provisioner \
 --create-namespace \
 --values values.yaml \
