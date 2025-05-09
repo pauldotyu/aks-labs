@@ -26,19 +26,33 @@ Before you begin, make sure you have the following:
 
 The Azure resources needed for this workshop are already created for you. You can find the name of the resource group in the **Resources** tab of the lab environment.
 
-Start by opening VSCode.
-
-![VSCode](./assets/kaito/vscode.png)
-
-To use the **kubectl** tool, you need to connect to the AKS cluster. You can do this by running the following command in the VSCode terminal.
+Start by opening VSCode then open the **Terminal**.
 
 > [!hint]
 > Press `Ctrl + Shift + P` then type **Toggle Terminal** to open the terminal in VSCode.
 
+![VSCode](./assets/kaito/vscode.png)
+
+In the terminal, run the following command to log into your Azure account.
+
 ```bash
-RG_NAME=@lab.CloudResourceGroup(ResourceGroup1).Name
-AKS_NAME=$(az aks list -g $RG_NAME --query "[0].name" -o tsv)
-GRAFANA_NAME=$(az grafana list -g $RG_NAME --query "[0].name" -o tsv)
+az login
+```
+
+Run the following command to export a environment variables that will be used in the workshop.
+
+```bash
+export RG_NAME=@lab.CloudResourceGroup(ResourceGroup1).Name
+export AKS_NAME=$(az aks list -g $RG_NAME --query "[0].name" -o tsv)
+export GRAFANA_NAME=$(az grafana list -g $RG_NAME --query "[0].name" -o tsv)
+```
+
+> [!important]
+> If you open a new terminal window, you will need to run the above command again to set the environment variables.
+
+Next, connect to the AKS cluster using the Azure CLI.
+
+```bash
 az aks get-credentials -g $RG_NAME -n $AKS_NAME
 ```
 
