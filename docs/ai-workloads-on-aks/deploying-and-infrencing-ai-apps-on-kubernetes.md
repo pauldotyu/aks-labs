@@ -430,7 +430,7 @@ EOF
 Now, you have enough information to deploy the gpu-provisioner. Run the following command to deploy the gpu-provisioner Helm chart.
 
 ```bash
-helm install gpu-provisioner https://github.com/Azure/gpu-provisioner/raw/gh-pages/charts/gpu-provisioner-0.3.4.tgz \
+helm install gpu-provisioner https://github.com/Azure/gpu-provisioner/raw/gh-pages/charts/gpu-provisioner-0.3.3.tgz \
 --namespace gpu-provisioner \
 --create-namespace \
 --values values.yaml \
