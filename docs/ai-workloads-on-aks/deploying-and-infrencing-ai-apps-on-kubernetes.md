@@ -26,7 +26,7 @@ Before you begin, make sure you have the following:
 
 The Azure resources needed for this workshop are already created for you. You can find the name of the resource group in the **Resources** tab of the lab environment.
 
-Start by opening VSCode then open the **Terminal**.
+Start by opening Visual Studio Code (VSCode) then open its integrated **Terminal**.
 
 > [!hint]
 > Press `Ctrl + Shift + P` then type **Toggle Terminal** to open the terminal in VSCode.
