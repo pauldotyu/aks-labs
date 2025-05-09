@@ -353,7 +353,7 @@ The application has the following services:
 
 Here is a high-level architecture of the application:
 
-![AKS store demo architecture](./assets/aks-store-architecture.png)
+![AKS store demo architecture](./assets/setting-up-lab-environment/aks-store-architecture.png)
 
 Run the following command to create a namespace for the application.
 
@@ -381,7 +381,7 @@ kubectl get svc store-front -n pets
 
 Copy the **EXTERNAL-IP** of the **store-front** service to your browser to access the application.
 
-![AKS Store Demo sample app](assets/acns-pets-app.png)
+![AKS Store Demo sample app](assets/setting-up-lab-environment/acns-pets-app.png)
 
 :::note[Congratulations!]
 
