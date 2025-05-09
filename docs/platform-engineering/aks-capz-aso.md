@@ -17,6 +17,9 @@ Welcome to the **Platform Engineering on AKS** workshop. This hands-on workshop 
 - Demonstrate how CAPZ and ASO can provision infrastructure and Kubernetes clusters
 - Show how to deploy application environments on both existing AKS clusters and newly created dedicated clusters
 
+:::tip
+If you have used Infrastructure as Code tools like `teraform` to create resources in Azure, you can use the `asoctl` tool to convert these Azure resources into ASO deployments. To find out more about `asoctl` take a look [here](https://azure.github.io/azure-service-operator/tools/). You can download `asoctl` [here](https://github.com/Azure/azure-service-operator/releases/tag/v2.13.0)
+:::
 ---
 
 ## Prerequisites
@@ -44,7 +47,17 @@ This workshop uses the [GitOps Bridge Pattern](https://github.com/gitops-bridge-
 
 ### Step 1: Create the AKS cluster
 
+Before we begin lets create a new directory that can be a placeholder for all of our files created during this lab:
+
 ```bash
+mkdir aks-labs
+cd aks-labs
+```
+
+Next, proceed by declaring the following environment variables:
+
+```bash
+cat <<EOF> .envrc
 # Environment variables
 export AZURE_SUBSCRIPTION_ID=$(az account show --query id -o tsv)
 export AZURE_TENANT_ID=$(az account show --query tenantId -o tsv)
@@ -61,7 +74,18 @@ export GITOPS_ADDONS_REPO="gitops"
 export GITOPS_ADDONS_BASEPATH="base/"
 export GITOPS_ADDONS_PATH="bootstrap/control-plane/addons"
 export GITOPS_ADDONS_REVISION="main"
+EOF
 ```
+
+Load the environment variables:
+
+```bash
+source .envrc
+```
+
+:::tip
+Now that we have saved the environment variables, you can always reload these variables later if needed by running `source .envrc` on this directory.
+:::
 
 1. Create the resource group
 
@@ -122,7 +146,7 @@ In this step, we will do the following:
     --location "${LOCATION}"
   ```
 
-2. Retrieve Azure Managed Identity Client and Principal IDs
+2. Retrieve Azure Managed Identity Client and Principal IDs:
 
   ```bash
   export AZURE_CLIENT_ID=$(az identity show \
@@ -136,7 +160,16 @@ In this step, we will do the following:
     --query "principalId" -o tsv)
   ```
 
-3. Assigning `Owner` role to the identity
+  Verify that these variables are not empty:
+
+  ```bash
+  echo "AZURE_SUBSCRIPTION_ID: $AZURE_SUBSCRIPTION_ID"
+  echo "AZURE_TENANT_ID: $AZURE_TENANT_ID"
+  echo "AZURE_CLIENT_ID: $AZURE_CLIENT_ID"
+  echo "PRINCIPAL_ID: $PRINCIPAL_ID"  
+  ```
+
+3. Assigning `Owner` role to the identity:
 
   ```bash
   az role assignment create \
@@ -199,11 +232,10 @@ kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/st
 
 ### Step 4: Access ArgoCD UI
 
-1. Retrieve ArgoCD admin password and server IP
+1. Retrieve ArgoCD admin password
 
   ```bash
   kubectl get secrets argocd-initial-admin-secret -n argocd --template="{{index .data.password | base64decode}}" ; echo
-  kubectl get svc -n argocd argocd-server
   ```
 
 If no public IP is available:
@@ -293,6 +325,20 @@ EOF
 
 3. Bootstrap the Argo CD applications in the cluster:
 
+Here is a summary of the applications that will be installed by Argo CD in the cluster:
+
+  Application Name | Purpose
+  | -| - 
+  cluster-addons | A general-purpose application for deploying shared or foundational cluster components (e.g., networking, storage, observability, etc.). Often used as a parent or umbrella app.
+  addon-aks-labs-gitops-argo-cd | Installs and manages the Argo CD GitOps controller that syncs desired state from Git repositories to Kubernetes clusters.
+  addon-aks-labs-gitops-argo-events | Argo Events, used to trigger workflows based on external events (webhooks, schedules, etc.). Useful for event-driven automation.
+  addon-aks-labs-gitops-argo-rollouts | Argo Rollouts, a Kubernetes controller for progressive delivery strategies like blue/green, canary, and experimentation.
+  addon-aks-labs-gitops-argo-workflows | Argo Workflows, a Kubernetes-native workflow engine for orchestrating  CI/CD pipelines.
+  addon-aks-labs-gitops-cert-manager | Installs cert-manager, a controller that automatically provisions and renews TLS certificates (e.g., from Let’s Encrypt).
+  addon-aks-labs-gitops-kargo | Deploys Kargo, an Argo ecosystem project for automating promotion of container images across environments based on predefined policies.
+  
+Create the ArgoCD ApplicationSet that will bootstrap the initial applications in the cluster:
+
 ```bash
 cat <<EOF> bootstrap-addons.yaml
 apiVersion: argoproj.io/v1alpha1
@@ -330,23 +376,10 @@ spec:
 EOF
   ```
 
-  Apply it:
-  ```bash
-  kubectl apply -f bootstrap-addons.yaml
-  ```
-
-  Here is a summary of the applications installed by Argo CD in the cluster:
-
-  Application Name | Purpose
-  | -| - 
-  cluster-addons | A general-purpose application for deploying shared or foundational cluster components (e.g., networking, storage, observability, etc.). Often used as a parent or umbrella app.
-  addon-aks-labs-gitops-argo-cd | Installs and manages the Argo CD GitOps controller that syncs desired state from Git repositories to Kubernetes clusters.
-  addon-aks-labs-gitops-argo-events | Argo Events, used to trigger workflows based on external events (webhooks, schedules, etc.). Useful for event-driven automation.
-  addon-aks-labs-gitops-argo-rollouts | Argo Rollouts, a Kubernetes controller for progressive delivery strategies like blue/green, canary, and experimentation.
-  addon-aks-labs-gitops-argo-workflows | Argo Workflows, a Kubernetes-native workflow engine for orchestrating  CI/CD pipelines.
-  addon-aks-labs-gitops-cert-manager | Installs cert-manager, a controller that automatically provisions and renews TLS certificates (e.g., from Let’s Encrypt).
-  addon-aks-labs-gitops-kargo | Deploys Kargo, an Argo ecosystem project for automating promotion of container images across environments based on predefined policies.
-  
+Apply it:
+```bash
+kubectl apply -f bootstrap-addons.yaml
+```
 
 4. Verify cert-manager
 
@@ -358,10 +391,10 @@ kubectl wait --for=condition=Ready pod --all -n cert-manager --timeout=300s
   Expect:
 
   ```bash
-  NAME                                       READY   STATUS
-  cert-manager-xxxxxxxxx-xxxxx               1/1     Running
-  cert-manager-cainjector-xxxxxxxxxx-xxxxx   1/1     Running
-  cert-manager-webhook-xxxxxxxxx-xxxxx       1/1     Running
+  pod/cert-manager-7b9875fbcc-dp96f condition met
+  pod/cert-manager-cainjector-948d47c6-xw2bt condition met
+  pod/cert-manager-startupapicheck-6bskz condition met
+  pod/cert-manager-webhook-78bd84d46b-tgtxv condition met
   ```
 
 5. You should now have all of the bootstrap applications deployed.
@@ -409,8 +442,32 @@ EOF
   helm repo update
   helm install capi-operator capi-operator/cluster-api-operator \
     --create-namespace -n capi-operator-system \
+    --wait \
+    --timeout=300s \
     -f capi-operator-values.yaml
   ```
+
+:::info
+If you need to modify or reinstall the cluster-api-operator, you can do it so by running this command:
+
+to upgrade/update the chart (e.g.: after modifying the `capi-operator-values.yaml` file):
+
+```bash
+  helm upgrade --install install capi-operator capi-operator/cluster-api-operator \
+  --create-namespace -n capi-operator-system \
+  --wait \
+  --timeout=300s \
+  -f capi-operator-values.yaml
+```
+
+to uninstall the chart:
+
+```bash
+helm uninstall capi-operator -n capi-operator-system
+```
+
+Helm doesn't remove all of the CRDs from the cluster and those would have to be removed manually.
+:::
 
 3. Verify the `CAPZ` Installation
 
@@ -453,10 +510,82 @@ EOF
   ```bash
   kubectl apply -f identity.yaml
   ```
-
 ---
 
-### Step 7: Create a new cluster and using the App of Apps pattern
+### Sample 1: Create a new cluster as an Argo CD Application 
+
+```bash
+# setup some enviroment variables for the new cluster
+export CLUSTER_NAME=dev-cluster
+export LOCATION=eastus
+```
+
+```bash
+cat <<EOF> aks-argo-application.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: "${CLUSTER_NAME}"
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    namespace: default
+    server: https://kubernetes.default.svc
+  source:
+    repoURL: 'https://mboersma.github.io/cluster-api-charts'
+    chart: azure-aks-aso
+    targetRevision: v0.4.2
+    helm:
+      valuesObject:
+        clusterName: "${CLUSTER_NAME}"
+        location: "${LOCATION}"
+        subscriptionID: "${AZURE_SUBSCRIPTION_ID}"
+        clientID: "${AZURE_CLIENT_ID}"
+        tenantID: "${AZURE_TENANT_ID}"
+        authMode: "workloadidentity"
+        kubernetesVersion: v1.30.10
+        clusterNetwork: "overlay"
+        managedMachinePoolSpecs:
+          pool0:
+            count: 1
+            enableAutoScaling: true
+            enableEncryptionAtHost: false
+            enableFIPS: false
+            enableNodePublicIP: false
+            enableUltraSSD: false
+            maxCount: 3
+            minCount: 1
+            mode: System
+            osSKU: AzureLinux
+            vmSize: Standard_DS2_v2
+            type: VirtualMachineScaleSets
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: -1
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 10m
+EOF
+```
+
+Apply it:
+
+```bash
+ envsubst < aks-argo-application.yaml | kubectl apply -f -
+```
+
+
+# Platform Engineering: Exploring the App of Apps pattern
+
+
+### Using the App of Apps pattern
 
 [The App of Apps Pattern](https://argo-cd.readthedocs.io/en/stable/operator-manual/cluster-bootstrapping/#app-of-apps-pattern) an approach where you use one parent Argo CD Application to declaratively manage many child Argo CD Applications.
 
@@ -731,6 +860,7 @@ kubectl delete resourcegroup/my-rg-example -n rg-example
 ```
 
 ---
+# Platform Engineering: Kubernetes Resource Orchestrator
 
 ### Expanding the solution with kro
 
@@ -1165,11 +1295,11 @@ To clean up the resources for this lab, you can run the following commands:
 # remove the store-demo-rg
 az group delete -n store-demo-rg --no-wait
 
-# remove the aks1 resource group 
-az group delete -n aks1 --no-wait
+# remove the aks1 cluster
+az aks delete -n aks1 -g aks1 --no-wait
 
 # finnaly, remove the aks-labs resource group
-az group delete -n rg-aks-labs --no-wait
+az aks delete -n ${RESOURCE_GROUP} -g ${AKS_CLUSTER_NAME}
 ```
 
 ---
