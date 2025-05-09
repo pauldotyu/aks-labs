@@ -20,6 +20,12 @@ After completing this workshop, you will be able to:
 
 ---
 
+## Prerequisite
+
+- [GitHub Account](http://github.com/signup) - this workshop requires a GitHub account to fork and clone the sample repository.
+
+---
+
 ## Deploy your app to AKS Automatic
 
 With AKS, the [Automated Deployments](https://learn.microsoft.com/azure/aks/automated-deployments) feature allows you to create [GitHub Actions workflows](https://docs.github.com/actions) that allows you to start deploying your applications to your AKS cluster with minimal effort, even if you don't already have an AKS cluster. All you need to do is point it at a GitHub repository with your application code.
@@ -86,11 +92,16 @@ You're now ready to deploy the sample application to your AKS cluster.
 
 ### Automated Deployments setup
 
+In your web browser, navigate to [https://portal.azure.com](https://portal.azure.com).
+
+> [!alert]
+> An Azure subscription is provided for you in the lab environment. The credentials can be found in the **Resources** tab in the lab environment.
+
 In the [Azure portal](https://portal.azure.com/) type **Kubernetes services** in the search box at the top of the page and click the **Kubernetes services** option from the search results.
 
 ![Kubernetes services](./assets/aks-automatic/aks-search.png)
 
-In the upper left portion of the screen, click the **+ Create** button to view all the available options for creating a new AKS cluster. 
+In the upper left portion of the screen, click the **+ Create** button to view all the available options for creating a new AKS cluster.
 
 Click on the **Deploy application (new)** option.
 
@@ -198,7 +209,7 @@ In the workflow run details page, you can view the logs of each job in the workf
 
 ![GitHub Actions workflow logs](./assets/aks-automatic/github-actions-workflow-run.png)
 
-After a few minutes, the workflow will complete and you will see two green check marks next to the **buildImage** and **deploy** jobs. This means that the application has been successfully deployed to your AKS cluster.
+After 5-10 minutes, the workflow will complete and you will see two green check marks next to the **buildImage** and **deploy** jobs. This means that the application has been successfully deployed to your AKS cluster.
 
 ![GitHub Actions workflow success](./assets/aks-automatic/github-action-done.png)
 
@@ -211,7 +222,7 @@ With AKS Automated Deployments, every time you push application code changes to 
 
 Back in the Azure portal, click the **Close** button to close the Automated Deployments setup.
 
-In the left-hand menu, click on **Services and ingresses** under the **Kubernetes resources** section. You should see a new service called `contoso-air` with a public IP address assigned to it. Click on the IP address to view the deployed application.
+In the left-hand menu, click on **Services and ingresses** under the **Kubernetes resources** section. You should see a new service called `contoso-air` with an external IP address assigned to it. Click on the IP address to view the deployed application.
 
 ![Contoso Air service](./assets/aks-automatic/contoso-air-service-ip.png)
 
@@ -648,7 +659,7 @@ Click on the **VerticalPodAutoscaler** resource to view the VPA resources in the
 
 ![VPA resources](./assets/aks-automatic/custom-resources-vpa.png)
 
-Click on the **+ Create** button where you'll see a **Add with YAML** editor.
+Click on the **+ Create** button where you'll see a **Apply with YAML** editor.
 
 ![Create VPA](./assets/aks-automatic/custom-resources-vpa-create.png)
 
