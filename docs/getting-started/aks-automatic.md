@@ -120,7 +120,7 @@ If you have not already authorized Azure to access your GitHub account, you will
 
 ![GitHub authorization](./assets/aks-automatic/deploy-app-repo-auth.png)
 
-Once your GitHub account is authorized, you will be able to select the repository you forked earlier. 
+Once your GitHub account is authorized, you will be able to select the repository you forked earlier.
 
 Click the **Select repository** drop down, then select the **contoso-air** repository you forked earlier, and select the **main** branch.
 
