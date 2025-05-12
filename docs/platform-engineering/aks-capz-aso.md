@@ -602,7 +602,7 @@ You can follow the deployment of the new dev cluster in the Argo CD UI
 
 ### Sample 2: Create new ASOv2 resources
 
-In this second sample, we will look into how to use ASOv2 to create resources in Azure. For this example, we will create a single Resource Group but the concepts here apply for other resources in Azure too.
+In this second sample, we will look into how to use ASOv2 to create resources in Azure. For this example, we will create a Resource Group and a Key Vault instance. The concepts here apply for other resources in Azure too.
 
 To create other resources using ASOv2, you can follow the structure of the Git repo for this sample:
 
@@ -620,7 +620,7 @@ From now on, when creating resources with ASOv2, we need to include the followin
     serviceoperator.azure.com/credential-from: aso-credentials
 ```
 
-To illustrate this concept, lets create a new resource group:
+To illustrate this concept, lets create a new resource group and a Key Vault instance:
 
 1. Create a new `namespace`
 
@@ -651,55 +651,7 @@ Apply it:
 kubectl apply -f rg-dev-app-aso-credentials.yaml
 ```
 
-3. Create the resource
-
-```bash
-cat <<EOF> rg-dev-app.yaml
-apiVersion: resources.azure.com/v1api20200601
-kind: ResourceGroup
-metadata:
-  name: my-rg-dev-app
-  namespace: rg-dev-app
-  annotations:
-    serviceoperator.azure.com/credential-from: rg-dev-app-aso-credentials
-spec:
-  location: westus3
-EOF
-```
-
-Apply it:
-
-```bash
-kubectl apply -f rg-dev-app.yaml
-```
-
-Verify that it was created:
-
-```bash
-az group show -n my-rg-dev-app
-```
-
-Expect:
-
-```bash
-{
-  "id": "/subscriptions/6edaa0d4-86e4-431f-a3e2-d027a34f03c9/resourceGroups/my-rg-dev-app",
-  "location": "westus3",
-  "managedBy": null,
-  "name": "my-rg-dev-app",
-  "properties": {
-    "provisioningState": "Succeeded"
-  },
-  "tags": null,
-  "type": "Microsoft.Resources/resourceGroups"
-}
-```
-
-To remove this resource, you can do use kubectl as such:
-
-```bash
-kubectl delete resourcegroup/my-rg-dev-app -n rg-dev-app
-```
+3. Create the ASOv2 manifest
 
 ```bash
 cat <<EOF > samples/sample-2/kv-argo-application.yaml
@@ -741,7 +693,7 @@ spec:
     enableSoftDelete: true
 EOF
 ```
-
+4. Push this back to GitHub
 
 ```bash
 git add samples/sample-2/kv-argo-application.yaml
@@ -749,7 +701,26 @@ git commit -m "Sample-2: Create new ASOv2 resources"
 git push
 ```
 
+You should now see the new resources in the Argo CD UI
+
 ![New ASOv2 Resources](./assets/kv-argo-application.png)
+
+
+Verify that it was created:
+
+```bash
+ az keyvault list -o table
+```
+
+Expect:
+
+```bash
+Location    Name               ResourceGroup
+----------  -----------------  ---------------
+westus3     app-keyvault-2199  rg-dev-app
+```
+
+Congratulations ! You have successfully created Azure resources using ASOv2. Next, lets look into how to [Build a GitOps-Driven Platform on AKS with the App of Apps Pattern](./app-of-apps.md).
 
 ---
 
@@ -761,4 +732,4 @@ In this lab, we accomplished the following:
 - Installed Argo CD and accessed its web UI.
 - Bootstrapped the environment using GitOps principles.
 - Installed Cluster API Provider for Azure (CAPZ) and Azure Service Operator (ASO) to enable infrastructure provisioning.
-- Provisioned a workload cluster using Argo CD.
+- Provisioned Azure resources using ASOv2
