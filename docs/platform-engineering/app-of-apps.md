@@ -18,7 +18,7 @@ Welcome to the **Platform Engineering on AKS** workshop. This hands-on workshop 
 - Show how to deploy application environments on both existing AKS clusters and newly created dedicated clusters
 
 :::tip
-If you have used Infrastructure as Code tools like `teraform` to create resources in Azure, you can use the `asoctl` tool to convert these Azure resources into ASO deployments. To find out more about `asoctl` take a look [here](https://azure.github.io/azure-service-operator/tools/). You can download `asoctl` [here](https://github.com/Azure/azure-service-operator/releases/tag/v2.13.0)
+If you have used Infrastructure as Code tools like `terraform` to create resources in Azure, you can use the `asoctl` tool to convert these Azure resources into ASO deployments. To find out more about `asoctl` take a look [here](https://azure.github.io/azure-service-operator/tools/). You can download `asoctl` [here](https://github.com/Azure/azure-service-operator/releases/tag/v2.13.0)
 :::
 ---
 
@@ -32,9 +32,6 @@ Before you continue, load the environment variables as defined in [Step 1: Creat
 source .envrc
 ```
 ---
-
-# Platform Engineering: Exploring the App of Apps pattern
-
 
 ### Using the App of Apps pattern
 
@@ -58,6 +55,64 @@ Here is a summary of the applications installed by Argo CD in the cluster:
 | addon-aks-labs-gitops-kargo        | Deploys Kargo, an Argo ecosystem project for automating promotion of container images across environments based on predefined policies. |
 
 ---
+
+#### Before you start: GitHub Repository for GitOps Add-Ons
+
+Before starting the modules in this workshop, you’ll need to create a GitHub repository to store your GitOps add-on configurations. This repository will be referenced by Argo CD and other GitOps tools throughout the exercises.
+
+You can either do it from the cli using the GitHub Cli or using the GitHub Web Interface:
+
+  If using the GitHub CLI:
+
+  ```bash
+  gh repo fork dcasati/gitops --clone
+  cd gitops
+  ```
+
+:::tip
+If you don’t have the GitHub CLI installed, you can grab it from [https://cli.github.com/](https://cli.github.com/)
+:::
+
+If using the GitHub Web Interface:
+
+1. Go to https://github.com/dcasati/gitops.
+
+2. Click the **Fork** button in the top-right corner.
+
+3. Choose your GitHub account or organization.
+
+4. Clone your forked repo locally:
+
+```bash
+git clone https://github.com/<your-github-username>/gitops.git
+cd gitops
+```
+
+Now, adjust these environment variables to reflect your environment:
+
+```bash
+cat <<EOF > .envrc
+# Argo CD
+export GITOPS_ADDONS_ORG="https://github.com/dcasati"
+export GITOPS_ADDONS_REPO="gitops"
+export GITOPS_ADDONS_BASEPATH="base/"
+export GITOPS_ADDONS_PATH="bootstrap/control-plane/addons"
+export GITOPS_ADDONS_REVISION="main"
+EOF
+```
+Here's what these variables mean:
+
+| Variable                  | Description                                                                 |
+|---------------------------|-----------------------------------------------------------------------------|
+| `GITOPS_ADDONS_ORG`       | The URL of the GitHub organization or user that owns the repository.       |
+| `GITOPS_ADDONS_REPO`      | The name of the GitHub repository that stores GitOps add-ons.              |
+| `GITOPS_ADDONS_BASEPATH`  | The base directory within the repo containing GitOps resources.            |
+| `GITOPS_ADDONS_PATH`      | The full relative path to the specific add-ons directory within the repo.  |
+| `GITOPS_ADDONS_REVISION`  | The Git branch or revision to sync from (e.g., `main`, `dev`, or a tag).   |
+
+---
+
+At this point, you are ready to bootstrap your Management Cluster with the add-ons:
 
 Step 1: Bootstrap the cluster addons using Argo CD
 
@@ -264,105 +319,6 @@ Once deployed, you should now see a new application in your `aks1` cluster:
 
 ![aks pet store](assets/aks-store-demo.png)
 
-### Sample 2: Create new ASOv2 resources
-
-To create other resources using ASOv2, you can follow the structure of the Git repo for this sample:
-
-```bash
-samples/
-└──> resourcegroup/
-    └──> rg.yaml  <-- contains your ResourceGroup manifest
-```
-
-:::note
-From now on, when creating resources with ASOv2, we need to include the following annotation:
-
-```bash 
-  annotations:
-    serviceoperator.azure.com/credential-from: aso-credentials
-```
-
-To illustrate this concept, lets create a new resource group:
-
-1. Create a new `namespace`
-
-```bash
-kubectl create ns rg-example
-```
-
-2. Create a new `secret` scoped to the namespace
-
-```bash
-cat <<EOF> rg-example-aso-credentials.yaml
-apiVersion: v1
-kind: Secret
-metadata:
- name: rg-example-aso-credentials
- namespace: rg-example
-stringData:
- AZURE_SUBSCRIPTION_ID: "$AZURE_SUBSCRIPTION_ID"
- AZURE_TENANT_ID: "$AZURE_TENANT_ID"
- AZURE_CLIENT_ID: "$AZURE_CLIENT_ID"
- USE_WORKLOAD_IDENTITY_AUTH: "true"
-EOF
-```
-
-Apply it:
-
-```bash
-kubectl apply -f rg-example-aso-credentials.yaml
-```
-
-3. Create the resource
-
-```bash
-cat <<EOF> rg-example.yaml
-apiVersion: resources.azure.com/v1api20200601
-kind: ResourceGroup
-metadata:
-  name: my-rg-example
-  namespace: rg-example
-  annotations:
-    serviceoperator.azure.com/credential-from: rg-example-aso-credentials
-spec:
-  location: westus3
-EOF
-```
-
-Apply it:
-
-```bash
-kubectl apply -f rg-example.yaml
-```
-
-Verify that it was created:
-
-```bash
-az group show -n my-rg-example
-```
-
-Expect:
-
-```bash
-{
-  "id": "/subscriptions/6edaa0d4-86e4-431f-a3e2-d027a34f03c9/resourceGroups/my-rg-example",
-  "location": "westus3",
-  "managedBy": null,
-  "name": "my-rg-example",
-  "properties": {
-    "provisioningState": "Succeeded"
-  },
-  "tags": null,
-  "type": "Microsoft.Resources/resourceGroups"
-}
-```
-
-To remove this resource, you can do use kubectl as such:
-
-```bash
-kubectl delete resourcegroup/my-rg-example -n rg-example
-```
-
 ---
 
 ## Summary
@@ -373,4 +329,3 @@ In this lab, we accomplished the following:
 - Installed Cluster API Provider for Azure (CAPZ) and Azure Service Operator (ASO) to enable infrastructure provisioning.
 - Provisioned a workload cluster using Argo CD.
 - Deployed the `AKS Store Demo` application to the workload cluster via Argo CD, using the _App of Apps_ pattern.
-- Created an AKS cluster using a manifest based on ASOv2.
