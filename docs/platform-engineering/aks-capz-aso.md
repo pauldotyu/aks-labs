@@ -619,6 +619,7 @@ From now on, when creating resources with ASOv2, we need to include the followin
   annotations:
     serviceoperator.azure.com/credential-from: aso-credentials
 ```
+:::
 
 To illustrate this concept, lets create a new resource group and a Key Vault instance:
 
