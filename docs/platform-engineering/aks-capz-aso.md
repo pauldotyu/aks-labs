@@ -716,7 +716,7 @@ spec:
 apiVersion: keyvault.azure.com/v1api20210401preview
 kind: Vault
 metadata:
-  name: app-keyvault
+  name: app-keyvault-${RANDOM}
   namespace: rg-dev-app
   annotations:
     serviceoperator.azure.com/credential-from: rg-dev-app-aso-credentials
@@ -739,20 +739,6 @@ spec:
             - list
             - set
     enableSoftDelete: true
----
-apiVersion: keyvault.azure.com/v1api20210401preview
-kind: Secret
-metadata:
-  name: app-secret
-  namespace: rg-dev-app
-  annotations:
-    serviceoperator.azure.com/credential-from: rg-dev-app-aso-credentials
-spec:
-  owner:
-    name: app-keyvault
-    kind: Vault
-  properties:
-    value: "c2VjcmV0LXZhbHVlLWJhc2U2NA=="  # Base64 for 'secret-value-base64'
 EOF
 ```
 
