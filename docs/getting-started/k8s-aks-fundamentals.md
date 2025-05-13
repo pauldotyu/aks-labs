@@ -3,7 +3,7 @@ sidebar_position: 3
 title: Kubernetes and AKS Fundamentals
 ---
 
-This workshop provides a hands-on introduction to get you started with Kubernetes and Azure Kubernetes Service (AKS). It focuses on key concepts, tools, and best practices for deploying and managing containerized applications. The topics within this workshop align with [Kubernetes Certified Application Developer (CKAD)](https://training.linuxfoundation.org/certification/certified-kubernetes-application-developer-ckad/) objectives, offering practical exercises to build foundational skills for working with Kubernetes while also learning some tips and tricks with AKS along the way. This workshop does not aim to be a full and complete study guide fro the CKAD exam but it will give you a solid foundation to build on 💪
+This workshop provides a hands-on introduction to get you started with Kubernetes and Azure Kubernetes Service (AKS). It focuses on key concepts, tools, and best practices for deploying and managing containerized applications. The topics within this workshop align with [Kubernetes Certified Application Developer (CKAD)](https://training.linuxfoundation.org/certification/certified-kubernetes-application-developer-ckad/) objectives, offering practical exercises to build foundational skills for working with Kubernetes while also learning some tips and tricks with AKS along the way. This workshop does not aim to be a full and complete study guide for the CKAD exam but it will give you a solid foundation to build on 💪
 
 ---
 
@@ -99,7 +99,7 @@ Deploy the Azure resources needed for the workshop.
 az deployment group create \
 --resource-group $RG_NAME \
 --name "${RG_NAME}-deployment" \
---template-uri https://raw.githubusercontent.com/pauldotyu/aks-labs/refs/heads/msreactor_1/docs/getting-started/assets/k8s-aks-fundamentals/main.json \
+--template-uri https://raw.githubusercontent.com/Azure-Samples/aks-labs/refs/heads/main/docs/getting-started/assets/k8s-aks-fundamentals/main.json \
 --parameters randomSeed=$RAND userObjectId=$(az ad signed-in-user show --query id -o tsv)
 ```
 
@@ -197,7 +197,7 @@ Draft is also available as part of the [Azure CLI aks-preview extension](https:/
 
 You can also use the [AKS extension for Visual Studio Code](https://marketplace.visualstudio.com/items?itemName=ms-kubernetes-tools.vscode-aks-tools) which has [integration with Draft](https://azure.github.io/vscode-aks-tools/features/draft-integration.html) to create a Dockerfile for the application. This extension provides a graphical interface for creating manifest files.
 
-See this [doc](https://code.visualstudio.com/docs/azure/aksextensions) fro additional information on the AKS extension for Visual Studio Code.
+See this [doc](https://code.visualstudio.com/docs/azure/aksextensions) for additional information on the AKS extension for Visual Studio Code.
 
 :::
 
