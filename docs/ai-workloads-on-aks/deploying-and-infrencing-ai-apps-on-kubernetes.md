@@ -153,7 +153,7 @@ Expand the **Phi-3** family of models and select **phi-3-5-mini-instruct**.
 
 In the panel that opens to the right, you will have the option to deploy the default workspace or a customized workspace.
 
-The default workspace may be configured for a specific VM size that you may not have sufficient quota for. If you have an alternative VM size that you would like to use, you can click on the **Customize workspace CRD** button to modify the YAML manifest and change the VM size. Otherwise, you can click on the **Deploy default workspace CRD** button to deploy the default workspace.
+The default workspace is a preset configuration that has been optimized for the most cost-effective VM size that meets the requirements of the model. This is the recommended option for most users. However, you can customize the workspace to use a different VM size if you have specific requirements or if you want to use a VM size that you have sufficient quota for.
 
 Let's customize this workspace. Click on the **Customize workspace CRD** button.
 
@@ -185,7 +185,7 @@ Click the **CHOOSE FILE** button and select your kubeconfig file. This file is l
 ![Choose kubeconfig](./assets/kaito/headlamp-choose-kubeconfig.png)
 
 > [!hint]
-> If you are using WSL (Ubuntu) with Headlamp installed on Windows, you can find the kubeconfig file in the `\\wsl.localhost\Ubuntu\home\labuser\.kube` directory. Note the **labuser** name should be replaced with your WSL username.
+> If you are using WSL (Ubuntu) with Headlamp installed on Windows, you can find the kubeconfig file in the `\\wsl.localhost\Ubuntu\home\labuser\.kube` directory.
 
 With the kubeconfig file selected, click the **NEXT** button.
 
