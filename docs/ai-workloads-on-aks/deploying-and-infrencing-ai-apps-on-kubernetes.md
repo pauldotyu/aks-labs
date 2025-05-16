@@ -25,7 +25,7 @@ After completing this workshop, you will be able to:
 Before you begin, make sure you have the following:
 
 - [Azure subscription](https://azure.microsoft.com/pricing/purchase-options/pay-as-you-go) with sufficient quota for GPU nodes
-- [Visual Studio Code (VSCode)](https://code.visualstudio.com/) with the following extensions:
+- [Visual Studio Code (VS Code)](https://code.visualstudio.com/) with the following extensions:
   - [AKS](https://marketplace.visualstudio.com/items?itemName=ms-kubernetes-tools.vscode-aks-tools) for managing AKS clusters
   - [Kubernetes](https://marketplace.visualstudio.com/items?itemName=ms-kubernetes-tools.vscode-kubernetes-tools) for managing Kubernetes resources
   - [Python](https://marketplace.visualstudio.com/items?itemName=ms-python.python) for Python development
@@ -46,12 +46,12 @@ Before you begin, make sure you have the following:
 
 ## Getting started
 
-Start by opening VSCode then open its integrated **Terminal**.
+Start by opening VS Code then open its integrated **Terminal**.
 
 > [!hint]
-> Press `Ctrl + Shift + P` then type **Toggle Terminal** to open the terminal in VSCode.
+> Press `Ctrl + Shift + P` then type **Toggle Terminal** to open the terminal in VS Code.
 
-![VSCode](./assets/kaito/vscode.png)
+![VS Code](./assets/kaito/vscode.png)
 
 In the terminal, run the following command to log into your Azure account.
 
@@ -84,19 +84,19 @@ Close the terminal for now. You will be using the terminal later in the workshop
 
 KAITO can be deployed in two ways on AKS:
 
-1. **AKS add-on**: This is the easiest way to deploy KAITO on AKS however you will be limited in terms of getting the latest features and updates as soon as they are available upstream. This feature can be enabled using Azure CLI or the Visual Studio Code (VSCode) extension.
+1. **AKS add-on**: This is the easiest way to deploy KAITO on AKS however you will be limited in terms of getting the latest features and updates as soon as they are available upstream. This feature can be enabled using Azure CLI or the Visual Studio Code (VS Code) extension.
 1. **Open source**: This requires more steps to deploy but you will have access to the latest features and updates as soon as they are available. To deploy open-source KAITO on AKS, you can follow this [guide](https://github.com/kaito-project/kaito/tree/main/terraform) to deploy with Terraform or use this [guide](https://github.com/kaito-project/kaito/blob/main/docs/installation.md) to deploy with Azure CLI.
 
 ## Install the AKS add-on
 
-In this workshop, you will be using the AKS add-on to deploy KAITO on AKS. This is the easiest way to deploy the add-on is by using the [AKS extension for VSCode](https://marketplace.visualstudio.com/items?itemName=ms-kubernetes-tools.vscode-aks-tools).
+In this workshop, you will be using the AKS add-on to deploy KAITO on AKS. This is the easiest way to deploy the add-on is by using the [AKS extension for VS Code](https://marketplace.visualstudio.com/items?itemName=ms-kubernetes-tools.vscode-aks-tools).
 
 > [!knowledge]
-> To learn more about the AKS add-on and VSCode extension for KAITO, check out this [video](https://youtu.be/zGQiLeJwLiQ?si=2Qrg45w-7t9pir-D).
+> To learn more about the AKS add-on and VS Code extension for KAITO, check out this [video](https://youtu.be/zGQiLeJwLiQ?si=2Qrg45w-7t9pir-D).
 
 ### Install with Visual Studio Code
 
-In VSCode, click on the Kubernetes extension icon in the left sidebar.
+In VS Code, click on the Kubernetes extension icon in the left sidebar.
 
 ![Kubernetes extension](./assets/kaito/vscode-k8s-ext.png)
 
@@ -204,19 +204,19 @@ In the cluster overview page, click on the **CREATE** button in the bottom left 
 
 ![Create resource](./assets/kaito/headlamp-create-resource.png)
 
-This will open a a blank YAML editor. Copy the workspace YAML manifest from VSCode and paste it into the YAML editor in Headlamp then click **APPLY**.
+This will open a a blank YAML editor. Copy the workspace YAML manifest from VS Code and paste it into the YAML editor in Headlamp then click **APPLY**.
 
 ![Headlamp YAML editor](./assets/kaito/headlamp-yaml-editor.png)
 
-You will see a message in the bottom left indicating that the workspace has been created successfully. Leave the Headlamp application open for now and head back to VSCode.
+You will see a message in the bottom left indicating that the workspace has been created successfully. Leave the Headlamp application open for now and head back to VS Code.
 
 ![Headlamp workspace created](./assets/kaito/headlamp-workspace-created.png)
 
-In VSCode, make sure the **Kubernetes** extension is selected in the left sidebar. Right-click on your AKS cluster, select **Deploy a LLM with KAITO** and click **Manage KAITO** Models**. You will see the workspace deployment progress. Keep an eye on the **Resource Ready**, **Inference Ready**, and **Workspace Ready** statuses. The workspace deployment can take up to 15 minutes to complete.
+In VS Code, make sure the **Kubernetes** extension is selected in the left sidebar. Right-click on your AKS cluster, select **Deploy a LLM with KAITO** and click **Manage KAITO** Models**. You will see the workspace deployment progress. Keep an eye on the **Resource Ready**, **Inference Ready**, and **Workspace Ready** statuses. The workspace deployment can take up to 15 minutes to complete.
 
 ![Manage KAITO models](./assets/kaito/vscode-k8s-kaito-manage-models.png)
 
-### Test workspace with VSCode
+### Test workspace with VS Code
 
 Once the workspace is ready, you will see a **Test** button appear in the workspace panel. This is a panel that allows you to test the inference endpoint, view the workspace logs, and delete the workspace when you are done with it. Click the **Test** button to test the inference endpoint.
 
@@ -248,7 +248,7 @@ Rather than writing code from scratch, let's download a small sample Python app 
 
 [Chainlit](https://pypi.org/project/chainlit/) is a Python library that allows you to create interactive web applications for interacting with models. It allows you to quickly build chatbot prototypes and test using a web browser.
 
-Open the VSCode terminal then run the following command to create a new directory for the project.
+Open the VS Code terminal then run the following command to create a new directory for the project.
 
 ```bash
 mkdir kaitodemo
@@ -348,7 +348,7 @@ With monitoring enabled on the AKS cluster, the Prometheus ServiceMonitor and Po
 
 Before you deploy the ServiceMonitor, you will need to label the workspace's service so that the ServiceMonitor can identify the service to scrape metrics from.
 
-Open a new terminal tab in VSCode and run the following command to label the workspace service.
+Open a new terminal tab in VS Code and run the following command to label the workspace service.
 
 ```bash
 kubectl label service workspace-qwen-2-5-coder-7b-instruct kaito.sh/workspace=workspace-qwen-2-5-coder-7b-instruct
@@ -418,7 +418,7 @@ az grafana dashboard create \
 
 ### Generate more metrics
 
-To generate some metrics, you can run some inference requests using the Chainlit app again, but to show how you can use the OpenAI API to send HTTP requests, let's use the **REST Client** extension in VSCode to send a request to the KAITO workspace.
+To generate some metrics, you can run some inference requests using the Chainlit app again, but to show how you can use the OpenAI API to send HTTP requests, let's use the **REST Client** extension in VS Code to send a request to the KAITO workspace.
 
 Create a new file named **test.http** in the **kaitodemo** directory.
 
