@@ -161,12 +161,9 @@ Let's customize this workspace. Click on the **Customize workspace CRD** button.
 
 If you click on the **Customize workspace CRD** button, the YAML manifest will be displayed in a new tab. You can modify the YAML manifest to customize the workspace deployment then apply the manifest using the **kubectl apply** command.
 
-A new tab will open with the YAML manifest for the workspace. Here you can add in the alternative VM size that you want to use. Update the **instanceType** to use the **Standard_NC40ads_H100_v5** VM SKU.
+A new tab will open with the YAML manifest for the workspace. Here you can add in the alternative VM size that you want to use. Update the **instanceType** to use the `Standard_NC40ads_H100_v5` VM SKU.
 
 ![Customize workspace manifest](./assets/kaito/vscode-k8s-kaito-workspace-customize-manifest.png)
-
-> [!help]
-> If you don't have the **Standard_NC40ads_H100_v5** VM SKU available, change it to any VM size that you have quota for.
 
 Typically you would save the YAML manifest to a file and apply it using the **kubectl apply** command in the terminal. However, in this case, let's use [Headlamp](https://headlamp.dev/) to apply the manifest directly on the cluster. Headlamp is a Kubernetes Dashboard application that provides a graphical interface for managing Kubernetes resources. It is developed as an open-source project by Microsoft and has [recently been accepted into the core Kubernetes project](https://github.com/kubernetes-sigs/headlamp) within the [Kubernetes SIG UI](https://github.com/kubernetes/community/blob/master/sig-ui/README.md).
 
