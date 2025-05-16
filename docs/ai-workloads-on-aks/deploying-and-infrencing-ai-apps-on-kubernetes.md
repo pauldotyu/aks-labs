@@ -147,9 +147,9 @@ This will open a new tab where you will be presented with a list of available wo
 
 ![Available models](./assets/kaito/vscode-k8s-kaito-workspace-list.png)
 
-Expand the **Phi3** family of models and select **phi-3-mini-128k-instruct**.
+Expand the **Phi-3** family of models and select **phi-3-5-mini-instruct**.
 
-![Select phi-3-mini-128k-instruct](./assets/kaito/vscode-k8s-kaito-workspace-qwen.png)
+![Select phi-3-5-mini-instruct](./assets/kaito/vscode-k8s-kaito-workspace-phi-3.png)
 
 In the panel that opens to the right, you will have the option to deploy the default workspace or a customized workspace.
 
@@ -282,7 +282,7 @@ Near the top of the file, you can see it relies on the **WORKSPACE_SERVICE_URL**
 Open a new terminal tab and enter the following command to port forward the workspace service to your local machine.
 
 ```bash
-kubectl port-forward service/workspace-phi-3-mini-128k-instruct 8080:80
+kubectl port-forward service/workspace-phi-3-5-mini-instruct 8080:80
 ```
 
 Keep the process running in the terminal and move back to the previous terminal tab.
@@ -350,21 +350,21 @@ Before you deploy the ServiceMonitor, you will need to label the workspace's ser
 Open a new terminal tab in VS Code and run the following command to label the workspace service.
 
 ```bash
-kubectl label service workspace-phi-3-mini-128k-instruct kaito.sh/workspace=workspace-phi-3-mini-128k-instruct
+kubectl label service workspace-phi-3-5-mini-instruct kaito.sh/workspace=workspace-phi-3-5-mini-instruct
 ```
 
-Next, deploy a ServiceMonitor to monitor the service and configure it to scrape from the **/metrics** endpoint of the service that has the label **kaito.sh/workspace=workspace-phi-3-mini-128k-instruct**.
+Next, deploy a ServiceMonitor to monitor the service and configure it to scrape from the **/metrics** endpoint of the service that has the label **kaito.sh/workspace=workspace-phi-3-5-mini-instruct**.
 
 ```bash
 kubectl apply -f - <<EOF
 apiVersion: azmonitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: workspace-phi-3-mini-128k-instruct-monitor
+  name: workspace-phi-3-5-mini-instruct-monitor
 spec:
   selector:
     matchLabels:
-      kaito.sh/workspace: workspace-phi-3-mini-128k-instruct
+      kaito.sh/workspace: workspace-phi-3-5-mini-instruct
   endpoints:
   - port: http
     path: /metrics
@@ -386,7 +386,7 @@ curl -s -o grafana.json https://raw.githubusercontent.com/vllm-project/vllm/refs
 Update the JSON file to use the correct model name. This is just for convenience so you don't have to change the model name in the Grafana dashboard UI.
 
 ```bash
-sed -i 's^/share/datasets/public_models/Meta-Llama-3-8B-Instruct^phi-3-mini-128k-instruct^g' grafana.json
+sed -i 's^/share/datasets/public_models/Meta-Llama-3-8B-Instruct^phi-3-5-mini-instruct^g' grafana.json
 ```
 
 Create a folder in Azure Managed Grafana to store the dashboard.
@@ -434,7 +434,7 @@ Host: localhost:8080
 Content-Type: application/json
 
 {
-    "model": "phi-3-mini-128k-instruct",
+    "model": "phi-3-5-mini-instruct",
     "messages": [
         {
             "role": "user",
