@@ -131,9 +131,9 @@ While you wait for the installation to complete, move on to the next section to 
 
 ### KAITO Architecture
 
-The architecture of KAITO follows the [Kubernetes operator design pattern](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/), where users manage custom workspace resources to describe GPU needs and specifications. The workspace controller creates machine custom resources to trigger node provisioning and deploys the inference workload. The GPU provisioner controller interacts with the AKS APIs to add new GPU nodes to the AKS cluster.
+The architecture of KAITO follows the [Kubernetes operator design pattern](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/), where users manage custom Workspace resources to describe model needs and GPU specifications. The Workspace controller creates a Machine custom resource to trigger node provisioning via the GPU provisioner controller. The GPU provisioner controller interacts with the AKS APIs to add new GPU nodes to the AKS cluster. The GPU nodes are provisioned with the necessary GPU drivers and libraries to support the model all of which would have been manual steps without KAITO.
 
-Once the GPU nodes are provisioned, the KAITO workspace controller deploys the inference workload using the specified model and configuration. The inference workload is exposed via a Kubernetes service, allowing users to access it through a REST API.
+Once the GPU nodes are provisioned, the KAITO workspace controller deploys the inference workload using the specified configuration.The inference workload is exposed via a Kubernetes service, allowing users to access it through a REST API.
 
 By default, KAITO uses the [vLLM inference runtime](https://docs.vllm.ai/en/latest/index.html), which is a high-performance inference engine for large language models. It also supports other runtimes like HuggingFace Transformers, but generally, you'll want to use vLLM for its performance, efficiency, compatibility with the OpenAI API, and support for metrics out-of-the-box.
 
