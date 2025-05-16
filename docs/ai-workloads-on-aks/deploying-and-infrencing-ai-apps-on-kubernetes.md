@@ -49,7 +49,7 @@ Before you begin, make sure you have the following:
 Start by opening VS Code then open its integrated **Terminal**.
 
 > [!hint]
-> Press `Ctrl + Shift + P` then type **Toggle Terminal** to open the terminal in VS Code.
+> In the menu, click **Terminal** then **New Terminal** or press `Ctrl + Shift + `` to open the terminal in VS Code.
 
 ![VS Code](./assets/kaito/vscode.png)
 
