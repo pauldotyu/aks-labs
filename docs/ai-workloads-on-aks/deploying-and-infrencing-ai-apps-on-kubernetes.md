@@ -279,15 +279,13 @@ The sample code uses the [OpenAI Python API library](https://pypi.org/project/op
 
 Near the top of the file, you can see it relies on the **WORKSPACE_SERVICE_URL** environment variable to connect KAITO workspace. This value is the URL of the Kubernetes services that exposes the KAITO workspace. The service runs as an internal service via ClusterIP which means it is not accessible from outside the cluster. But you can access it from your local machine via [Kubernetes port forwarding](https://kubernetes.io/docs/tasks/access-application-cluster/port-forward-access-application-cluster/).
 
-Run the following command to port forward the workspace service to your local machine.
+Open a new terminal tab and enter the following command to port forward the workspace service to your local machine.
 
 ```bash
 kubectl port-forward service/workspace-phi-3-mini-128k-instruct 8080:80
 ```
 
-On your keyboard, press **Ctrl + z** to suspend the process, press **bg**, then press **Enter** to resume the process in the background.
-
-Move the process to the background by pressing `Ctrl + z`, then press `bg`, and press `Enter`.
+Keep the process running in the terminal and move back to the previous terminal tab.
 
 ### Configure the environment variable
 
