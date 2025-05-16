@@ -42,7 +42,7 @@ Before you begin, make sure you have the following:
 - POSIX-compliant shell (i.e. bash, zsh, etc.) -- all instructions in this workshop are written for bash
 
 > [!knowledge]
-> In this lab, all the tooling listed above are included in your lab environment. To keep focus on workshop objectives, we will not cover provisioning some of the Azure services. These have been pre-provisioned for you. You can find the name of the resource group in the **Resources** tab of the lab environment, then log into the Azure portal to view the resources in the resource group.
+> In this lab, all the tooling listed above are included in your lab environment. To keep focus on workshop objectives, we will not cover provisioning some of the Azure services. These have been pre-provisioned for you. You can find your Azure credentials and name of the resource group in the **Resources** tab of the lab environment. Log into the Azure portal to view the resources in the resource group.
 
 ## Getting started
 
