@@ -165,7 +165,9 @@ A new tab will open with the YAML manifest for the workspace. Here you can add i
 
 ![Customize workspace manifest](./assets/kaito/vscode-k8s-kaito-workspace-customize-manifest.png)
 
-Typically you would save the YAML manifest to a file and apply it using the **kubectl apply** command in the terminal. However, in this case, let's use [Headlamp](https://headlamp.dev/) to apply the manifest directly on the cluster. Headlamp is a Kubernetes Dashboard application that provides a graphical interface for managing Kubernetes resources. It is developed as an open-source project by Microsoft and has [recently been accepted into the core Kubernetes project](https://github.com/kubernetes-sigs/headlamp) within the [Kubernetes SIG UI](https://github.com/kubernetes/community/blob/master/sig-ui/README.md).
+Typically you would save the YAML manifest to a file and apply it using the **kubectl apply** command in the terminal. However, in this case, let's use [Headlamp](https://headlamp.dev/) to apply the manifest directly on the cluster.
+
+Headlamp is a Kubernetes Dashboard application that provides a graphical interface for managing Kubernetes resources. It is developed as an open-source project by Microsoft and has [recently been accepted into the core Kubernetes project](https://github.com/kubernetes-sigs/headlamp) within the [Kubernetes SIG UI](https://github.com/kubernetes/community/blob/master/sig-ui/README.md).
 
 > [!knowledge]
 > To learn more about Headlamp, check out this [video](https://learn.microsoft.com/shows/open-at-microsoft/headlamp-your-kubernetes-ui-focused-on-extensibility).
@@ -205,11 +207,13 @@ This will open a a blank YAML editor. Copy the workspace YAML manifest from VS C
 
 ![Headlamp YAML editor](./assets/kaito/headlamp-yaml-editor.png)
 
-You will see a message in the bottom left indicating that the workspace has been created successfully. Leave the Headlamp application open for now and head back to VS Code.
+You will see a message in the bottom left indicating that the workspace has been created successfully. Leave the Headlamp application open for now and go back to VS Code.
 
 ![Headlamp workspace created](./assets/kaito/headlamp-workspace-created.png)
 
-In VS Code, make sure the **Kubernetes** extension is selected in the left sidebar. Right-click on your AKS cluster, select **Deploy a LLM with KAITO** and click **Manage KAITO** Models**. You will see the workspace deployment progress. Keep an eye on the **Resource Ready**, **Inference Ready**, and **Workspace Ready** statuses. The workspace deployment can take up to 15 minutes to complete.
+In VS Code, make sure the **Kubernetes** extension is selected in the left sidebar. Right-click on your AKS cluster, select **Deploy a LLM with KAITO** and click **Manage KAITO Models**. You will see the workspace deployment progress.
+
+Keep an eye on the **Resource Ready**, **Inference Ready**, and **Workspace Ready** statuses. The workspace deployment can take up to 15 minutes to complete.
 
 ![Manage KAITO models](./assets/kaito/vscode-k8s-kaito-manage-models.png)
 
