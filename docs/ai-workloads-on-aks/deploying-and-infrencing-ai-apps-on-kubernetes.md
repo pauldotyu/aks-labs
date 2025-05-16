@@ -438,16 +438,16 @@ Content-Type: application/json
 {
     "model": "qwen2.5-coder-7b-instruct",
     "messages": [
-        {
-            "role": "user",
-            "content": "What is Kubernetes?"
-        }
-    ],
-    "temperature": 0.7,
-    "max_tokens": 500,
-    "top_p": 1,
-    "frequency_penalty": 0,
-    "presence_penalty": 0
+        {
+            "role": "user",
+            "content": "What is Kubernetes?"
+        }
+    ],
+    "temperature": 0.7,
+    "max_tokens": 500,
+    "top_p": 1,
+    "frequency_penalty": 0,
+    "presence_penalty": 0
 }
 ```
 
