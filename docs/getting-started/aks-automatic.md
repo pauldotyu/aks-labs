@@ -374,6 +374,14 @@ With the GitHub Actions workflow set up, the changes will be automatically deplo
 
 While that is deploying, let's set up the Service Connector to connect the application to the Azure CosmosDB database.
 
+To view the GitHub Actions workflow running from the terminal, you could run the following command:
+
+```bash
+gh run watch
+```
+
+Select the workflow run to view status and press **Ctrl + c** to stop the watch command.
+
 ### Service Connector setup
 
 In the left-hand menu, click on **Service Connector** under **Settings** then click on the **+ Create** button.
@@ -477,11 +485,7 @@ az aks update \
 ```
 
 > [!hint]
-> Using the `--enable-azure-monitor-app-monitoring` flag for AKS requires the `aks-preview` extension installed for Azure CLI. Run the following command to install it:
-
-```bash
-az extension add --name aks-preview
-```
+> Using the `--enable-azure-monitor-app-monitoring` flag for AKS requires the `aks-preview` extension installed for Azure CLI. Run the `az extension add --name aks-preview` command to install it.
 
 With this feature enabled, you can now deploy a new Instrumentation custom resource to your AKS cluster to automatically instrument your applications without any modifications to the code.
 
@@ -536,16 +540,16 @@ Now you need to restart the application pods to apply the changes. Run the follo
 kubectl rollout restart deployment contoso-air -n dev
 ```
 
-Once the pods have restarted, you will notice an `azure-monitor-auto-instrumentation-nodejs` Init Container has been added to the pod along. This container automatically instruments the application with Application Insights. By running the following command, you can review the entire Deployment configuration.
+Once the pods have restarted, you will notice an **azure-monitor-auto-instrumentation-nodejs** Init Container has been added to the pod along. This container automatically instruments the application with Application Insights. By running the following command, you can review the entire Deployment configuration.
 
 ```bash
 kubectl describe pods -n dev
 ```
 
 > [!hint]
-> This is a simple example of how to instrument your application across an entire namespace. You can also instrument individual deployments by deploying another Instrumentation custom resource with a different name then annotating the targeted deployment with with the following annotation: `"instrumentation.opentelemetry.io/inject-nodejs": "<name-of-instrumentation-resource>"` and restarting the deployment. See the [documentation](https://learn.microsoft.com/azure/azure-monitor/app/kubernetes-codeless#mixed-mode-onboarding) for more details.
+> This is a simple example of how to instrument your application across an entire namespace. You can also instrument individual deployments by deploying another Instrumentation custom resource with a different name then annotating the targeted deployment with with the following annotation: **"instrumentation.opentelemetry.io/inject-nodejs": "name_of_instrumentation_resource"** and restarting the deployment. See the [documentation](https://learn.microsoft.com/azure/azure-monitor/app/kubernetes-codeless#mixed-mode-onboarding) for more details.
 
-Now that the application is instrumented with Application Insights, you can view the application performance and usage metrics in the Azure portal.
+Now that the application is instrumented with Application Insights, navigate back to the contoso-air application in your web browser and book a few more flights to generate some metrics. Once the metrics have been generated and collected by the OTel collector, you can view the application performance and usage metrics in the Azure portal.
 
 Navigate to the **Application Insights** resource in your resource group.
 
@@ -713,6 +717,15 @@ spec:
 ### KEDA scaler setup
 
 AKS Automatic also comes with the KEDA controller pre-installed, so you can use the KEDA resource immediately by simply deploying a KEDA scaler to your cluster.
+
+> [!alert]
+> KEDA works with the Horizontal Pod Autoscaler (HPA) to scale your applications based on external metrics. It will automatically create an HPA resource for you when you create a KEDA ScaledObject resource and take ownership of the resource. If you already have an existing HPA resource, you can [transfer ownership](https://keda.sh/docs/2.17/concepts/scaling-deployments/#transferring-ownership-of-an-existing-hpa) so that KEDA manages the existing resource instead of creating one. When the contoso-air application was deployed to Kubernetes with AKS Automated Deployments, a HPA resource was automatically created. Rather than transferring ownership, we will need to delete the existing HPA resource so that KEDA can create a new one.
+
+To delete the existing HPA resource, run the following command:
+
+```bash
+kubectl delete hpa contoso-air -n dev
+```
 
 Navigate to **Application scaling** under **Settings** in the AKS cluster left-hand menu, then click on the **+ Create** button.
 
