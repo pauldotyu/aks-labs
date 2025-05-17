@@ -349,6 +349,9 @@ labels:
   kaito.sh/workspace: workspace-phi-3-5-mini-instruct
 ```
 
+> [!alert]
+> Be careful with the indentation. YAML is very sensitive to indentation and whitespace. Make sure the **labels** field is at the same level as the **namespace** field and the **kaito.sh/workspace** label is indented with two spaces.
+
 ![Workspace service edit](./assets/kaito/headlamp-network-service-workspace-label.png)
 
 You should see the label added to the service.
