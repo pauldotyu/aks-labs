@@ -152,6 +152,8 @@ Update the **instanceType** and replace the existing **instanceType** value with
 
 Typically you would save the YAML manifest to a file and apply it using the **kubectl apply** command in the terminal. However, in this case, let's use [Headlamp](https://headlamp.dev/) to apply the manifest directly on the cluster, so no need to save the file but keep it open for now.
 
+#### What is Headlamp?
+
 Headlamp is a Kubernetes Dashboard application that provides a graphical interface for managing Kubernetes resources. It is developed as an open-source project by Microsoft and has [recently been accepted into the core Kubernetes project](https://github.com/kubernetes-sigs/headlamp) within the [Kubernetes SIG UI](https://github.com/kubernetes/community/blob/master/sig-ui/README.md).
 
 > [!knowledge]
