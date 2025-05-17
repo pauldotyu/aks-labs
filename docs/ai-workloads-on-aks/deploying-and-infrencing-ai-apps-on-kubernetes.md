@@ -312,7 +312,10 @@ Press **Ctrl+c** to stop the Chainlit app.
 
 With workspaces being served using the vLLM runtime, you can monitor the performance of the KAITO workspace using the metrics emitted by the vLLM server. The vLLM server emits metrics in the Prometheus format which makes it very easy to be scraped by Prometheus and visualized in Grafana.
 
-To view the metrics that is emitted by the vLLM server, browse to the **/metrics** endpoint of the workspace service which is [http://localhost:8080/metrics](http://localhost:8080/metrics).
+To view the metrics that is emitted by the vLLM server, browse to the **/metrics** endpoint of the workspace service which is [http://localhost:60410/metrics](http://localhost:60410/metrics).
+
+> [!alert]
+> The port number **60410** is what was randomly assigned to the service in the previous step. Make sure to replace this with the port number that was assigned to your service.
 
 ### Scrape metrics with Prometheus
 
