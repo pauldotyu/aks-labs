@@ -57,15 +57,10 @@ In the terminal, run the following command to log into your Azure account.
 az login
 ```
 
-> [!hint]
-> After logging in, you may be asked to "Automatically sign in to all desktop apps and websites on this device?" If so, click the **No, this app only** button.
->
-> ![Sign in to Azure](./assets/kaito/vscode-k8s-ext-login-confirm.png)
-
 Next, connect to the AKS cluster using the Azure CLI.
 
 ```bash
-az aks get-credentials -g @lab.CloudResourceGroup(ResourceGroup1).Name -n @lab.CloudResourceTemplate(LAB345).Outputs[promMAName]
+az aks get-credentials -g @lab.CloudResourceGroup(ResourceGroup1).Name -n @lab.CloudResourceTemplate(LAB345).Outputs[aksName]
 ```
 
 Close the terminal for now. You will be using the terminal later in the workshop.
@@ -95,6 +90,11 @@ In the **Clouds** section, expand the **Azure** section, then click on **Sign in
 ![Sign in to Azure](./assets/kaito/vscode-k8s-ext-login.png)
 
 You will see a pop-up windows indicating the **Azure Kubernetes Service extension wants to sign in**. Click the **Allow** button then sign in with your Azure account.
+
+> [!hint]
+> After logging in, you may be asked to "Automatically sign in to all desktop apps and websites on this device?" If so, click the **No, this app only** button.
+>
+> ![Sign in to Azure](./assets/kaito/vscode-k8s-ext-login-confirm.png)
 
 You should see a list of your Azure subscriptions. Expand the subscription that contains your AKS cluster and locate your AKS cluster.
 
