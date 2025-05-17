@@ -265,7 +265,7 @@ Keep this port forwarded as you will need it for the remainder of the workshop.
 
 ### Configure the environment variable
 
-Remember, the code looks for the **WORKSPACE_SERVICE_URL** environment variable to connect to the KAITO workspace.
+Remember that the code looks for the **WORKSPACE_SERVICE_URL** environment variable to connect to the KAITO workspace.
 
 Go back to your terminal in VS Code and run the following command to create a **.env** file and set the **WORKSPACE_SERVICE_URL** to point to the port-forwarded service.
 
