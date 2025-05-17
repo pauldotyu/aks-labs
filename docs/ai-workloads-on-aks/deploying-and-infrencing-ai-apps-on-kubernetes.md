@@ -306,7 +306,7 @@ In the Chainlit app, enter a prompt in the text box and click the submit button 
 
 As you can see, developing against the KAITO workspace is relatively simple. Using the OpenAI library to send requests makes it compatible with any existing codebase that uses the OpenAI API.
 
-Press **Ctrl + C** to stop the Chainlit app.
+Press **Ctrl+c** to stop the Chainlit app.
 
 ## Monitoring KAITO workspaces
 
