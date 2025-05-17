@@ -181,7 +181,7 @@ You will see a message in the bottom left indicating that the workspace has been
 
 ![Headlamp workspace created](./assets/kaito/headlamp-workspace-created.png)
 
-In VS Code, make sure the **Kubernetes** extension is selected in the left sidebar. Right-click on your AKS cluster, select **Deploy a LLM with KAITO** and click **Manage KAITO Models**. You will see the workspace deployment progress.
+Now let's check the status of the Workspace in VS Code. Go back to VS Code and make sure the **Kubernetes** extension is selected in the left sidebar. Right-click on your AKS cluster, select **Deploy a LLM with KAITO** and click **Manage KAITO Models**. You will see the workspace deployment progress.
 
 Keep an eye on the **Resource Ready**, **Inference Ready**, and **Workspace Ready** statuses. The workspace deployment can take up to 15 minutes to complete.
 
