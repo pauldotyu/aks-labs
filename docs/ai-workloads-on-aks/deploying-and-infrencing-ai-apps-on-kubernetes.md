@@ -249,7 +249,7 @@ The Chainlit app needs to connect directly to the KAITO workspace service. The s
 
 Rather than using the **kubectl port-forward** command, let's use the Headlamp application to port-forward the workspace service.
 
-In the Headlamp application, click on the **Network** tab in the left sidebar. In the list of Services, find the **workspace-phi-3-5-mini-instruct** service.
+In the Headlamp application, click on the **Network** tab in the left sidebar. In the list of Services, find the **workspace-phi-3-5-mini-instruct** service and click on it.
 
 ![workspace service](./assets/kaito/headlamp-network-service-workspace.png)
 
