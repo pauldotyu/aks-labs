@@ -497,7 +497,15 @@ You should start to see some metrics being generated as you send requests to the
 
 You may need to refresh the dashboard or expand the time range to see the metrics.
 
-Some of these metrics include
+The dashboard includes several panels displaying Prometheus metrics exposed by the vLLM server. You may find these particularly useful:
+
+- **E2E Request Latency**: Shows the total time (in seconds) from when an inference request is sent until the response is fully received. A key indicator of overall responsiveness.
+- **Token Throughput**: Indicates how many tokens are processed per second during inference, reflecting the model’s processing speed.
+- **Cache Utilization**: Reports the percentage of the key‐value cache in use, helping you assess memory efficiency.
+- **Time to First Token**: Measures the delay before the first token is generated, highlighting initial response latency.
+- **Finish Reason**: Breaks down why requests end (e.g., completed, max tokens reached, aborted), useful for diagnosing performance constraints.
+
+Feel free to explore the dashboard and see what other metrics are available.
 
 ## Summary
 
