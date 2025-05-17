@@ -370,7 +370,10 @@ spec:
     scheme: http
 ```
 
-Note the **selector** field in the ServiceMonitor YAML manifest is used to select the service to scrape metrics from. The **matchLabels** field is used to match the labels on the service. In this case, we are using the label we just added to the workspace service.
+> [!warning]
+> You might have to clear the previous YAML manifest in the editor before pasting the new one.
+
+Notice the **selector** field in the ServiceMonitor YAML manifest is used to select the service to scrape metrics from. The **matchLabels** field is used to match the labels on the service. In this case, we are using the label we just added to the workspace service.
 
 ![Headlamp create ServiceMonitor](./assets/kaito/headlamp-create-servicemonitor-apply.png)
 
