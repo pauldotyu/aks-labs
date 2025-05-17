@@ -334,11 +334,7 @@ With the metrics monitoring configured in the AKS cluster, Prometheus [ServiceMo
 
 Before you deploy the ServiceMonitor, you will need to label the workspace's service so that the ServiceMonitor can identify the service to scrape metrics from.
 
-Let's use Headlamp to label the workspace service. Go back to the Headlamp application and click on the **Network** tab in the left sidebar. In the list of Services, find the **workspace-phi-3-5-mini-instruct** service and click on it to view its details.
-
-![Workspace service](./assets/kaito/headlamp-network-service-workspace.png)
-
-In the service details page, click on the **edit** button in the top right corner.
+Let's use Headlamp again to label the workspace service. Go back to the Headlamp application and navigate back to the **workspace-phi-3-5-mini-instruct** service details page, click on the **edit** button in the top right corner.
 
 ![Edit service](./assets/kaito/headlamp-network-service-workspace-edit.png)
 
