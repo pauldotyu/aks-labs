@@ -253,7 +253,7 @@ In the Headlamp application, click on the **Network** tab in the left sidebar. I
 
 ![workspace service](./assets/kaito/headlamp-network-service-workspace.png)
 
-In the service details page, click on the **Port Forward** button
+In the service details page, click on the **Forward port** button
 
 ![workspace service](./assets/kaito/headlamp-port-forward.png)
 
