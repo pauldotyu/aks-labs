@@ -146,7 +146,7 @@ Let's customize this workspace. Click on the **Customize workspace CRD** button.
 
 If you click on the **Customize workspace CRD** button, the YAML manifest will be displayed in a new tab. Here you can modify the YAML manifest to customize the workspace deployment.
 
-Update the **instanceType** and replace the existing **instanceType** value with `Standard_NC40ads_H100_v5`.
+Update the **instanceType** and replace the existing value with `Standard_NC40ads_H100_v5`.
 
 ![Customize workspace manifest](./assets/kaito/vscode-k8s-kaito-workspace-customize-manifest.png)
 
