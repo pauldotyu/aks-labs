@@ -174,6 +174,9 @@ This will open a a blank YAML editor. Copy the workspace YAML manifest from VS C
 
 ![Headlamp YAML editor](./assets/kaito/headlamp-yaml-editor.png)
 
+> [!alert]
+> Make sure you have updated the instanceType to `Standard_NC40ads_H100_v5` before applying the manifest.
+
 You will see a message in the bottom left indicating that the workspace has been created successfully. Leave the Headlamp application open for now and go back to VS Code.
 
 ![Headlamp workspace created](./assets/kaito/headlamp-workspace-created.png)
