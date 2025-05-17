@@ -159,32 +159,12 @@ Headlamp is a Kubernetes Dashboard application that provides a graphical interfa
 > [!knowledge]
 > To learn more about Headlamp, check out this [video](https://learn.microsoft.com/shows/open-at-microsoft/headlamp-your-kubernetes-ui-focused-on-extensibility).
 
-Open the **Headlamp** application then click the **Load cluster** button.
-
-![Headlamp](./assets/kaito/headlamp.png)
-
-Click the **LOAD FROM KUBECONFIG** button.
-
-![Load from kubeconfig](./assets/kaito/headlamp-load-kubeconfig.png)
-
-Click the **CHOOSE FILE** button and select your kubeconfig file. This file is located in the **~/.kube/config** directory on your local machine.
-
-![Choose kubeconfig](./assets/kaito/headlamp-choose-kubeconfig.png)
-
-> [!hint]
-> If you are using WSL (Ubuntu) with Headlamp installed on Windows, you can find the kubeconfig file in the `\\wsl.localhost\Ubuntu\home\labuser\.kube` directory.
-
-With the kubeconfig file selected, click the **NEXT** button.
-
-![Load kubeconfig](./assets/kaito/headlamp-load-kubeconfig-next.png)
-
-Finally, click the **FINISH** button to complete the cluster loading process.
-
-![Finish loading kubeconfig](./assets/kaito/headlamp-load-kubeconfig-finish.png)
-
-In the Headlamp home page, click on your AKS cluster.
+Open the **Headlamp** application then click on your AKS cluster.
 
 ![Headlamp home page](./assets/kaito/headlamp-home-page.png)
+
+> [!knowledge]
+> Headlamp will automatically detect the AKS cluster based on the kubeconfig file it finds in your home directory. If you don't see your AKS cluster, you will need to run the **az aks get-credentials** command to download the kubeconfig file.
 
 In the cluster overview page, click on the **CREATE** button in the bottom left corner.
 
