@@ -297,7 +297,7 @@ echo "WORKSPACE_SERVICE_URL=http://localhost:8080/" > .env
 
 ### Install dependencies
 
-We can install dependencies and run the code using [**uv**](https://docs.astral.sh/uv/) which is a command line tool for managing Python package dependencies and projects.
+As you saw in the code, the sample app relies on a few Python packages to run. You could install them using **pip** but let's use a new tool called **uv** to manage the dependencies. [**uv**](https://docs.astral.sh/uv/) is a command line tool for managing Python package dependencies and projects and a good alternative to **pip** as it runs fast and has the ability to manage projects, environments, and dependencies within a single tool.
 
 Run the following command to initialize a new **uv** project.
 
@@ -305,23 +305,21 @@ Run the following command to initialize a new **uv** project.
 uv init
 ```
 
-The code requires some dependencies to run. We can install them using **uv**.
+Add the following dependencies to the **uv** project. The **chainlit** package is used to create the web UI, **pydantic** is used for data validation, **requests** is used to make HTTP requests, and **openai** is used to interact with the vLLM server.
 
 ```bash
 uv add chainlit pydantic==2.11.3 requests openai
 ```
 
-As mentioned above, the **chainlit** package is used to create the web UI, **pydantic** is used for data validation, **requests** is used to make HTTP requests, and **openai** is used to interact with the KAITO workspace which is serving the model on a vLLM server which supports the OpenAI API.
-
-Run the following command to run the Chainlit app and pass in the **.env** file to set the environment variables.
+Next, run the following command to start the Chainlit app and set the environment variable for the **WORKSPACE_SERVICE_URL** by passing in the **.env** file using the **--env-file** option.
 
 ```bash
 uv run --env-file=.env chainlit run main.py
 ```
 
-This will start a local web server that you can access in your browser at [http://localhost:8000](http://localhost:8000).
+This will start a local web server, open a web browser and navigate to [http://localhost:8000](http://localhost:8000).
 
-Enter a prompt in the text box and click the submit button to send the prompt to the KAITO workspace. The response will be displayed in the web UI.
+In the Chainlit app, enter a prompt in the text box and click the submit button to send the prompt to the KAITO workspace. The response will be displayed in the web UI.
 
 ![Chainlit app](./assets/kaito/chainlit-response.png)
 
@@ -331,28 +329,49 @@ Press **Ctrl + C** to stop the Chainlit app.
 
 ## Monitoring KAITO workspaces
 
-With workspaces being served using the vLLM runtime, you can monitor the performance of the KAITO workspace using the metrics emitted by the vLLM server. The vLLM server emits metrics in the Prometheus format which can be scraped by Prometheus and visualized in Grafana.
+With workspaces being served using the vLLM runtime, you can monitor the performance of the KAITO workspace using the metrics emitted by the vLLM server. The vLLM server emits metrics in the Prometheus format which makes it very easy to be scraped by Prometheus and visualized in Grafana.
 
 To view the metrics that is emitted by the vLLM server, browse to the **/metrics** endpoint of the workspace service which is [http://localhost:8080/metrics](http://localhost:8080/metrics).
 
 ### Scrape metrics with Prometheus
 
-To scrape the metrics emitted by the vLLM server, you need to have Prometheus installed in your AKS cluster. This lab environment has Azure Managed Prometheus and Azure Managed Grafana configured for monitoring.
+To scrape the metrics emitted by the vLLM server, you need to have Prometheus installed in your AKS cluster. This AKS cluster in this lab environment is configured with [Azure Managed Prometheus](https://learn.microsoft.com/azure/azure-monitor/metrics/prometheus-metrics-overview) and [Azure Managed Grafana](https://learn.microsoft.com/azure/managed-grafana/overview) configured for monitoring.
 
-With monitoring enabled on the AKS cluster, the Prometheus ServiceMonitor and PodMonitor CRDs are installed. You could use either custom resource, but ServiceMonitor would be the preferred option because you can configure it at a higher level and it is easier to manage.
+With the metrics monitoring configured in the AKS cluster, Prometheus [ServiceMonitor](https://prometheus-operator.dev/docs/developer/getting-started/#using-servicemonitors) and [PodMonitor](https://prometheus-operator.dev/docs/developer/getting-started/#using-podmonitors) CRDs are installed. You could use either custom resource, but ServiceMonitor would be the preferred option because you can configure it at a higher level and it is easier to manage.
+
+> [!knowledge]
+> The Azure Managed Prometheus installation comes with special CRDs that use a different API version. The CRDs are installed in the **azmonitoring.coreos.com** API group. You can find more information about the CRDs in the [Azure Managed Prometheus documentation](https://learn.microsoft.com/azure/azure-monitor/containers/prometheus-metrics-scrape-crd).
 
 Before you deploy the ServiceMonitor, you will need to label the workspace's service so that the ServiceMonitor can identify the service to scrape metrics from.
 
-Open a new terminal tab in VS Code and run the following command to label the workspace service.
+Let's use Headlamp to label the workspace service. Go back to the Headlamp application and click on the **Network** tab in the left sidebar. In the list of Services, find the **workspace-phi-3-5-mini-instruct** service and click on it to view its details.
 
-```bash
-kubectl label service workspace-phi-3-5-mini-instruct kaito.sh/workspace=workspace-phi-3-5-mini-instruct
+![Workspace service](./assets/kaito/headlamp-network-service-workspace.png)
+
+In the service details page, click on the **edit** button in the top right corner.
+
+![Edit service](./assets/kaito/headlamp-network-service-workspace-edit.png)
+
+In the YAML editor window, find the **namespace** field and add a new line below it, then add the following text to label the service, then click the **APPLY** button.
+
+```yaml
+labels:
+  kaito.sh/workspace: workspace-phi-3-5-mini-instruct
 ```
 
-Next, deploy a ServiceMonitor to monitor the service and configure it to scrape from the **/metrics** endpoint of the service that has the label **kaito.sh/workspace=workspace-phi-3-5-mini-instruct**.
+![Workspace service edit](./assets/kaito/headlamp-network-service-workspace-label.png)
 
-```bash
-kubectl apply -f - <<EOF
+You should see the label added to the service.
+
+![Label service](./assets/kaito/headlamp-network-service-workspace-labeled.png)
+
+Next, deploy a ServiceMonitor to scrape from the **/metrics** endpoint. In the bottom left corner of the Headlamp application, click on the **CREATE** button to create a new resource.
+
+![Headlamp create resource](./assets/kaito/headlamp-create-servicemonitor-button.png)
+
+In the YAML editor, copy and paste the following YAML manifest to create a ServiceMonitor resource.
+
+```yaml
 apiVersion: azmonitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
@@ -366,62 +385,73 @@ spec:
     path: /metrics
     interval: 30s
     scheme: http
-EOF
 ```
+
+Note the **selector** field in the ServiceMonitor YAML manifest is used to select the service to scrape metrics from. The **matchLabels** field is used to match the labels on the service. In this case, we are using the label we just added to the workspace service.
+
+![Headlamp create ServiceMonitor](./assets/kaito/headlamp-create-servicemonitor-apply.png)
 
 ### Import vLLM Grafana dashboard
 
 vLLM provides a [sample Grafana dashboard](https://docs.vllm.ai/en/latest/getting_started/examples/prometheus_grafana.html#example-materials) that you can use to monitor the performance of the KAITO workspace. You can import this dashboard into Azure Managed Grafana.
 
-Run the following command to download the sample Grafana dashboard JSON file.
+In the web browser, open a new tab and navigate to [https://docs.vllm.ai](https://docs.vllm.ai)
 
-```bash
-curl -s -o grafana.json https://raw.githubusercontent.com/vllm-project/vllm/refs/heads/main/examples/online_serving/prometheus_grafana/grafana.json
-```
+In the vLLM docs site, use the search bar to search for `grafana`.
 
-Update the JSON file to use the correct model name. This is just for convenience so you don't have to change the model name in the Grafana dashboard UI.
+![Grafana search](./assets/kaito/vllm-search-bar.png)
 
-```bash
-sed -i 's^/share/datasets/public_models/Meta-Llama-3-8B-Instruct^phi-3-5-mini-instruct^g' grafana.json
-```
+In the search results, click on the **Prometheus and Grafana** link.
 
-Create a folder in Azure Managed Grafana to store the dashboard.
+![Grafana link](./assets/kaito/vllm-search-result.png)
 
-```bash
-az grafana folder create \
--n $GRAFANA_NAME \
--g $RG_NAME \
---title "KAITO"
-```
+In the **Prometheus and Grafana** page, scroll down to the **Example materials** section.
 
-> [!note]
-> Make sure you have the **$GRAFANA_NAME** and **$RG_NAME** environment variables set. If they are not set, run the commands at the beginning of this guide to reset them.
+![Example materials](./assets/kaito/vllm-example-materials.png)
 
-Import the JSON file into Azure Managed Grafana.
+Expand the **grafana.json** section and click on the **copy** button to copy the JSON to your clipboard.
 
-```bash
-az grafana dashboard create \
--n $GRAFANA_NAME \
--g $RG_NAME \
---title "vLLM" \
---folder "KAITO" \
---definition "$(cat grafana.json)"
-```
+![Grafana dashboard JSON](./assets/kaito/vllm-grafana-dashboard-copy.png)
 
-> [!knowledge]
-> You can also import the dashboard JSON file directly into Azure Managed Grafana using the Azure portal. To do this, navigate to the **Dashboards** tab in Azure Managed Grafana, click on the **Import** button, and paste the JSON file contents into the text box. We used the CLI to import the dashboard JSON file for convenience.
+Now you need to import the dashboard into your Azure Managed Grafana instance. Open a new browser tab and navigate to [https://portal.azure.com](https://portal.azure.com). In the search bar, type `grafana` and select **Azure Managed Grafana**.
+
+![Azure Managed Grafana](./assets/kaito/azure-grafana.png)
+
+Click on your Azure Managed Grafana instance, then click on the endpoint URL to open the Grafana dashboard.
+
+![Grafana endpoint](./assets/kaito/azure-grafana-endpoint.png)
+
+Log into the Grafana dashboard using your Azure credentials, then click on the **Dashboards** tab on the left side of the screen.
+
+![Grafana dashboards](./assets/kaito/azure-grafana-dashboard-button.png)
+
+In the Grafana dashboards page, click on the **New** button in the top right corner, then click on the **Import** button.
+
+![Grafana import dashboard](./assets/kaito/azure-grafana-new-import.png)
+
+In the **Import** page, scroll down to the **Import via panel json** section and paste the JSON you copied from the vLLM docs site into the text box, then click the **Load** button.
+
+![Grafana import JSON](./assets/kaito/azure-grafana-dashboard-paste.png)
+
+Next, click the **Import** button to import the dashboard.
+
+![Grafana import dashboard](./assets/kaito/azure-grafana-dashboard-import.png)
+
+You should see a new dashboard but with no metrics yet. Click on the **model_name** dropdown and type in the name of the model which is `phi-3.5-mini-instruct` then press **Enter**.
+
+![Grafana model name](./assets/kaito/azure-grafana-model-name.png)
+
+Your dashboard may note be populated with metrics yet. This is because the ServiceMonitor has not had a chance to scrape the metrics yet. Let's generate some metrics by sending some requests to the KAITO workspace.
 
 ### Generate more metrics
 
-To generate some metrics, you can run some inference requests using the Chainlit app again, but to show how you can use the OpenAI API to send HTTP requests, let's use the **REST Client** extension in VS Code to send a request to the KAITO workspace.
+To generate some metrics, you can run Chainlit app again and ask the model some more questions.
 
-Create a new file named **test.http** in the **sampleapp** directory.
+But let's take a different approach and use the **REST Client** extension in VS Code to send raw HTTP requests to the KAITO inference endpoint.
 
-```bash
-code test.http
-```
+In VS Code, create a new file named `test.http`.
 
-In the **test.http** file, add the following code to send a request to the KAITO workspace.
+In the **test.http** file, add the following code to send POST requests to the inference endpoint.
 
 ```http
 ### Ask the model a question
@@ -430,7 +460,7 @@ Host: localhost:8080
 Content-Type: application/json
 
 {
-    "model": "phi-3-5-mini-instruct",
+    "model": "phi-3.5-mini-instruct",
     "messages": [
         {
             "role": "user",
@@ -445,42 +475,21 @@ Content-Type: application/json
 }
 ```
 
-This is a simple request to the vLLM server to ask the model a question. The request is in the OpenAI API format which is documented [here](https://platform.openai.com/docs/api-reference/chat/create).
+The request is in the OpenAI API format which is documented [here](https://platform.openai.com/docs/api-reference/chat/create) and is very similar to the request you sent from the Chainlit app.
 
 Save the file then click on the **Send Request** link above the request to send the request to the KAITO workspace.
 
 ![Send request](./assets/kaito/vscode-http-request.png)
 
-You should see a response from the KAITO workspace in the right pane.
+You should see a response from the KAITO workspace in a new tab on the right.
 
 ![Response](./assets/kaito/vscode-http-response.png)
 
-Click on the **Send Request** link a few more times to generate some metrics. You can also modify the request to ask different questions or change the parameters.
+Change the question and click on the **Send Request** link a few more times to generate some metrics.
 
 ### View metrics in Grafana
 
-Now that you have generated some metrics, you can view them in Azure Managed Grafana.
-
-In the web browser, navigate to [https://portal.azure.com](https://portal.azure.com) and 
-in the search bar, type **Grafana** and select **Azure Managed Grafana**.
-
-![Azure Managed Grafana](./assets/kaito/azure-grafana.png)
-
-Click on your Azure Managed Grafana instance, then click on the endpoint URL to open the Grafana dashboard.
-
-![Grafana endpoint](./assets/kaito/azure-grafana-endpoint.png)
-
-Log into the Grafana dashboard using your Azure credentials, then click on the **Dashboards** tab on the left side of the screen.
-
-![Grafana dashboards](./assets/kaito/azure-grafana-dashboard-button.png)
-
-You should see a folder named **KAITO**. Click on it to open the folder.
-
-![KAITO folder](./assets/kaito/azure-grafana-dashboard-kaito-folder.png)
-
-Click on the **vLLM** dashboard to open it. You should see a dashboard with various metrics related to the KAITO workspace.
-
-![vLLM dashboard](./assets/kaito/azure-grafana-dashboard-vllm.png)
+Now that you have generated some metrics, you can go back to the Azure Managed Grafana dashboard and refresh the page.
 
 You should start to see some metrics being generated as you send requests to the KAITO workspace.
 
@@ -488,25 +497,25 @@ You should start to see some metrics being generated as you send requests to the
 
 You may need to refresh the dashboard or expand the time range to see the metrics.
 
+Some of these metrics include
+
 ## Summary
 
 Congratulations, now you know how to deploy, manage, and monitor open-source AI models on AKS using KAITO!
 
 In this workshop, you learned how to use Visual Studio Code to deploy the KAITO add-on for AKS and work with the inferencing workspace. You also learned how to monitor the KAITO workspace by scraping metrics with Azure Managed Prometheus and ServiceMonitor CRD and visualizing the metrics by importing the vLLM Grafana dashboard into Azure Managed Grafana.
 
-Finally, you learned how to install the open-source version of KAITO and deploy the RAG Engine to ground LLMs with your own data. This included indexing the product data from the Contoso Pet Supply store and querying the RAG Engine to get grounded responses from the LLM.
+You also learned a little bit about how the Chainlit library can be used to quickly create interactive chat applications with Python. The KAITO workspace defaults to using the vLLM inference runtime which is a high-performance inference engine for large language models. It's great because it is compatible with the OpenAI API and has support for metrics out-of-the-box. 
 
-With Kubernetes and KAITO, you can see how much of the heavy lifting is done for you and you can focus on building your AI applications. The KAITO operator automates the deployment and management of AI/ML workloads, allowing you to easily deploy and manage large models on AKS. The RAG Engine allows you to ground LLMs with your own data, reducing the need to build custom RAG pipelines.
+With Kubernetes and KAITO, you can see how much of the heavy lifting is done for you and you can focus on building your AI applications. The KAITO operator automates the deployment and management of AI/ML workloads, allowing you to easily deploy and manage large models on AKS.
 
 ## What's next?
 
-There are a few more features of KAITO that you didn't cover in this workshop, like fine-tuning models, but you can find more information about that in this [blog post](https://azure.github.io/AKS/2024/08/23/fine-tuning-language-models-with-kaito).
-
-The KAITO team is continuously working on improving the KAITO experience and would love to hear your feedback. You can find the KAITO team on [GitHub](https://github.com/kaito-project/kaito) so feel free to open issues or pull requests!
+We've just scratched the surface of what KAITO can do. There are a few more features of KAITO that wasn't covered in this workshop, like fine-tuning models and RAG engine support. But stay tuned for more workshops on KAITO and stay up to date with the latest features and updates by following the [KAITO project on GitHub](https://github.com/kaito-project/kaito).
 
 ## Resources
 
-Check out the following resources to learn more about KAITO and the technologies used in this workshop:
+To learn more, check out the following resources:
 
 - [Kubernetes AI Toolchain Operator](https://github.com/kaito-project/kaito)
 - [AKS KAITO add-on](https://learn.microsoft.com/azure/aks/ai-toolchain-operator)
