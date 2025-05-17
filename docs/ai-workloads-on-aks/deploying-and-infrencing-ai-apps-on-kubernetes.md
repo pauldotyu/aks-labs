@@ -241,13 +241,9 @@ The response will be displayed to the right of the prompt.
 
 ## Developing with KAITO
 
-With a workspace deployed, you can now start developing an AI application by interacting with the KAITO workspace endpoint using raw HTTP requests or using a library that supports the OpenAI API.
-
-Rather than writing code from scratch, let's download a small sample Python app that uses the [Chainlit](https://chainlit.io/) library to create a simple web UI for interacting with the KAITO workspace.
+With a workspace deployed, you can now start developing an AI application by interacting with the KAITO workspace endpoint using raw HTTP requests or using a library that supports the OpenAI API. Rather than writing code from scratch, let's download a small sample Python code that uses the [Chainlit](https://chainlit.io/) library to create interactive chat applications using Python.
 
 ### Download sample code
-
-[Chainlit](https://pypi.org/project/chainlit/) is a Python library that allows you to create interactive web applications for interacting with models. It allows you to quickly build chatbot prototypes and test using a web browser.
 
 Open the VS Code terminal then run the following command to create a new directory for the project.
 
@@ -256,13 +252,13 @@ mkdir sampleapp
 cd sampleapp
 ```
 
-Download the sample code.
+Using **curl**, download the sample code hosted in the KAITO GitHub repository and save the file as **main.py**.
 
 ```bash
 curl -o main.py https://raw.githubusercontent.com/kaito-project/kaito/refs/heads/main/demo/inferenceUI/chainlit_openai.py
 ```
 
-Run the following command to open the `main.py` file.
+Open file in VS Code using the following command and familiarize yourself with the code.
 
 ```bash
 code main.py
@@ -273,11 +269,13 @@ code main.py
 >
 >![Untrusted file](./assets/kaito/vscode-untrusted-file.png)
 
-The sample code uses the [OpenAI Python API library](https://pypi.org/project/openai/) to send requests to the model inference endpoint and displays the response in the web UI.
+The sample code code uses the **openai** library to interact with the vLLM server which is serving the model on a KAITO workspace. It uses the **AsyncOpenAI** class to create an OpenAI client for sending requests. The **WORKSPACE_SERVICE_URL** environment variable is used to specify the URL of the KAITO workspace. This is the URL that the OpenAI client will use to connect to the KAITO workspace.
+
+When the Chainlit app starts, it will call the **start_chat** function to retrieve the list of models available within the vLLM server and select the first model. The **main** function is called when a message is submitted from the web UI. It uses the OpenAI client and builds a request to send the message to the inference server. As each token is received, it streams the response back to the web UI. The **settings** dictionary near the top of the file is used to configure the prompt parameters like how you configured the prompt parameters in the VS Code workspace panel.
 
 ### Port-forward the workspace service
 
-Near the top of the file, you can see it relies on the **WORKSPACE_SERVICE_URL** environment variable to connect KAITO workspace. This value is the URL of the Kubernetes services that exposes the KAITO workspace. The service runs as an internal service via ClusterIP which means it is not accessible from outside the cluster. But you can access it from your local machine via [Kubernetes port forwarding](https://kubernetes.io/docs/tasks/access-application-cluster/port-forward-access-application-cluster/).
+So the Chainlit app needs to connect directly to the KAITO workspace service. The service runs as an internal service via ClusterIP which means it is not accessible from outside the cluster. But you can access it from your local machine when using the [Kubernetes port forwarding](https://kubernetes.io/docs/tasks/access-application-cluster/port-forward-access-application-cluster/) command.
 
 Open a new terminal tab and enter the following command to port forward the workspace service to your local machine.
 
@@ -296,7 +294,15 @@ To set the `WORKSPACE_SERVICE_URL` as an environment variable, you can set the n
 Run the following command to create a **.env** file and set the **WORKSPACE_SERVICE_URL** to point to the IP and port that was displayed in the Headlamp application.
 
 ```bash
-echo "WORKSPACE_SERVICE_URL=http://localhost:8080/" > .env
+PORT=60410
+```
+
+```bash
+HOST_IP=$(ip route list default | awk '{print $3}')
+```
+
+```bash
+echo "WORKSPACE_SERVICE_URL=http://${HOST_IP}:${PORT}/" > .env
 ```
 
 ### Install dependencies
