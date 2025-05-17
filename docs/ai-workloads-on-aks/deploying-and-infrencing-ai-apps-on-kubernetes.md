@@ -144,9 +144,9 @@ Let's customize this workspace. Click on the **Customize workspace CRD** button.
 
 ![Customize workspace CRD](./assets/kaito/vscode-k8s-kaito-workspace-customize.png)
 
-If you click on the **Customize workspace CRD** button, the YAML manifest will be displayed in a new tab. You can modify the YAML manifest to customize the workspace deployment then apply the manifest using the **kubectl apply** command.
+If you click on the **Customize workspace CRD** button, the YAML manifest will be displayed in a new tab. Here you can modify the YAML manifest to customize the workspace deployment.
 
-A new tab will open with the YAML manifest for the workspace. Here you can add in the alternative VM size that you want to use. Update the **instanceType** to use the `Standard_NC40ads_H100_v5` VM SKU.
+Update the **instanceType** and replace the existing **instanceType** value with `Standard_NC40ads_H100_v5`.
 
 ![Customize workspace manifest](./assets/kaito/vscode-k8s-kaito-workspace-customize-manifest.png)
 
