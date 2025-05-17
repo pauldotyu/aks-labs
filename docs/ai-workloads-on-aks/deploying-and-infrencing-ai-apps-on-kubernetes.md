@@ -79,7 +79,7 @@ In this workshop, you will be using the [AKS add-on to deploy KAITO on AKS](http
 > [!knowledge]
 > To learn more about the AKS add-on and VS Code extension for KAITO, check out this [video](https://youtu.be/zGQiLeJwLiQ?si=2Qrg45w-7t9pir-D).
 
-### Install with Visual Studio Code
+### Install KAITO with VS Code
 
 In VS Code, click on the Kubernetes extension icon in the left sidebar.
 
@@ -114,21 +114,21 @@ While you wait for the installation to complete, move on to the next section to 
 
 ### KAITO Architecture
 
-The architecture of KAITO follows the [Kubernetes operator design pattern](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/). It is comprised of two controllers, Workspace and GPU provisioner. As a user, you will only manage a Workspace custom resource. This is where you can define your model and GPU specification (VM SKU). The GPU provisioner is built on top of [Karpenter](https://karpenter.sh/) APIs and is responsible for provisioning GPU nodes.
+The architecture of KAITO follows the [Kubernetes operator design pattern](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/). It is comprised of two controllers, Workspace and GPU provisioner. As a user, you will only manage a workspace custom resource. This is where you can define your model and GPU specification (VM SKU). The GPU provisioner is built on top of [Karpenter](https://karpenter.sh/) APIs and is responsible for provisioning GPU nodes.
 
-When you submit a Workspace custom resource to the Kubernetes API server, the Workspace controller creates a [NodeClaim](https://karpenter.sh/docs/concepts/nodeclaims/) custom resource and waits for the GPU provisioner controller to provision a node and configures necessary GPU drivers and libraries to support the model all of which would have been manual steps without KAITO.
+When you submit a workspace custom resource to the Kubernetes API server, the Workspace controller creates a [NodeClaim](https://karpenter.sh/docs/concepts/nodeclaims/) custom resource and waits for the GPU provisioner controller to provision a node and configures necessary GPU drivers and libraries to support the model all of which would have been manual steps without KAITO.
 
 Once the GPU node is provisioned, the Workspace controller will proceed to deploy the inference workload using the specified configuration. This configuration can be a custom Pod template that you create, but the best part of KAITO is it's support for preset configurations. Presets are pre-built, optimal GPU configuration for specific models. The Workspace controller creates the Pod and proceeds to pull down the containerized model and run a model inference server which is exposed via a Kubernetes Service, allowing users to access it through a REST API.
 
 KAITO supports both [Hugging Face Transformers](https://huggingface.co/docs/transformers) and [vLLM](https://docs.vllm.ai/en/latest/index.html) as inference runtime but defaults to vLLM for performance, efficiency, compatibility with the OpenAI API, and support for metrics out-of-the-box.
 
-### Deploy workspace with Headlamp
+### Deploy Workspace with Headlamp
 
-With the KAITO add-on installed, you can now deploy a Workspace custom resource by clicking on the **Generate Workspace** button.
+With the KAITO add-on installed, you can now deploy a workspace custom resource by clicking on the **Generate Workspace** button.
 
 ![Generate workspace](./assets/kaito/vscode-k8s-kaito-workspace-button.png)
 
-This will open a new tab where you will be presented with a list of available workspace presets. These are the available models that you can deploy with KAITO.
+This will open a new tab where you will be presented with a list of available preset Workspaces. These are the available models that you can deploy with KAITO.
 
 ![Available models](./assets/kaito/vscode-k8s-kaito-workspace-list.png)
 
@@ -144,7 +144,7 @@ Let's customize this workspace. Click on the **Customize workspace CRD** button.
 
 ![Customize workspace CRD](./assets/kaito/vscode-k8s-kaito-workspace-customize.png)
 
-If you click on the **Customize workspace CRD** button, the YAML manifest will be displayed in a new tab. Here you can modify the YAML manifest to customize the workspace deployment.
+If you click on the **Customize workspace CRD** button, the YAML manifest will be displayed in a new tab. Here you can modify the YAML manifest to customize the workspace.
 
 Update the **instanceType** and replace the existing value with `Standard_NC40ads_H100_v5`.
 
@@ -181,15 +181,15 @@ You will see a message in the bottom left indicating that the workspace has been
 
 ![Headlamp workspace created](./assets/kaito/headlamp-workspace-created.png)
 
-Now let's check the status of the Workspace in VS Code. Go back to VS Code and make sure the **Kubernetes** extension is selected in the left sidebar. Right-click on your AKS cluster, select **Deploy a LLM with KAITO** and click **Manage KAITO Models**. You will see the workspace deployment progress.
+Now let's check the status of the workspace in VS Code. Go back to VS Code and make sure the **Kubernetes** extension is selected in the left sidebar. Right-click on your AKS cluster, select **Deploy a LLM with KAITO** and click **Manage KAITO Models**. You will see the workspace deployment progress.
 
 Keep an eye on the **Resource Ready**, **Inference Ready**, and **Workspace Ready** statuses. The workspace deployment can take up to 15 minutes to complete.
 
 ![Manage KAITO models](./assets/kaito/vscode-k8s-kaito-manage-models.png)
 
-### Test workspace with VS Code
+### Testing with KAITO extension for VS Code
 
-Once the workspace is ready, you will see a **Test** button appear in the workspace panel. This is a panel that allows you to test the inference endpoint, view the workspace logs, and delete the workspace when you are done with it. Click the **Test** button to test the inference endpoint.
+Once the workspace is ready, you will see a **Test** button appear in the workspace panel. This is a panel that allows you to test the inference endpoint, view the workspace logs, and delete the workspace when you are done with it. Click the **Test** button to test the inference endpoint. Being able to view workspace logs is useful for debugging and troubleshooting issues with the workspace.
 
 ![View workspace panel](./assets/kaito/vscode-k8s-kaito-workspace-actions.png)
 
@@ -241,7 +241,7 @@ code main.py
 
 The sample code uses the **openai** library to interact with the vLLM server which is serving the model. It uses the **AsyncOpenAI** class to create an OpenAI client for sending requests. The **WORKSPACE_SERVICE_URL** environment variable is used to specify the URL of the KAITO workspace. This is the only external variable that you need to set to run the code.
 
-When the Chainlit app starts, it will call the **start_chat** function to retrieve the list of models serviced by the vLLM server and select the first model. The **main** function is called when a message is submitted from the web UI. It builds a **messages** request object in a specific format the model can understand, which is setting the context and passing in the query from the web UI as a user message to send to the inference server. The **settings** dictionary near the top of the file is used to configure the prompt parameters and sent as part of the request, like how you configured the prompt parameters in the VS Code workspace panel. From there, the [Completions API](https://platform.openai.com/docs/guides/text?api-mode=chat) is used to send the message to the model and stream the response back to the web UI. As each part of the stream is received, it updates the web UI to display the partial response until the full response is received.
+When the Chainlit app starts, it will call the **start_chat** function to retrieve the list of models serviced by the vLLM server and select the first model. The **main** function is called when a message is submitted from the web UI. It builds a **messages** request object in a specific format the model can understand, which is setting the context and passing in the query from the web UI as a user message to send to the inference server. The **settings** dictionary near the top of the file is used to configure the prompt parameters and sent as part of the request, like how you configured the prompt parameters in the VS Code **Manage KAITO Deployments** tab. From there, the [Completions API](https://platform.openai.com/docs/guides/text?api-mode=chat) is used to send the message to the model and stream the response back to the web UI. As each part of the stream is received, it updates the web UI to display the partial response until the full response is received.
 
 ### Port-forward the workspace service
 
@@ -249,7 +249,7 @@ The Chainlit app needs to connect directly to the KAITO workspace service. The s
 
 Rather than using the **kubectl port-forward** command, let's use the Headlamp application to port-forward the workspace service. In the Headlamp application, click on the **Network** tab in the left sidebar. In the list of Services, find the **workspace-phi-3-5-mini-instruct** service and click on it to view its details.
 
-![Workspace service](./assets/kaito/headlamp-port-forward.png)
+![workspace service](./assets/kaito/headlamp-port-forward.png)
 
 In the service details page, click on the **Port Forward** button in the top right corner and make a note of the random port that is assigned to the service. This is the port that you will use to connect to the KAITO workspace.
 
