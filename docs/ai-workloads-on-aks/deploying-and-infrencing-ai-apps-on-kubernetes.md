@@ -247,11 +247,17 @@ The sample code also uses the **chainlit** library to create a web UI for the ap
 
 The Chainlit app needs to connect directly to the KAITO workspace service. The service runs as an internal service via ClusterIP which means it is not accessible from outside the cluster. But you can access it from your local machine when using the [Kubernetes port forwarding](https://kubernetes.io/docs/tasks/access-application-cluster/port-forward-access-application-cluster/) command.
 
-Rather than using the **kubectl port-forward** command, let's use the Headlamp application to port-forward the workspace service. In the Headlamp application, click on the **Network** tab in the left sidebar. In the list of Services, find the **workspace-phi-3-5-mini-instruct** service and click on it to view its details.
+Rather than using the **kubectl port-forward** command, let's use the Headlamp application to port-forward the workspace service.
+
+In the Headlamp application, click on the **Network** tab in the left sidebar. In the list of Services, find the **workspace-phi-3-5-mini-instruct** service.
+
+![workspace service](./assets/kaito/headlamp-network-service-workspace.png)
+
+In the service details page, click on the **Port Forward** button
 
 ![workspace service](./assets/kaito/headlamp-port-forward.png)
 
-In the service details page, click on the **Port Forward** button in the top right corner and make a note of the random port that is assigned to the service. This is the port that you will use to connect to the KAITO workspace.
+Make a note of the random port that is assigned to the service. This is the port that you will use to connect to the KAITO workspace.
 
 ![Port forward service](./assets/kaito/headlamp-port-forwarded.png)
 
