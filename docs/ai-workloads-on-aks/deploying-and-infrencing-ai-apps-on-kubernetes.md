@@ -289,20 +289,10 @@ Keep the process running in the terminal and move back to the previous terminal 
 
 Remember, the code looks for the **WORKSPACE_SERVICE_URL** environment variable to connect to the KAITO workspace.
 
-To set the `WORKSPACE_SERVICE_URL` as an environment variable, you can set the name and value within a **.env** file.
-
-Run the following command to create a **.env** file and set the **WORKSPACE_SERVICE_URL** to point to the IP and port that was displayed in the Headlamp application.
+Run the following command to create a **.env** file and set the **WORKSPACE_SERVICE_URL** to point to the port-forwarded service.
 
 ```bash
-PORT=60410
-```
-
-```bash
-HOST_IP=$(ip route list default | awk '{print $3}')
-```
-
-```bash
-echo "WORKSPACE_SERVICE_URL=http://${HOST_IP}:${PORT}/" > .env
+echo "WORKSPACE_SERVICE_URL=http://localhost:8080/" > .env
 ```
 
 ### Install dependencies
