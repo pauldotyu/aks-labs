@@ -437,12 +437,12 @@ But let's take a different approach and use the **REST Client** extension in VS 
 
 In VS Code, create a new file named `test.http`.
 
-In the **test.http** file, add the following code to send POST requests to the inference endpoint.
+In the **test.http** file, add the following code to send POST requests to the inference endpoint.Be sure to update the port number in the code.
 
 ```http
 ### Ask the model a question
 POST /v1/chat/completions
-Host: localhost:8080
+Host: localhost:60410
 Content-Type: application/json
 
 {
@@ -460,6 +460,9 @@ Content-Type: application/json
     "presence_penalty": 0
 }
 ```
+
+> [!alert]
+> The port number **60410** is what was randomly assigned to the service in the previous step. Make sure to replace this with the port number that was assigned to your service.
 
 The request is in the OpenAI API format which is documented [here](https://platform.openai.com/docs/api-reference/chat/create) and is very similar to the request you sent from the Chainlit app.
 
