@@ -513,9 +513,11 @@ Congratulations, now you know how to deploy, manage, and monitor open-source AI 
 
 In this workshop, you learned how to use Visual Studio Code to deploy the KAITO add-on for AKS and work with the inferencing workspace. You also learned how to monitor the KAITO workspace by scraping metrics with Azure Managed Prometheus and ServiceMonitor CRD and visualizing the metrics by importing the vLLM Grafana dashboard into Azure Managed Grafana.
 
-You also learned a little bit about how the Chainlit library can be used to quickly create interactive chat applications with Python. The KAITO workspace defaults to using the vLLM inference runtime which is a high-performance inference engine for large language models. It's great because it is compatible with the OpenAI API and has support for metrics out-of-the-box. 
+You also learned a little bit about how the Chainlit library can be used to quickly create interactive chat applications with Python. The KAITO workspace defaults to using the vLLM inference runtime which is a high-performance inference engine for large language models. It's great because it is compatible with the OpenAI API and has support for metrics out-of-the-box.
 
 With Kubernetes and KAITO, you can see how much of the heavy lifting is done for you and you can focus on building your AI applications. The KAITO operator automates the deployment and management of AI/ML workloads, allowing you to easily deploy and manage large models on AKS.
+
+Lastly, as an added bonus, you learned how to use Headlamp to manage Kubernetes resources via a GUI. Headlamp is a great tool for managing Kubernetes resources especially for those who aren't as familiar with using the kubectl CLI.
 
 ## What's next?
 
