@@ -275,7 +275,7 @@ When the Chainlit app starts, it will call the **start_chat** function to retrie
 
 ### Port-forward the workspace service
 
-So the Chainlit app needs to connect directly to the KAITO workspace service. The service runs as an internal service via ClusterIP which means it is not accessible from outside the cluster. But you can access it from your local machine when using the [Kubernetes port forwarding](https://kubernetes.io/docs/tasks/access-application-cluster/port-forward-access-application-cluster/) command.
+The Chainlit app needs to connect directly to the KAITO workspace service. The service runs as an internal service via ClusterIP which means it is not accessible from outside the cluster. But you can access it from your local machine when using the [Kubernetes port forwarding](https://kubernetes.io/docs/tasks/access-application-cluster/port-forward-access-application-cluster/) command.
 
 Open a new terminal tab and enter the following command to port forward the workspace service to your local machine.
 
