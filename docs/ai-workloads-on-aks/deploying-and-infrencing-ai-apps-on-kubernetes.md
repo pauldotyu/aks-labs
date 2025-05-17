@@ -36,10 +36,8 @@ Before you begin, make sure you have the following:
   - [Grafana](https://learn.microsoft.com/en-us/cli/azure/grafana?view=azure-cli-latest) for managing Azure Managed Grafana
 - [kubectl](https://kubernetes.io/docs/tasks/tools/) for interacting with Kubernetes API server via CLI
 - [Headlamp](https://headlamp.dev/) for managing Kubernetes resources via GUI
-- [uv](https://docs.astral.sh/uv/getting-started/installation/) for managing Python package dependencies and projects
-- [jq](https://jqlang.org/) for parsing JSON data
 - [Python 3.13 or later](https://www.python.org/downloads/) for Python development
-- POSIX-compliant shell (i.e. bash, zsh, etc.) -- all instructions in this workshop are written for bash
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) for managing Python package dependencies and projects
 
 > [!knowledge]
 > In this lab, all the tooling listed above are included in your lab environment. To keep focus on workshop objectives, we will not cover provisioning some of the Azure services. These have been pre-provisioned for you. You can find your Azure credentials and name of the resource group in the **Resources** tab of the lab environment. Log into the Azure portal to view the resources in the resource group.
@@ -59,23 +57,15 @@ In the terminal, run the following command to log into your Azure account.
 az login
 ```
 
-You will need to run Azure CLI commands to add/edit resources in your Azure subscription. So you will need to have some environment variables set in your terminal.
-
-Run the following command to export a environment variables needed to complete the tasks in this workshop.
-
-```bash
-export RG_NAME=@lab.CloudResourceGroup(ResourceGroup1).Name
-export AKS_NAME=$(az aks list -g $RG_NAME --query "[0].name" -o tsv)
-export GRAFANA_NAME=$(az grafana list -g $RG_NAME --query "[0].name" -o tsv)
-```
-
-> [!important]
-> If you open a new terminal window, you will need to run the above command again to set the environment variables.
+> [!hint]
+> After logging in, you may be asked to "Automatically sign in to all desktop apps and websites on this device?" If so, click the **No, this app only** button.
+>
+> ![Sign in to Azure](./assets/kaito/vscode-k8s-ext-login-confirm.png)
 
 Next, connect to the AKS cluster using the Azure CLI.
 
 ```bash
-az aks get-credentials -g $RG_NAME -n $AKS_NAME
+az aks get-credentials -g @lab.CloudResourceGroup(ResourceGroup1).Name -n @lab.CloudResourceTemplate(LAB345).Outputs[promMAName]
 ```
 
 Close the terminal for now. You will be using the terminal later in the workshop.
@@ -84,12 +74,12 @@ Close the terminal for now. You will be using the terminal later in the workshop
 
 KAITO can be deployed in two ways on AKS:
 
-1. **AKS add-on**: This is the easiest way to deploy KAITO on AKS however you will be limited in terms of getting the latest features and updates as soon as they are available upstream. This feature can be enabled using Azure CLI or the Visual Studio Code (VS Code) extension.
-1. **Open source**: This requires more steps to deploy but you will have access to the latest features and updates as soon as they are available. To deploy open-source KAITO on AKS, you can follow this [guide](https://github.com/kaito-project/kaito/tree/main/terraform) to deploy with Terraform or use this [guide](https://github.com/kaito-project/kaito/blob/main/docs/installation.md) to deploy with Azure CLI.
+1. **[AKS add-on](https://learn.microsoft.com/azure/aks/ai-toolchain-operator)**: This is the easiest way to deploy KAITO on AKS however you will be limited in terms of getting the latest features and updates as soon as they are available upstream. This feature can be enabled using Azure CLI or the Visual Studio Code (VS Code) extension.
+1. **[Open source](https://github.com/kaito-project/kaito)**: This requires more steps to deploy but you will have access to the latest features and updates as soon as they are available. To deploy open-source KAITO on AKS, you can [deploy with Terraform](https://github.com/kaito-project/kaito/tree/main/terraform) or [deploy with Helm and Azure CLI](https://github.com/kaito-project/kaito/blob/main/docs/installation.md).
 
 ## Install the AKS add-on
 
-In this workshop, you will be using the AKS add-on to deploy KAITO on AKS. This is the easiest way to deploy the add-on is by using the [AKS extension for VS Code](https://marketplace.visualstudio.com/items?itemName=ms-kubernetes-tools.vscode-aks-tools).
+In this workshop, you will be using the [AKS add-on to deploy KAITO on AKS](https://learn.microsoft.com/azure/aks/ai-toolchain-operator). This is the easiest way to deploy the add-on is by using the [AKS extension for VS Code](https://marketplace.visualstudio.com/items?itemName=ms-kubernetes-tools.vscode-aks-tools).
 
 > [!knowledge]
 > To learn more about the AKS add-on and VS Code extension for KAITO, check out this [video](https://youtu.be/zGQiLeJwLiQ?si=2Qrg45w-7t9pir-D).
@@ -106,13 +96,6 @@ In the **Clouds** section, expand the **Azure** section, then click on **Sign in
 
 You will see a pop-up windows indicating the **Azure Kubernetes Service extension wants to sign in**. Click the **Allow** button then sign in with your Azure account.
 
-> [!hint]
-> After logging in, you may be asked to "Automatically sign in to all desktop apps and websites on this device?" If so, click the **No, this app only** button.
->
-> ![Sign in to Azure](./assets/kaito/vscode-k8s-ext-login-confirm.png)
->
-> Also, if your Azure account is tied to multiple tenants, you will be prompted to select a tenant. Select the tenant that contains your AKS cluster.
-
 You should see a list of your Azure subscriptions. Expand the subscription that contains your AKS cluster and locate your AKS cluster.
 
 ![Azure subscriptions](./assets/kaito/vscode-k8s-cloud-clusters.png)
@@ -125,21 +108,23 @@ The **Install KAITO** tab will open. Click the **Install KAITO** button at the b
 
 ![Install KAITO panel](./assets/kaito/vscode-k8s-kaito-install-button.png)
 
-Installing KAITO will take up to 10 minutes to complete. Once the installation is complete, you will see a message at the bottom of the tab indicating that KAITO has been installed successfully.
+Installing KAITO can take up to 15 minutes to complete. Once the installation is complete, you will see a message at the bottom of the tab indicating that KAITO has been installed successfully.
 
 While you wait for the installation to complete, move on to the next section to learn about the KAITO architecture.
 
 ### KAITO Architecture
 
-The architecture of KAITO follows the [Kubernetes operator design pattern](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/), where users manage custom Workspace resources to describe model needs and GPU specifications. The Workspace controller creates a Machine custom resource to trigger node provisioning via the GPU provisioner controller. The GPU provisioner controller interacts with the AKS APIs to add new GPU nodes to the AKS cluster. The GPU nodes are provisioned with the necessary GPU drivers and libraries to support the model all of which would have been manual steps without KAITO.
+The architecture of KAITO follows the [Kubernetes operator design pattern](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/). It is comprised of two controllers, Workspace and GPU provisioner. As a user, you will only manage a Workspace custom resource. This is where you can define your model and GPU specification (VM SKU). The GPU provisioner is built on top of [Karpenter](https://karpenter.sh/) APIs and is responsible for provisioning GPU nodes.
 
-Once the GPU nodes are provisioned, the KAITO workspace controller deploys the inference workload using the specified configuration. This configuration can be a custom Pod template but the best part of KAITO is using its preset configuration, which the KAITO team are pre-built, optimal GPU configuration for specific models. The inference workload will pull down the containerized model and run the the inference server which is exposed via a Kubernetes service, allowing users to access it through a REST API.
+When you submit a Workspace custom resource to the Kubernetes API server, the Workspace controller creates a [NodeClaim](https://karpenter.sh/docs/concepts/nodeclaims/) custom resource and waits for the GPU provisioner controller to provision a node and configures necessary GPU drivers and libraries to support the model all of which would have been manual steps without KAITO.
 
-By default, KAITO uses the [vLLM inference runtime](https://docs.vllm.ai/en/latest/index.html), which is a high-performance inference engine for large language models. It also supports other runtimes like HuggingFace Transformers, but generally, you'll want to use vLLM for its performance, efficiency, compatibility with the OpenAI API, and support for metrics out-of-the-box.
+Once the GPU node is provisioned, the Workspace controller will proceed to deploy the inference workload using the specified configuration. This configuration can be a custom Pod template that you create, but the best part of KAITO is it's support for preset configurations. Presets are pre-built, optimal GPU configuration for specific models. The Workspace controller creates the Pod and proceeds to pull down the containerized model and run a model inference server which is exposed via a Kubernetes Service, allowing users to access it through a REST API.
+
+KAITO supports both [Hugging Face Transformers](https://huggingface.co/docs/transformers) and [vLLM](https://docs.vllm.ai/en/latest/index.html) as inference runtime but defaults to vLLM for performance, efficiency, compatibility with the OpenAI API, and support for metrics out-of-the-box.
 
 ### Deploy workspace with Headlamp
 
-With the KAITO add-on installed, you can now deploy a Workspace by clicking on the **Generate Workspace** button.
+With the KAITO add-on installed, you can now deploy a Workspace custom resource by clicking on the **Generate Workspace** button.
 
 ![Generate workspace](./assets/kaito/vscode-k8s-kaito-workspace-button.png)
 
@@ -277,23 +262,28 @@ When the Chainlit app starts, it will call the **start_chat** function to retrie
 
 The Chainlit app needs to connect directly to the KAITO workspace service. The service runs as an internal service via ClusterIP which means it is not accessible from outside the cluster. But you can access it from your local machine when using the [Kubernetes port forwarding](https://kubernetes.io/docs/tasks/access-application-cluster/port-forward-access-application-cluster/) command.
 
-Open a new terminal tab and enter the following command to port forward the workspace service to your local machine.
+Rather than using the **kubectl port-forward** command, let's use the Headlamp application to port-forward the workspace service. In the Headlamp application, click on the **Network** tab in the left sidebar. In the list of Services, find the **workspace-phi-3-5-mini-instruct** service and click on it to view its details.
 
-```bash
-kubectl port-forward service/workspace-phi-3-5-mini-instruct 8080:80
-```
+![Workspace service](./assets/kaito/headlamp-port-forward.png)
 
-Keep the process running in the terminal and move back to the previous terminal tab.
+In the service details page, click on the **Port Forward** button in the top right corner and make a note of the random port that is assigned to the service. This is the port that you will use to connect to the KAITO workspace.
+
+![Port forward service](./assets/kaito/headlamp-port-forwarded.png)
+
+Keep this port forwarded as you will need it for the remainder of the workshop.
 
 ### Configure the environment variable
 
 Remember, the code looks for the **WORKSPACE_SERVICE_URL** environment variable to connect to the KAITO workspace.
 
-Run the following command to create a **.env** file and set the **WORKSPACE_SERVICE_URL** to point to the port-forwarded service.
+Go back to your terminal in VS Code and run the following command to create a **.env** file and set the **WORKSPACE_SERVICE_URL** to point to the port-forwarded service.
 
 ```bash
-echo "WORKSPACE_SERVICE_URL=http://localhost:8080/" > .env
+echo "WORKSPACE_SERVICE_URL=http://127.0.0.1:60410/" > .env
 ```
+
+> [!alert]
+> The port number **60410** is what was randomly assigned to the service in the previous step. Make sure to replace this with the port number that was assigned to your service.
 
 ### Install dependencies
 
