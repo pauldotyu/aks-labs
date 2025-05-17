@@ -442,7 +442,7 @@ In the **test.http** file, add the following code to send POST requests to the i
 ```http
 ### Ask the model a question
 POST /v1/chat/completions
-Host: localhost:60410
+Host: 127.0.0.1:60410
 Content-Type: application/json
 
 {
