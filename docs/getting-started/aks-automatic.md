@@ -312,7 +312,7 @@ const { DefaultAzureCredential } = require("@azure/identity");
 const axios = require("axios");
 ```
 
-Next, find the **BookRepository** class constructor and add the following code to the top of the constructor (before the **initialize** function):
+Next, find the **BookFlightsRepository** class constructor and add the following code to the top of the constructor (before the **initialize** function):
 
 ```javascript
 const { listConnectionStringUrl, scope, clientId } = options;
