@@ -140,7 +140,7 @@ In the **Dockerfile configuration** section, fill in the following details:
 - **Application environment**: Select **JavaScript - Node.js 22**
 - **Application port**: Enter`3000`
 - **Dockerfile build context**: Enter `./src/web`
-- **Azure Container Registry**: Select the Azure Container Registry in the resource group you created earlier
+- **Azure Container Registry**: Select the Azure Container Registry in your resource group
 - **Azure Container Registry image**: Click the **Create new** link then enter `contoso-air`
 
 ![Container image build configuration](./assets/aks-automatic/deploy-app-image.png)
