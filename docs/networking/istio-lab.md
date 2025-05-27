@@ -458,7 +458,7 @@ If you want to dive deeper, check out:
 📖 [Kubernetes Learning Path](https://learn.microsoft.com/en-us/training/paths/learn-kubernetes/)  
 
 For more hands-on workshops, explore:  
-🔗 [AKS Labs Catalog](https://labs.aks.azure.com/catalog/)  
+🔗 [AKS Labs Catalog](/docs/intro)  
 🔗 [Open Source Labs](https://aka.ms/oss-labs)  
 
 ## Cleanup (Optional)
