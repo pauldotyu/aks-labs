@@ -1,3 +1,3 @@
 # Contributing to AKS Labs
 
-Please see the [Contributing Guide](https://labs.aks.azure.com/contributing/) for more information on how to contribute to this project.
+Please see the [Contributing Guide](/contributing/) for more information on how to contribute to this project.
