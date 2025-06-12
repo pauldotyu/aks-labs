@@ -77,11 +77,11 @@ Before you begin this lab, you will need:
 
 ---
 
-# Choose Your Deployment Type
+## Choose Your Deployment Type
 
 Before we begin setting up the environment, you need to decide whether to run Ray workloads on CPU or GPU nodes. This choice will affect the configuration throughout the lab.
 
-## CPU-Based Deployment (Recommended for Most Users)
+### CPU-Based Deployment (Recommended for Most Users)
 
 **Best for:**
 - Learning Ray concepts and distributed computing
@@ -100,7 +100,7 @@ Before we begin setting up the environment, you need to decide whether to run Ra
 - Works on any AKS cluster
 - Good for most ML workloads
 
-## GPU-Based Deployment (For Accelerated Workloads)
+### GPU-Based Deployment (For Accelerated Workloads)
 
 **Best for:**
 - Deep learning with large models
@@ -136,7 +136,7 @@ az aks nodepool add \
 kubectl apply -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v0.14.1/nvidia-device-plugin.yml
 ```
 
-## Making Your Choice
+### Making Your Choice
 
 <div class="tip" data-title="Recommendation">
 
@@ -148,9 +148,11 @@ kubectl apply -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v0.1
 - **CPU users**: Follow the default configurations
 - **GPU users**: Look for the GPU variant sections and modify configurations accordingly
 
---- Setting up the Environment
+---
 
-## Prepare your AKS cluster
+## Setting up the Environment
+
+### Prepare your AKS cluster
 
 First, let's ensure your AKS cluster is ready for Ray workloads. We'll create a dedicated namespace and configure the necessary RBAC permissions.
 
@@ -163,7 +165,7 @@ kubectl get nodes -o wide
 kubectl top nodes
 ```
 
-## Install KubeRay Operator
+### Install KubeRay Operator
 
 The KubeRay operator simplifies the deployment and management of Ray clusters on Kubernetes. We'll install it using Helm.
 
