@@ -7,7 +7,12 @@ level: intermediate
 authors:
   - AKS Labs Team
 duration_minutes: 120
-tags: ai, ray, distributed-computing, machine-learning, kubernetes
+tags: 
+  - ai
+  - ray
+  - distributed-computing
+  - machine-learning
+  - kubernetes
 ---
 
 # Scaling AI Workloads with Ray on AKS
@@ -193,6 +198,8 @@ spec:
           emptyDir: {}
 ```
 
+## Deploy the Ray Cluster
+
 Save this configuration and apply it to your cluster:
 
 ```bash
@@ -232,7 +239,7 @@ Open your browser and navigate to `http://localhost:8265` to access the Ray dash
 
 # Distributed Machine Learning with Ray Train
 
-Now let's implement distributed machine learning training using Ray Train. We'll create a distributed training job for image classification.
+Ray Train enables you to scale machine learning training across multiple nodes with minimal code changes. In this section, we'll implement distributed training for image classification.
 
 ## Create a Training Script
 
@@ -445,7 +452,7 @@ kubectl logs -n ray-system job/ray-distributed-training -f
 
 # Model Serving with Ray Serve
 
-Now let's deploy our trained model for inference using Ray Serve, which provides scalable model serving capabilities.
+Ray Serve provides scalable model serving capabilities that can handle high-throughput inference workloads. In this section, we'll deploy our trained model for real-time inference.
 
 ## Create a Model Serving Application
 
@@ -723,7 +730,7 @@ python test_serving.py
 
 # Auto-scaling and Resource Management
 
-Ray on AKS can automatically scale based on workload demands. Let's configure horizontal pod autoscaling and cluster autoscaling.
+Ray on AKS can automatically scale based on workload demands. Let's configure horizontal pod autoscaling and cluster autoscaling for optimal resource utilization.
 
 ## Configure Horizontal Pod Autoscaler
 
@@ -803,7 +810,7 @@ kubectl get pods -n kube-system | grep cluster-autoscaler
 
 # Distributed Data Processing with Ray Data
 
-Let's demonstrate distributed data processing capabilities using Ray Data for large-scale data preprocessing.
+Ray Data provides distributed data processing capabilities for large-scale data preprocessing and ETL workloads. Let's demonstrate how to process large datasets efficiently.
 
 ## Create a Data Processing Pipeline
 
@@ -936,7 +943,7 @@ kubectl logs -n ray-system job/ray-data-processing -f
 
 # Monitoring and Observability
 
-Effective monitoring is crucial for Ray workloads in production. Let's set up comprehensive monitoring.
+Effective monitoring is crucial for Ray workloads in production. Let's set up comprehensive monitoring and observability for our Ray cluster.
 
 ## Ray Dashboard and Metrics
 
@@ -1037,7 +1044,11 @@ kubectl port-forward -n ray-system deployment/ray-prometheus 9090:9090
 
 # Best Practices and Optimization
 
+To ensure optimal performance and reliability of Ray workloads in production, let's explore key optimization strategies and best practices.
+
 ## Resource Optimization
+
+Proper resource allocation is critical for Ray cluster performance.
 
 1. **Right-size your containers**: Match CPU and memory requests/limits to actual usage
 2. **Use node affinity**: Place Ray head nodes on dedicated machines
@@ -1142,6 +1153,8 @@ spec:
 ---
 
 # Troubleshooting Common Issues
+
+When working with Ray on AKS, you may encounter various issues. Here are common problems and their solutions.
 
 ## Ray Cluster Connectivity Issues
 
