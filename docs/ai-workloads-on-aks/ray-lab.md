@@ -61,16 +61,94 @@ Before you begin this lab, you will need:
 
 <div class="important" data-title="Resource Requirements">
 
-> Ray workloads can be resource-intensive. Ensure your AKS cluster has sufficient CPU and memory resources. We recommend:
+> Ray workloads can be resource-intensive. Ensure your AKS cluster has sufficient resources:
+> 
+> **For CPU deployment (default):**
 > - At least 3 worker nodes
-> - Minimum 4 vCPUs and 16GB RAM per node
+> - Minimum 4 vCPUs and 16GB RAM per node (Standard_DS3_v2 or larger)
 > - Consider enabling cluster autoscaler for dynamic scaling
+> 
+> **For GPU deployment (optional):**
+> - GPU-enabled node pool with Standard_NC6s_v3 or similar
+> - Sufficient GPU quota in your Azure subscription
+> - NVIDIA drivers (automatically installed by AKS)
 
 </div>
 
 ---
 
-# Setting up the Environment
+# Choose Your Deployment Type
+
+Before we begin setting up the environment, you need to decide whether to run Ray workloads on CPU or GPU nodes. This choice will affect the configuration throughout the lab.
+
+## CPU-Based Deployment (Recommended for Most Users)
+
+**Best for:**
+- Learning Ray concepts and distributed computing
+- Cost-effective development and testing
+- General machine learning workloads
+- Clusters without GPU nodes
+
+**Requirements:**
+- Standard AKS cluster with CPU nodes
+- Minimum 4 vCPUs and 16GB RAM per node
+- No special quota requirements
+
+**Pros:**
+- Lower cost
+- Easier setup
+- Works on any AKS cluster
+- Good for most ML workloads
+
+## GPU-Based Deployment (For Accelerated Workloads)
+
+**Best for:**
+- Deep learning with large models
+- Computer vision workloads
+- High-performance training scenarios
+- Production ML pipelines requiring acceleration
+
+**Requirements:**
+- AKS cluster with GPU-enabled node pools (NC, ND, or NV series VMs)
+- GPU quota in your Azure subscription
+- NVIDIA device plugin installed on AKS
+- Additional cost considerations
+
+**Setup GPU Node Pool:**
+```bash
+# Add GPU node pool to existing AKS cluster
+az aks nodepool add \
+    --resource-group myResourceGroup \
+    --cluster-name myAKSCluster \
+    --name gpunodepool \
+    --node-count 1 \
+    --node-vm-size Standard_NC6s_v3 \
+    --node-taints sku=gpu:NoSchedule \
+    --aks-custom-headers UseGPUDedicatedVHD=true \
+    --enable-cluster-autoscaler \
+    --min-count 1 \
+    --max-count 3
+```
+
+**Enable NVIDIA Device Plugin:**
+```bash
+# Install NVIDIA device plugin
+kubectl apply -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v0.14.1/nvidia-device-plugin.yml
+```
+
+## Making Your Choice
+
+<div class="tip" data-title="Recommendation">
+
+> **For this lab, we recommend starting with CPU-based deployment** unless you specifically need GPU acceleration and have the required infrastructure setup. All Ray concepts and distributed computing patterns work the same way on both CPU and GPU.
+
+</div>
+
+**Throughout this lab:**
+- **CPU users**: Follow the default configurations
+- **GPU users**: Look for the GPU variant sections and modify configurations accordingly
+
+--- Setting up the Environment
 
 ## Prepare your AKS cluster
 
@@ -114,6 +192,14 @@ kubectl get crd | grep ray
 ## Create a Ray Cluster Configuration
 
 Let's create a Ray cluster configuration that includes both head and worker nodes with appropriate resource allocations.
+
+<div class="tip" data-title="CPU vs GPU Configuration">
+
+> The configuration below is for **CPU deployment**. If you chose GPU deployment in the previous section, scroll down to see the **GPU variant** after the CPU configuration.
+
+</div>
+
+### CPU Configuration (Default)
 
 ```yaml
 # ray-cluster.yaml
@@ -198,12 +284,114 @@ spec:
           emptyDir: {}
 ```
 
+### GPU Configuration (Alternative)
+
+If you chose GPU deployment, use this configuration instead:
+
+```yaml
+# ray-cluster-gpu.yaml
+apiVersion: ray.io/v1alpha1
+kind: RayCluster
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: raycluster-ml-gpu
+  namespace: ray-system
+spec:
+  rayVersion: '2.8.0'
+  # Ray head pod template (CPU-only for coordination)
+  headGroupSpec:
+    rayStartParams:
+      dashboard-host: '0.0.0.0'
+      block: 'true'
+    template:
+      spec:
+        containers:
+        - name: ray-head
+          image: rayproject/ray-ml:2.8.0-py310
+          ports:
+          - containerPort: 6379
+            name: gcs-server
+          - containerPort: 8265
+            name: dashboard
+          - containerPort: 10001
+            name: client
+          resources:
+            limits:
+              cpu: 2
+              memory: 4Gi
+            requests:
+              cpu: 1
+              memory: 2Gi
+          volumeMounts:
+          - mountPath: /tmp/ray
+            name: ray-logs
+        volumes:
+        - name: ray-logs
+          emptyDir: {}
+  workerGroupSpecs:
+  # GPU worker group
+  - replicas: 2
+    minReplicas: 1
+    maxReplicas: 4
+    groupName: gpu-workers
+    rayStartParams:
+      resources: '{"CPU": 4, "GPU": 1}'
+    template:
+      spec:
+        nodeSelector:
+          accelerator: nvidia-tesla-v100  # Adjust based on your GPU type
+        tolerations:
+        - key: sku
+          operator: Equal
+          value: gpu
+          effect: NoSchedule
+        initContainers:
+        - name: init
+          image: busybox:1.28
+          command: ['sh', '-c', "until nslookup $RAY_IP.$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace).svc.cluster.local; do echo waiting for K8s Service $RAY_IP; sleep 2; done"]
+        containers:
+        - name: ray-worker
+          image: rayproject/ray-ml:2.8.0-gpu  # GPU-enabled image
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh","-c","ray stop"]
+          resources:
+            limits:
+              cpu: 4
+              memory: 16Gi
+              nvidia.com/gpu: 1  # Request 1 GPU
+            requests:
+              cpu: 2
+              memory: 8Gi
+              nvidia.com/gpu: 1
+          volumeMounts:
+          - mountPath: /tmp/ray
+            name: ray-logs
+        volumes:
+        - name: ray-logs
+          emptyDir: {}
+```
+
+<div class="important" data-title="GPU Configuration Notes">
+
+> **Key differences for GPU deployment:**
+> - Uses `rayproject/ray-ml:2.8.0-gpu` image with CUDA support
+> - Adds `nvidia.com/gpu: 1` resource requests
+> - Includes node selector for GPU nodes
+> - Adds tolerations for GPU node taints
+> - Configures Ray resources with GPU allocation
+
+</div>
+
 ## Deploy the Ray Cluster
 
-Save this configuration and apply it to your cluster:
+Save your chosen configuration and apply it to your cluster:
 
+**For CPU deployment:**
 ```bash
-# Apply the Ray cluster configuration
+# Apply the CPU Ray cluster configuration
 kubectl apply -f ray-cluster.yaml
 
 # Wait for the cluster to be ready
@@ -211,6 +399,19 @@ kubectl get raycluster -n ray-system -w
 
 # Check the status of Ray pods
 kubectl get pods -n ray-system -l ray.io/cluster=raycluster-ml
+```
+
+**For GPU deployment:**
+```bash
+# Apply the GPU Ray cluster configuration
+kubectl apply -f ray-cluster-gpu.yaml
+
+# Wait for the cluster to be ready
+kubectl get raycluster -n ray-system -w
+
+# Check the status of Ray pods (including GPU allocation)
+kubectl get pods -n ray-system -l ray.io/cluster=raycluster-ml-gpu
+kubectl describe pod -n ray-system -l ray.io/node-type=worker
 ```
 
 ## Access the Ray Dashboard
@@ -360,10 +561,18 @@ def main():
     ray.init(address="ray://raycluster-ml-head-svc:10001")
     
     # Configure distributed training
+    # For CPU deployment (default):
     scaling_config = ScalingConfig(
         num_workers=2,  # Number of distributed workers
-        use_gpu=False   # Set to True if GPUs are available
+        use_gpu=False   # Set to True if using GPU deployment option
     )
+    
+    # For GPU deployment, use this instead:
+    # scaling_config = ScalingConfig(
+    #     num_workers=2,
+    #     use_gpu=True,
+    #     resources_per_worker={"CPU": 2, "GPU": 1}
+    # )
     
     # Training configuration
     train_config = {
@@ -498,7 +707,10 @@ class SimpleCNN(nn.Module):
 
 @serve.deployment(
     num_replicas=2,
+    # For CPU deployment (default):
     ray_actor_options={"num_cpus": 1, "num_gpus": 0}
+    # For GPU deployment, use this instead:
+    # ray_actor_options={"num_cpus": 2, "num_gpus": 1}
 )
 class MNISTClassifier:
     def __init__(self, model_path: str = None):
@@ -1265,3 +1477,5 @@ To further explore Ray and distributed AI workloads:
 - [Ray Train Documentation](https://docs.ray.io/en/latest/train/train.html)
 - [Ray Serve Documentation](https://docs.ray.io/en/latest/serve/index.html)
 - [Ray Data Documentation](https://docs.ray.io/en/latest/data/data.html)
+
+---
