@@ -4,9 +4,7 @@ sidebar_label: Scaling with KEDA and Karpenter
 sidebar_position: 1                  # this dictates the order of the pages in the sidebar 
 ---
 
-# Title
-
-Scaling Kubernetes Workloads with KEDA and Karpenter
+# Scaling Kubernetes Workloads with KEDA and Karpenter
 
 ## Objective
 
@@ -58,8 +56,6 @@ At the writing of this workshop, Node Auto Provisioning is still in preview. Onc
     # Refresh the extension in-case you already had it installed
     az extension update --name aks-preview
     ```
-
-## Workshop Content
 
 ### Environment Preparation
 
@@ -200,8 +196,11 @@ kubectl exec rabbitmq-0 -n pets -- rabbitmqctl list_queues
 
 # In another terminal, curl the rabbitmq and pipe that to jq to get the length
 curl -u username:password http://localhost:15672/api/queues/%2f/orders|jq '.backing_queue_status.len'
-
 ```
+
+Great! You should now be seeing the virtual worker count adjusting based on the queue depth. The virtual worker count will likely be pretty close to the virtual customer count, as they process at pretty close to the same speed. Feel free to play around with the deployment replica count to see how the scaler responds.
+
+
 
 ## Helper commands
 
