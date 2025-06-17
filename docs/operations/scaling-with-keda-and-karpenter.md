@@ -1,7 +1,6 @@
 ---
 title: Scaling Kubernetes Workloads with KEDA and Karpenter
 sidebar_label: Scaling with KEDA and Karpenter
-sidebar_position: 1                  # this dictates the order of the pages in the sidebar 
 ---
 
 # Scaling Kubernetes Workloads with KEDA and Karpenter
@@ -200,22 +199,172 @@ curl -u username:password http://localhost:15672/api/queues/%2f/orders|jq '.back
 
 Great! You should now be seeing the virtual worker count adjusting based on the queue depth. The virtual worker count will likely be pretty close to the virtual customer count, as they process at pretty close to the same speed. Feel free to play around with the deployment replica count to see how the scaler responds.
 
+## Using Karpenter
 
+Now that we have a good sense of how Keda works, lets have a look at Node Auto Provisioner(NAP). To do this, we're going to make a couple fairly drastic updates to our cluster and lets see how the cluster responds. 
 
-## Helper commands
+First, so far, we've been running on the default nodepool that was created for us when we created the cluster. That's not ideal, as it's intended to be the 'system' pool. We should really move everything over to a new 'user' mode pool. For more on system and user pools, see the AKS documentation [here](https://learn.microsoft.com/en-us/azure/aks/use-system-pools?tabs=azure-cli). However, even though the default pool is a system pool, it doesnt have a [Kubernetes taint]() applied to restrict the workloads that will start on the nodepool. Let's enable that taint and then see how the workload response.
+
+>*Note:* In the example below, we'll taint the system pool with 'CriticalAddonsOnly=true:NoExecute'. This is a pretty aggressive way to apply a taint, as the 'NoExecute' will evict any pods that don't tolerate the taint. This was for demo purposes. In the real world you would likely use CriticalAddonsOnly=true:NoSchedule, and then migrate workloads over more gracefully.
 
 ```bash
-# Helper commands
-# RabbitMQ Pod
-rabbitmqctl list_queues
+# First make sure your environment variables are still set
+RESOURCE_GROUP=WorkshopRG
+CLUSTER_NAME=workshopcluster
 
-# Mongo
-show dbs
-use orderdb
-db.getCollection('orders').find()
+# Get the default nodepool name. It should be nodepool1, but we'll confirm
+DEFAULT_NODEPOOL_NAME=$(az aks nodepool list -g $RESOURCE_GROUP --cluster-name $CLUSTER_NAME --query [0].name -o tsv)
 
-kubectl set env deployment/virtual-customer -n pets ORDERS_PER_HOUR=100
-kubectl set env deployment/virtual-worker -n pets ORDERS_PER_HOUR=100
-
-kubectl get events --for hpa/keda-hpa-virtual-worker-rabbitmq-scaledobject
+# Now apply the CriticalAddonsOnly taint to the default nodepool
+az aks nodepool update \
+-g $RESOURCE_GROUP \
+--cluster-name $CLUSTER_NAME \
+-n $DEFAULT_NODEPOOL_NAME \
+--node-taints CriticalAddonsOnly=true:NoExecute
 ```
+
+While the above command runs, in another terminal window, you can use the following to watch the pods as they transition to the new nodepool which NAP will create. The process will run as follows.
+
+1. All pet store pods will be evicted from the system nodepool, as they don't have the 'CriticalAddonsOnly' toleration
+2. Within a minute or two, NAP will start a new node with a name prefix of 'aks-default'
+3. Once started, the pet store pods will start on the new node
+
+```bash
+# Watch the events raised by karpenter
+kubectl get events -A --field-selector source=karpenter -w
+
+# You can also watch the new node start and pods get scheduled
+watch kubectl get nodes,pods -n pets -o wide
+```
+
+It's cool to see that NAP jumped in and made sure a nodepool was created for us and the pods got scheduled, but it did use the default profile. Let's have a look at that and see how we can create our own custom profile. Let's, for example, imagine that we're looking to minimize our power consumption for a new green compute policy, and move workloads to ARM based compute. Can we create a NAP profile that prioritizes ARM compute?
+
+```bash
+# Have a look at the NodePool definitions that ship with the NAP managed add-on
+kubectl get nodepool
+kubectl describe nodepool default
+
+# Notice how the 'system-surge' nodepool uses the 'kubernetes.azure.com/mode' label to focus on system nodes.
+kubectl describe nodepool system-surge
+```
+
+Let's create our own Nodepool profile for ARM. We'll use the [weight](https://learn.microsoft.com/en-us/azure/aks/node-autoprovision?tabs=azure-cli#node-pool-weights) parameter to give ours a higher priority than the default.
+
+```bash
+cat <<EOF > arm-nodepool-profile.yaml
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: arm-nodepool
+spec:
+  weight: 10
+  disruption:
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 1s
+  template:
+    spec:
+      nodeClassRef:
+        group: karpenter.azure.com
+        kind: AKSNodeClass
+        name: default
+      requirements:
+      - key: kubernetes.io/arch
+        operator: In
+        values:
+        - arm64
+      - key: kubernetes.io/os
+        operator: In
+        values:
+        - linux
+      - key: karpenter.sh/capacity-type
+        operator: In
+        values:
+        - on-demand
+      - key: karpenter.azure.com/sku-family
+        operator: In
+        values:
+        - D
+EOF
+
+# Now apply the new arm nodepool profile and watch the shift
+kubectl apply -f arm-nodepool-profile.yaml 
+
+# Watch the events raised by karpenter
+kubectl get events -A --field-selector source=karpenter -w
+
+# You can also watch the new node start and pods get scheduled
+watch kubectl get nodes,pods -n pets -o wide
+```
+
+Within a couple minutes, you should see the following:
+
+1. New ARM node comes online with a name prefix of 'aks-arm'
+2. Pet store pod move from the 'aks-default' node to the 'aks-arm' node
+3. The 'aks-default' node is removed from the cluster
+
+That was pretty cool, but what about that 'nodeClassRef' section of the nodepool profile. What can we do with that? 
+
+The nodeClassRef is a reference to a [NodeClass](https://learn.microsoft.com/en-us/azure/aks/node-autoprovision?tabs=azure-cli#node-image-updates) definition, where we can define settings about the node, like the OS disk size or the OS version. Lets create our own NodeClass and update the Nodepool profile to reference our own class.
+
+```bash
+cat <<EOF > arm-nodepool-profile_v2.yaml
+apiVersion: karpenter.azure.com/v1beta1
+kind: AKSNodeClass
+metadata:
+  name: default-azurelinux
+  annotations:
+    kubernetes.io/description: "General purpose AKSNodeClass for running Azure Linux nodes"
+spec:
+  imageFamily: AzureLinux
+---
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: arm-nodepool
+spec:
+  weight: 10
+  disruption:
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 1s
+  template:
+    spec:
+      nodeClassRef:
+        group: karpenter.azure.com
+        kind: AKSNodeClass
+        name: default-azurelinux
+      requirements:
+      - key: kubernetes.io/arch
+        operator: In
+        values:
+        - arm64
+      - key: kubernetes.io/os
+        operator: In
+        values:
+        - linux
+      - key: karpenter.sh/capacity-type
+        operator: In
+        values:
+        - on-demand
+      - key: karpenter.azure.com/sku-family
+        operator: In
+        values:
+        - D
+EOF
+
+# Apply the new profile with the new NodeClass
+kubectl apply -f arm-nodepool-profile_v2.yaml
+
+# Watch the events raised by karpenter
+kubectl get events -A --field-selector source=karpenter -w
+
+# You can also watch the new node start and pods get scheduled
+watch kubectl get nodes,pods -n pets -o wide
+```
+
+## Conclusion
+
+In this lab we walked through using the [Kuberentes Event Driven Autoscaler](https://keda.sh) to drive the replica count of an application based on an external trigger. In our case, we used the queue depth of a RabbitMQ queue to increase an application's replica count. This is an extremely powerful tool in managing how your application can scale, and Keda provides an amazing list of [scalers](https://keda.sh/docs/2.17/scalers/) that you can tap into. It's also open source, so you can add your own!
+
+Next, we took a look at the Karpenter project, and the Azure Provider for Karpenter, which is provided in AKS as the [Node Autoprovisioner](https://learn.microsoft.com/en-us/azure/aks/node-autoprovision?tabs=azure-cli). We saw how you can use the built in NodeClass and NodePool profile to enable autoscaling, but also how you can create your own custom NodeClass and Nodepool profile based on your own requirements. In our example, we wanted to run an Azure Linux pool that used ARM based nodes.
+
+Using these two tools together can give you amazing control over the was your application and your cluster handle scaling, and we only scratched the surface of the potential of these solutions!
