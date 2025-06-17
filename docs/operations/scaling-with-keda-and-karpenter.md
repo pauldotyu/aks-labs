@@ -7,16 +7,14 @@ sidebar_label: Scaling with KEDA and Karpenter
 
 ## Objective
 
-In this workshop you'll learn about the Kubernetes Event Driven Autoscaler (aka [KEDA](https://keda.sh)), as well as the AKS Node Auto Provisioner (aka [NAP](https://learn.microsoft.com/en-us/azure/aks/node-autoprovision?tabs=azure-cli)). We'll deploy a sample application, and demonstrate how Keda allows you to scale Kubernetes workloads based on a vast list of potential scale trigger sources. We'll then learn about how Node Auto Provisioner leverages the capabilities set in the [Karpenter](https://karpenter.sh/) open source project, via the [Karpenter Provider for Azure](https://github.com/Azure/karpenter-provider-azure), to improve the scaling behavior and flexibility of your AKS cluster.
+In this workshop you'll learn about the Kubernetes Event Driven Autoscaler (aka [KEDA](https://keda.sh)), as well as the AKS Node Auto Provisioner (aka [NAP](https://learn.microsoft.com/en-us/azure/aks/node-autoprovision?tabs=azure-cli)). We'll deploy a sample application, and demonstrate how Keda allows you to scale Kubernetes workloads based on a vast list of potential scale trigger sources. We'll then learn about how Node Auto Provisioner leverages the capabilities set in the [Karpenter](https://karpenter.sh/) open source project, via the [Karpenter Provider for Azure](https://github.com/Azure/karpenter-provider-azure), to improve the nodepool scaling behavior and flexibility of your AKS cluster.
 
 ## Prerequisites
 
-In this lab we'll be creating an AKS cluster that has both the [Kubernetes Event Driven Autoscaler (KEDA)](https://keda.sh/) and [Node Autoprovisioning (NAP/Karpenter)](https://learn.microsoft.com/en-us/azure/aks/node-autoprovision?tabs=azure-cli) enabled. To use these features you'll need the following:
+In this lab we'll be creating an AKS cluster that has both the Kubernetes Event Driven Autoscaler (KEDA) and Node Autoprovisioning (NAP/Karpenter) enabled. To use these features you'll need the following:
 - [Azure subscription](https://azure.microsoft.com/)
 - [Azure CLI](https://learn.microsoft.com/cli/azure/what-is-azure-cli)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
-- [helm](https://helm.sh/docs/intro/install/)
-- [Git](https://git-scm.com/)
 - Bash shell (e.g. [Windows Terminal](https://www.microsoft.com/p/windows-terminal/9n0dx20hk701) with [WSL](https://docs.microsoft.com/windows/wsl/install-win10) or [Azure Cloud Shell](https://shell.azure.com))
 
 At the writing of this workshop, Node Auto Provisioning is still in preview. Once you've prepared the pre-requisites above, you'll need to enable the preview feature in the Azure Subscription, and install the Preview CLI using the following steps.
@@ -98,9 +96,11 @@ kubectl apply -f https://raw.githubusercontent.com/Azure-Samples/aks-store-demo/
 kubectl get all -n pets
 ```
 
-Once all of the pods are in 'Running' state, and the Services are populated with their 'External-IP', you should be ready to move on to the next step.
+Once all of the pods are in 'Running' state (1/1 Ready), and the Services are populated with their 'External-IP', you should be ready to move on to the next step.
 
-> *Note:* You may see some restarts and errors while the pods come online. This is due to cross deployment dependencies and health checks. Just wait for all pods to be in a 'Running' state, which may take a few minutes.
+:::info
+You may see some restarts and errors while the pods come online. This is due to cross deployment dependencies and health checks. Just wait for all pods to be in a 'Running' state, which may take a few minutes.
+:::
 
 ```bash
 # Get the store URL
@@ -108,9 +108,11 @@ echo "Pet Store URL: http://$(kubectl get svc store-front -n pets -o jsonpath={.
 ```
 
 
-## Setup the Keda Scaler
+## Setup the KEDA Scaler
 
-When a customer submits an order, that order is sent to the order service. This initial order creation is a pretty light weight activity, as it just creates a message in rabbitMQ for the order that needs to be processed. However, those orders will sit in the queue until a virtual worker picks them up. It makes sense for us to automatically scale the virtual worker based on the depth of the queue in RabbitMQ. Fortunately, Keda provides a scaler for RabbitMQ that we can use. Lets configure a Keda scaled object that will increase the number of virtual worker pods based on the depth of th orders queue in RabbitMQ. For this, we'll need a Keda ScaledObject, but also the authentication configuration for that RabbitMQ instance.
+When a customer submits an order that order is sent to the order service. This initial order creation is a pretty light weight activity, as it just creates a message in rabbitMQ for the order that needs to be processed. However, those orders will sit in the queue until a virtual worker picks them up. It makes sense for us to automatically scale the virtual worker based on the depth of the queue in RabbitMQ. 
+
+Fortunately, KEDA provides a scaler for RabbitMQ that we can use. Lets configure a KEDA scaled object that will increase the number of virtual worker pods based on the depth of th orders queue in RabbitMQ. For this, we'll need a KEDA ScaledObject, but also the authentication configuration for that RabbitMQ instance.
 
 
 ```bash
@@ -167,7 +169,7 @@ kubectl apply -f virtual-worker-scaler.yaml
 
 ### Test Scaling
 
-Now that we have our scaled object, lets increase the number of virtual customers and see if Keda responds to the increased order queue depth by adding replicas to the virtual worker deployment.
+Now that we have our scaled object, lets increase the number of virtual customers and see if KEDA responds to the increased order queue depth by adding replicas to the virtual worker deployment.
 
 ```bash
 # Increase the virutal customer replica count
@@ -181,7 +183,7 @@ kubectl get deploy -n pets -w
 watch kubectl get deployment,pods -n pets
 ```
 
-In addition to the commands above, we can check out the Horizontal Pod Autoscaler(HPA) events. Since Keda drives the HPA to managed scaling, we can tap into the event stream. We also may want to take a look at the RabbitMQ depth itself, which we can do using the following.
+In addition to the commands above, we can check out the Horizontal Pod Autoscaler(HPA) events. Since KEDA drives the HPA to managed scaling, we can tap into the event stream. We also may want to take a look at the RabbitMQ depth itself, which we can do using the following.
 
 ```bash
 # Watch the HPA events
@@ -191,7 +193,7 @@ kubectl events -w -n pets --for hpa/keda-hpa-virtual-worker-rabbitmq-scaledobjec
 kubectl exec rabbitmq-0 -n pets -- rabbitmqctl list_queues
 
 # Alternatively, if you prefer to use curl, in one terminal port forward to the rabbitmq service
-kubectl exec rabbitmq-0 -n pets -- rabbitmqctl list_queues
+kubectl port-forward svc/rabbitmq -n pets 15672:15672
 
 # In another terminal, curl the rabbitmq and pipe that to jq to get the length
 curl -u username:password http://localhost:15672/api/queues/%2f/orders|jq '.backing_queue_status.len'
@@ -201,11 +203,13 @@ Great! You should now be seeing the virtual worker count adjusting based on the 
 
 ## Using Karpenter
 
-Now that we have a good sense of how Keda works, lets have a look at Node Auto Provisioner(NAP). To do this, we're going to make a couple fairly drastic updates to our cluster and lets see how the cluster responds. 
+Now that we have a good sense of how KEDA works, lets have a look at Node Auto Provisioner(NAP). To do this, we're going to make a fairly drastic update to our cluster and let's see how the cluster responds. 
 
-First, so far, we've been running on the default nodepool that was created for us when we created the cluster. That's not ideal, as it's intended to be the 'system' pool. We should really move everything over to a new 'user' mode pool. For more on system and user pools, see the AKS documentation [here](https://learn.microsoft.com/en-us/azure/aks/use-system-pools?tabs=azure-cli). However, even though the default pool is a system pool, it doesnt have a [Kubernetes taint]() applied to restrict the workloads that will start on the nodepool. Let's enable that taint and then see how the workload response.
+First, so far we've been running on the default nodepool that was created for us when we created the cluster. That's not ideal, as it's intended to be the 'system' pool. We should really move everything over to a new 'user' mode pool. For more on system and user pools, see the AKS documentation [here](https://learn.microsoft.com/en-us/azure/aks/use-system-pools?tabs=azure-cli). However, even though the default pool is a system pool, it doesnt have a [Kubernetes taint](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) applied to restrict the workloads that are allowed to start on the nodepool. We can apply the appropriate taint by updating the nodepool with the Azure CLI for AKS.
 
->*Note:* In the example below, we'll taint the system pool with 'CriticalAddonsOnly=true:NoExecute'. This is a pretty aggressive way to apply a taint, as the 'NoExecute' will evict any pods that don't tolerate the taint. This was for demo purposes. In the real world you would likely use CriticalAddonsOnly=true:NoSchedule, and then migrate workloads over more gracefully.
+:::info
+In the example below, we'll taint the system pool with 'CriticalAddonsOnly=true:NoExecute'. This is a pretty aggressive way to apply a taint, as the 'NoExecute' will evict any pods that don't tolerate the taint. This was for demo purposes. In the real world you would likely use CriticalAddonsOnly=true:NoSchedule, and then migrate workloads over more gracefully. You can read more about the options in the Kubernetes documentation [here](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/).
+:::
 
 ```bash
 # First make sure your environment variables are still set
@@ -363,7 +367,7 @@ watch kubectl get nodes,pods -n pets -o wide
 
 ## Conclusion
 
-In this lab we walked through using the [Kuberentes Event Driven Autoscaler](https://keda.sh) to drive the replica count of an application based on an external trigger. In our case, we used the queue depth of a RabbitMQ queue to increase an application's replica count. This is an extremely powerful tool in managing how your application can scale, and Keda provides an amazing list of [scalers](https://keda.sh/docs/2.17/scalers/) that you can tap into. It's also open source, so you can add your own!
+In this lab we walked through using the [Kuberentes Event Driven Autoscaler](https://keda.sh) to drive the replica count of an application based on an external trigger. In our case, we used the queue depth of a RabbitMQ queue to increase an application's replica count. This is an extremely powerful tool in managing how your application can scale, and KEDA provides an amazing list of [scalers](https://keda.sh/docs/2.17/scalers/) that you can tap into. It's also open source, so you can add your own!
 
 Next, we took a look at the Karpenter project, and the Azure Provider for Karpenter, which is provided in AKS as the [Node Autoprovisioner](https://learn.microsoft.com/en-us/azure/aks/node-autoprovision?tabs=azure-cli). We saw how you can use the built in NodeClass and NodePool profile to enable autoscaling, but also how you can create your own custom NodeClass and Nodepool profile based on your own requirements. In our example, we wanted to run an Azure Linux pool that used ARM based nodes.
 
