@@ -172,7 +172,7 @@ kubectl apply -f virtual-worker-scaler.yaml
 Now that we have our scaled object, lets increase the number of virtual customers and see if KEDA responds to the increased order queue depth by adding replicas to the virtual worker deployment.
 
 ```bash
-# Increase the virutal customer replica count
+# Increase the virtual customer replica count
 kubectl scale deployment virtual-customer -n pets --replicas=4
 
 # You can keep an eye on the deployment with the following commands
@@ -203,9 +203,9 @@ Great! You should now be seeing the virtual worker count adjusting based on the 
 
 ## Using Karpenter
 
-Now that we have a good sense of how KEDA works, lets have a look at Node Auto Provisioner(NAP). To do this, we're going to make a fairly drastic update to our cluster and let's see how the cluster responds. 
+Now that we have a good sense of how KEDA works, lets have a look at Node Auto Provisioner (NAP). To do this, we're going to make a fairly drastic update to our cluster and let's see how the cluster responds. 
 
-First, so far we've been running on the default nodepool that was created for us when we created the cluster. That's not ideal, as it's intended to be the 'system' pool. We should really move everything over to a new 'user' mode pool. For more on system and user pools, see the AKS documentation [here](https://learn.microsoft.com/en-us/azure/aks/use-system-pools?tabs=azure-cli). However, even though the default pool is a system pool, it doesnt have a [Kubernetes taint](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) applied to restrict the workloads that are allowed to start on the nodepool. We can apply the appropriate taint by updating the nodepool with the Azure CLI for AKS.
+First, so far we've been running on the default nodepool that was created for us when we created the cluster. That's not ideal, as it's intended to be the 'system' pool. We should really move everything over to a new 'user' mode pool. For more on system and user pools see the AKS documentation [here](https://learn.microsoft.com/en-us/azure/aks/use-system-pools?tabs=azure-cli). However, even though the default pool is a system pool, it doesn't have a [Kubernetes taint](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) applied to restrict the workloads that are allowed to start on the nodepool. We can apply the appropriate taint by updating the nodepool with the Azure CLI for AKS.
 
 :::info
 In the example below, we'll taint the system pool with 'CriticalAddonsOnly=true:NoExecute'. This is a pretty aggressive way to apply a taint, as the 'NoExecute' will evict any pods that don't tolerate the taint. This was for demo purposes. In the real world you would likely use CriticalAddonsOnly=true:NoSchedule, and then migrate workloads over more gracefully. You can read more about the options in the Kubernetes documentation [here](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/).
@@ -303,8 +303,12 @@ watch kubectl get nodes,pods -n pets -o wide
 Within a couple minutes, you should see the following:
 
 1. New ARM node comes online with a name prefix of 'aks-arm'
-2. Pet store pod move from the 'aks-default' node to the 'aks-arm' node
+2. Pet store pod is moved from the 'aks-default' node to the 'aks-arm' node
 3. The 'aks-default' node is removed from the cluster
+
+:::info
+You may see a second 'aks-arm' node come online and then get removed, as NAP figures out how much capacity is needed.
+:::
 
 That was pretty cool, but what about that 'nodeClassRef' section of the nodepool profile. What can we do with that? 
 
@@ -364,6 +368,12 @@ kubectl get events -A --field-selector source=karpenter -w
 # You can also watch the new node start and pods get scheduled
 watch kubectl get nodes,pods -n pets -o wide
 ```
+
+As we watch the nodes and pods, you should see the following:
+
+1. New node comes online with the name prefix 'aks-arm', but this one has an 'OS-IMAGE' set to 'CBL-Mariner/Linux' (aka. Azure Linux)
+2. Pods are moved from the old node to the new Azure Linux node
+3. The old 'aks-arm' node on Ubuntu is removed. 
 
 ## Conclusion
 
