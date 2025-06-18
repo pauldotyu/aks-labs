@@ -16,7 +16,7 @@ After completing this workshop, you'll be able to:
 - Deploy and AKS cluster with KEDA and Node Auto Provisioner (Karpenter) managed add-ons enabled
 - Configure a KEDA ScaledObject to drive application deployment autoscaling
 - Monitor KEDA scaling operations
-- Conifgure a NodeClass and Nodepool to control node auto provisioning
+- Configure a NodeClass and Nodepool to control node auto provisioning
 - Monitor Node Auto Provisioner scaling operations
 
 ## Prerequisites
@@ -233,10 +233,10 @@ kubectl events -w -n pets --for hpa/keda-hpa-virtual-worker-rabbitmq-scaledobjec
 kubectl exec rabbitmq-0 -n pets -- rabbitmqctl list_queues
 ```
 
-Alternatively, if you prefer to use curl, in one terminal port forward to the rabbitmq service. In another terminal, curl the rabbitmq http endpoint. We'll pipe the output to jq to filter out the queue length, but you can just skip that if you dont have jq installed.
+Alternatively, if you prefer to use curl, in one terminal port forward to the rabbitmq service. In another terminal, curl the rabbitmq http endpoint. We'll pipe the output to jq to filter out the queue length, but you can just skip that if you don't have jq installed.
 
 ```bash
-# port-foward to the rabbitmq http endpoint
+# port-forward to the rabbitmq http endpoint
 kubectl port-forward svc/rabbitmq -n pets 15672:15672
 
 # curl the rabbitmq http endpoint and filter the output with jq
