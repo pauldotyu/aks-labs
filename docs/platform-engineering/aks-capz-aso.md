@@ -32,9 +32,52 @@ If you have used Infrastructure as Code tools like `terraform` to create resourc
 
 ---
 
-## Architecture Overview
+## Components
+For the initial release of this document we are going to focus on:
 
-XXX
+* Cloud native Infrastructure as Code (IaC)
+
+* GitOps Continuous deployment tooling to deploy apps and infra.
+
+You will also need a repository for configurations, we will use GitHub but not cover this.
+
+### Infrastructure as Code
+
+There are multiple IaC choices that are available, for example: Cloud Native IaC - these are installed on Kubernetes “management” clusters and cloud resources are represented as custom resources in Kubernetes.
+
+* [CAPI](https://cluster-api.sigs.k8s.io/) – The cluster API (CAPI) framework and language has 30+ providers (e.g. AWS, GCP, bare metal) enabling IaC in a similar language and common core code base. The cluster api provider for Azure (CAPZ) allows you to deploy self-managed Kubernetes on Azure and AKS clusters.
+
+* [ASO v2](https://azure.github.io/azure-service-operator/) - Azure Service Operator, you can deploy many Azure resources, not just AKS. This is also now deployed by default along with and utilized as a dependency by CAPZ.
+
+* [Crossplane](https://www.crossplane.io/) - you can deploy resources into multiple clouds, this is the tool we will demonstrate due to it's multicloud capabilities, however you can swap this out for any of the above tools.
+
+All of these tools require a Kubernetes cluster that will host them, typically, at a high level they will install [Kubernetes Custom Resource Definitions](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/#customresourcedefinitions) and then use an identity to connect into Azure to perform infrastructure actions. Cloud infrastructure resources are represented as Kubernetes resources, and track the resource state.
+
+**What are the key advantages of cloud native IaC?**
+
+* Automation & Drift Detection – Cloud native IaC options can be used with automation such as GitOps tools, this means you can get benefits of GitOps, such as automated resource drift detection out of the box. Kubernetes works very well as a continuous reconciliation loop versus other non-cloud based IaC options (such as Terraform) that have lock files, state, and drift is only detected on a redeployment of the IaC configuration, leading to delays in detecting drift and reconciliation errors.
+
+* Control Plane security – With cloud native tools the security of what is deployed is controlled through the Kubernetes control plane, therefore you can restrict people having direct access to cloud control planes and resources.
+
+* Custom resources – You can create a Kubernetes resource that represents multiple infra resources or a represent a resource with a specific set of defaults and exposed properties. An example of these are Composite resources (Crossplane XRD’s) and Cluster Classes in CAPI.
+
+* Heterogeneous cluster type common tooling – for instance, you can deploy a self-managed Kubernetes cluster, AKS cluster, and AKS cluster joined to a fleet management hub in the same manner along with the associated applications across all of them.
+
+**Cloud Native IaC considerations**
+
+* Kubernetes cluster & experience – Ops teams need to grow skills in maintaining Kubernetes infrastructure management clusters.
+
+* Getting started – Ops teams will need to learn how to define resources in cloud native templates.
+
+* Existing investments – this document is not suggesting that you should scrap existing investments, you should review how the technical benefits provide business value and start small. You can perform self-service using existing deployment pipeline technologies such as GitHub Actions, DevOps and IaC tools such as Terraform, Bicep, ARM templates etc.
+
+**Continuous Deployment (CD) Pipelines**
+
+For this we are are going to use GitOps based CD pipelines, popular tools examples, Argo, Tekton, Flux. These tools reconcile the infra or application configuration in a repository with the Kubernetes cluster.
+
+We will use [Argo](https://argoproj.github.io/) in the example, but you can use other tools, the main benefit of GitOps is scale, configuration portability, drift detection, automation, auditing and approval etc. A key difference between GitOps and other CD pipelines such as Jenkins, GHA, DevOps is that they are push based pipelines that run outside of the Kubernetes cluster, requiring connectivity details for the cluster. Whereas with GitOps tools have an agent that is installed on the cluster and you add a configuration to the agent, it will then reach out to a configuration repo and 'pull' in the configuration. There is a lot more detail in this area, for more information take a look [here](https://opengitops.dev/) as well as the project content.
+
+## Architecture Overview
 
 This workshop uses the [GitOps Bridge Pattern](https://github.com/gitops-bridge-dev/gitops-bridge?tab=readme-ov-file) and the [Building a Platform Engineering Environment on Azure Kubernetes Service (AKS)](https://github.com/Azure-Samples/aks-platform-engineering) as a foundation:
 
