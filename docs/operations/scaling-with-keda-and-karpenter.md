@@ -126,12 +126,12 @@ You may see some restarts and errors while the pods come online. This is due to 
 
 ```bash
 # Get the store URL
-echo "Pet Store URL: http://$(kubectl get svc store-front -n pets -o jsonpath={.status.loadBalancer.ingress[0].ip})"
+echo "Pet Store URL: http://$(kubectl get svc store-front -n pets -o jsonpath='{.status.loadBalancer.ingress[0].ip}')"
 ```
 
 ## What is KEDA?
 
-KEDA is the 'Kubernetes Event-Driven Autoscaler. Traditionally, in Kubernetes, you would managed deployment scaling with a [Horizontal Pod Autoscaler](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/) (aka HPA). HPA's are somewhat limited in their scaling triggers. The KEDA open source project was created to introduce a pluggable approach for scale triggers. This means that anyone can create a scaler and use that scaler in KEDA, and fortunately, the open source community has done just that. KEDA has [more than 50 scalers](https://keda.sh/docs/2.17/scalers/) enabled out of the box! This means that you can scale your workload based on info from MongoDB, RabbitMQ, MySQL, etc, etc.
+KEDA is the 'Kubernetes Event-Driven Autoscaler. Traditionally, in Kubernetes, you would manage deployment scaling with a [Horizontal Pod Autoscaler](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/) (aka HPA). HPA's are somewhat limited in their scaling triggers. The KEDA open source project was created to introduce a pluggable approach for scale triggers. This means that anyone can create a scaler and use that scaler in KEDA, and fortunately, the open source community has done just that. KEDA has [more than 50 scalers](https://keda.sh/docs/2.17/scalers/) enabled out of the box! This means that you can scale your workload based on info from MongoDB, RabbitMQ, MySQL, etc, etc.
 
 KEDA works by watching the external triggers, identified in the scaler configuration via the ScaledObject definition, and then by driving a Horizontal Pod Autoscaler attached to the target deployment.
 
@@ -272,7 +272,7 @@ RESOURCE_GROUP=WorkshopRG
 CLUSTER_NAME=workshopcluster
 
 # Get the default nodepool name. It should be nodepool1, but we'll confirm
-DEFAULT_NODEPOOL_NAME=$(az aks nodepool list -g $RESOURCE_GROUP --cluster-name $CLUSTER_NAME --query [0].name -o tsv)
+DEFAULT_NODEPOOL_NAME=$(az aks nodepool list -g $RESOURCE_GROUP --cluster-name $CLUSTER_NAME --query '[0].name' -o tsv)
 
 # Now apply the CriticalAddonsOnly taint to the default nodepool
 az aks nodepool update \
