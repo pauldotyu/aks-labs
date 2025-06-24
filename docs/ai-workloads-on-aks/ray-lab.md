@@ -253,14 +253,13 @@ az aks create \
     --location $LOCATION \
     --node-count 2 \
     --node-vm-size Standard_NC6s_v3 \
-    --aks-custom-headers UseGPUDedicatedVHD=true \
     --enable-cluster-autoscaler \
     --min-count 1 \
     --max-count 3 \
     --generate-ssh-keys
 
-# Install NVIDIA device plugin for GPU support
-kubectl apply -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v0.14.1/nvidia-device-plugin.yml
+# Install NVIDIA device plugin for GPU support (latest version)
+kubectl apply -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/main/deployments/static/nvidia-device-plugin.yml
 ```
 
 <div class="info" data-title="Using Existing Cluster">
