@@ -19,11 +19,13 @@ echo "🧪 Testing MNIST model endpoint with $TEST_TYPE image..."
 case $TEST_TYPE in
     "blank")
         echo "📝 Sending blank (all zeros) 28x28 image..."
-        PAYLOAD='{"data": '$(cat $(dirname "$0")/test-data.json | jq '.examples.blank_image.data')'}'
+        image_data=$(cat $(dirname "$0")/test-data.json | jq '.examples.blank_image.data')
+        PAYLOAD='{"data": '"$image_data"'}'
         ;;
     "sample")
         echo "📝 Sending sample pattern 28x28 image..."
-        PAYLOAD='{"data": '$(cat $(dirname "$0")/test-data.json | jq '.examples.sample_digit.data')'}'
+        image_data=$(cat $(dirname "$0")/test-data.json | jq '.examples.sample_digit.data')
+        PAYLOAD='{"data": '"$image_data"'}'
         ;;
     *)
         echo "❌ Invalid test type. Use 'blank' or 'sample'"
