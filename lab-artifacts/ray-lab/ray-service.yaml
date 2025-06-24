@@ -8,11 +8,12 @@ spec:
   deploymentUnhealthySecondThreshold: 300
   serveConfigV2: |
     applications:
-    - name: fruit_classifier
-      import_path: simple_serving:deployment
+    - name: mnist_classifier
+      import_path: simple_serving:MNISTClassifier
       route_prefix: /classify
       runtime_env:
-        working_dir: "https://github.com/ray-project/serve_config_examples/archive/HEAD.zip"
+        env_vars:
+          RAY_CLUSTER_NAME: $RAY_CLUSTER_NAME
   rayClusterConfig:
     rayVersion: '2.8.0'
     headGroupSpec:

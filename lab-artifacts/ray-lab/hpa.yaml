@@ -5,7 +5,7 @@ metadata:
   namespace: $RAY_NAMESPACE
 spec:
   scaleTargetRef:
-    apiVersion: ray.io/v1
+    apiVersion: ray.io/v1alpha1
     kind: RayCluster
     name: $RAY_CLUSTER_NAME
   minReplicas: 1

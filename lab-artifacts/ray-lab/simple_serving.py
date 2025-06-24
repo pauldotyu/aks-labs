@@ -139,7 +139,7 @@ def main():
     logger.info("MNIST classifier deployed successfully!")
     logger.info("Service is available at port 8000/mnist")
     logger.info("Health check: GET /-/healthz")
-    logger.info("Prediction: POST / with JSON body")
+    logger.info("Prediction: POST /mnist with JSON body")
     
     # Keep the service running until shutdown signal
     try:

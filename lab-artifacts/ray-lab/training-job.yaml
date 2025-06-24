@@ -23,10 +23,8 @@ spec:
         - name: training-script
           mountPath: /app
         env:
-        - name: RAY_ADDRESS
-          value: "ray://$RAY_CLUSTER_NAME-head-svc:10001"
         - name: RAY_CLUSTER_NAME
-          value: "$RAY_CLUSTER_NAME"
+          value: $RAY_CLUSTER_NAME
       volumes:
       - name: training-script
         configMap:
