@@ -10,7 +10,7 @@ spec:
     applications:
     - name: mnist_classifier
       import_path: simple_serving:MNISTClassifier
-      route_prefix: /classify
+      route_prefix: /mnist
       runtime_env:
         env_vars:
           RAY_CLUSTER_NAME: $RAY_CLUSTER_NAME
