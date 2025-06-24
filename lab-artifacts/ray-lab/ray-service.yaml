@@ -20,7 +20,7 @@ spec:
       replicas: 1
       rayStartParams:
         dashboard-host: '0.0.0.0'
-        num-cpus: '1'
+        num-cpus: '0'
       template:
         spec:
           containers:
