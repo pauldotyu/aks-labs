@@ -83,7 +83,7 @@ Before we begin lets create a new directory that can be a placeholder for all of
 
 ```bash
 mkdir -p aks-labs/operations/advanced-observability/
-cd operations/advanced-observability/
+cd aks-labs/operations/advanced-observability/
 ```
 
 2. Next, proceed by declaring the following environment variables:
@@ -95,7 +95,7 @@ export LOCATION="westus3"
 export RG_NAME="rg-advanced-mon"
 
 # Azure Kubernetes Service Cluster
-export AKS_CLUSTER_NAME=advanced-mon
+export AKS_CLUSTER_NAME="advanced-mon"
 
 # Azure Managed Grafana
 export GRAFANA_NAME="aks-labs"
@@ -126,7 +126,7 @@ az group create --name ${RG_NAME} --location ${LOCATION}
 2. Create an Azure Monitor Workspace
 
 ```bash
-az monitor workspace create \
+az monitor account create \
   --resource-group ${RG_NAME} \
   --location ${LOCATION} \
   --name ${AZ_MONITOR_WORKSPACE_NAME}
@@ -135,7 +135,7 @@ az monitor workspace create \
 Retrieve the Azure Monitor Workspace ID
 
 ```bash
-AZ_MONITOR_WORKSPACE_ID=$(az monitor workspace show \
+AZ_MONITOR_WORKSPACE_ID=$(az monitor account show \
   --resource-group ${RG_NAME} \
   --name ${AZ_MONITOR_WORKSPACE_NAME} \
   --query id -o tsv)
@@ -194,7 +194,31 @@ az aks create \
   --enable-azure-monitor-metrics \
   --enable-cost-analysis \
   --grafana-resource-id ${GRAFANA_RESOURCE_ID} \
+  --azure-monitor-workspace-resource-id ${AZ_MONITOR_WORKSPACE_ID} \
   --tier Standard
+```
+
+2. Get the credentials to access the cluster:
+
+```bash
+az aks get-credentials \
+  --name ${AKS_CLUSTER_NAME} \
+  --resource-group ${RG_NAME} \
+  --file aks-labs.config
+```
+
+3. Use the aks-labs.config file this as your `KUBECONFIG`
+
+```bash
+echo export KUBECONFIG=$PWD/aks-labs.config >> .envrc
+source .envrc
+```
+
+4. Check that the credentials are working:
+
+```bash
+kubectl cluster-info
+kubectl get nodes
 ```
 
 ### Working on Grafana
@@ -281,7 +305,7 @@ kubectl apply -f https://raw.githubusercontent.com/Azure/prometheus-collector/re
 kubectl edit cm ama-metrics-settings-configmap -n kube-system
 ```
 
-3. Under the `default-targets-metrics-keep-list`, add `apiserver_longrunning_requests`. Save the `ConfigMap`.
+3. Under the `default-targets-metrics-keep-list`, add `apiserver_longrunning_requests` and then save the `ConfigMap`.
 
 ![adding apiserver_longrunning_requests](assets/customizing-the-collection.png)
 
