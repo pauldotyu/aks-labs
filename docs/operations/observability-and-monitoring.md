@@ -98,7 +98,7 @@ export RG_NAME="rg-advanced-mon"
 export AKS_CLUSTER_NAME="advanced-mon"
 
 # Azure Managed Grafana
-export GRAFANA_NAME="aks-labs"-${RANDOM}
+export GRAFANA_NAME="aks-labs-${RANDOM}"
 
 # Azure Monitor Workspace
 export AZ_MONITOR_WORKSPACE_NAME="azmon-aks-labs"
