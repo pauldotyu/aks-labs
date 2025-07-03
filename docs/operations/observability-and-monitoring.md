@@ -44,7 +44,7 @@ az extension update --name aks-preview
 
 ---
 
-### AKS control plane metrics
+## AKS control plane metrics
 
 As you may know, Kubernetes control plane components are managed by Azure and there are metrics that Kubernetes administrators would like to monitor such as `kube-apiserver`, `kube-scheduler`, `kube-controller-manager`, and `etcd`. These are metrics that typically were not exposed to AKS users... until now. 
 
@@ -72,7 +72,7 @@ az provider register --namespace Microsoft.ContainerService
 ```
 Once registered, you’ll be able to surface these metrics using prebuilt Grafana dashboards or your own visualizations—without managing your own Prometheus stack.
 
-### Setup your environment
+## Setup your environment
 ### Step 1: Define your environment variables and placeholders
 
 In these next steps, we will setup a new AKS cluster, an **Azure Managed Grafana** instance and a Azure Monitor Workspace.
@@ -98,7 +98,7 @@ export RG_NAME="rg-advanced-mon"
 export AKS_CLUSTER_NAME="advanced-mon"
 
 # Azure Managed Grafana
-export GRAFANA_NAME="aks-labs"
+export GRAFANA_NAME="aks-labs"-${RANDOM}
 
 # Azure Monitor Workspace
 export AZ_MONITOR_WORKSPACE_NAME="azmon-aks-labs"
@@ -131,6 +131,10 @@ az monitor account create \
   --location ${LOCATION} \
   --name ${AZ_MONITOR_WORKSPACE_NAME}
 ```
+
+:::info
+The resource provider `Microsoft.Monitor` is required by this operation. If not already registered, by running this command, we will register this resource for you.
+:::
 
 Retrieve the Azure Monitor Workspace ID
 
@@ -189,13 +193,15 @@ GRAFANA_RESOURCE_ID=$(az grafana show \
 az aks create \
   --name ${AKS_CLUSTER_NAME}  \
   --resource-group ${RG_NAME} \
-  --node-count 2 \
+  --node-count 1 \
   --enable-managed-identity  \
   --enable-azure-monitor-metrics \
   --enable-cost-analysis \
   --grafana-resource-id ${GRAFANA_RESOURCE_ID} \
   --azure-monitor-workspace-resource-id ${AZ_MONITOR_WORKSPACE_ID} \
-  --tier Standard
+  --tier Standard \
+  --ssh-access disabled \
+  --generate-ssh-keys
 ```
 
 2. Get the credentials to access the cluster:
@@ -207,12 +213,16 @@ az aks get-credentials \
   --file aks-labs.config
 ```
 
-3. Use the aks-labs.config file this as your `KUBECONFIG`
+3. Use the retrieved aks-labs.config file as your KUBECONFIG and add it to your environment
 
 ```bash
 echo export KUBECONFIG=$PWD/aks-labs.config >> .envrc
 source .envrc
 ```
+
+:::info
+In this example, the `source` command in `bash` opens the `.envrc` file and adds the environment variables from that file to your current terminal, so you can use them right away.
+:::
 
 4. Check that the credentials are working:
 
@@ -220,8 +230,9 @@ source .envrc
 kubectl cluster-info
 kubectl get nodes
 ```
+---
 
-### Working on Grafana
+## Working on Grafana
 
 With Azure Managed Grafana integrated with Azure Managed Prometheus, you can import [kube-apiserver](https://grafana.com/grafana/dashboards/20331-kubernetes-api-server/) and [etcd](https://grafana.com/grafana/dashboards/20330-kubernetes-etcd/) metrics dashboards.
 
@@ -258,11 +269,38 @@ az grafana dashboard import \
   --definition 20330
 ```
 
+3. To access the Grafana Dashboard
+
+```bash
+GRAFANA_UI=$(az grafana show \
+  --name ${GRAFANA_NAME} \
+  --resource-group ${RG_NAME} \
+  --query "properties.endpoint" -o tsv)
+
+echo "Your Azure Managed Grafana is accessible at: $GRAFANA_UI"
+```
+
+Expected output:
+
+```bash
+$ az grafana show \
+  --name ${GRAFANA_NAME} \
+  --resource-group ${RG_NAME} \
+  --query "properties.endpoint" -o tsv
+https://aks-labs-test-ase8bmffcgbqhjej.wus3.grafana.azure.com
+```
+
 ![aks-labs-dashboards](assets/aks-labs-dashboards.png)
 Now you, should be able to browse to your Azure Managed Grafana instance and see the `kube-apiserver` and `etcd` metrics dashboards in the AKS-Labs folder.
 
 ![aks-labs-dashboards](assets/dashboard-api-server.png)
 The new `kube-apiserver` metrics dashboard in Grafana.
+
+:::info
+It might take up to 5 minutes for data to start showing up in your Grafana dashboard. You can refresh this page or set it to auto-refresh every few seconds
+
+![dashboard-refresh](assets/dashboard-refresh.png)
+:::
 
 ###  Example: Customizing the collection of metrics
 
@@ -329,6 +367,10 @@ Click on `Add`  and then `Visualization`
 
 ![Add new visualization](assets/add-new-dashboard.png)
 
+Verify that your selected Data Source is `${prom_ds}`
+
+![ds_prom is selected](assets/ds_prom.png)
+
 To customize the visualization, we need to first toggle the `Code` button in the `Query` part of the panel:
 
 ![enable code](assets/enable-code.png)
@@ -346,7 +388,15 @@ Next, we will do the following steps on this panel:
 ```
 sum(rate(apiserver_longrunning_requests{cluster="$cluster"}[$__rate_interval]))
 ```
-6. Apply and Save
+6. Click on Save
+
+![click on save](assets/click-save.png)
+
+7. Finally, click on Save Dashboard
+
+![save the dashboard](assets/save-dashboard.png)
+
+After close to 5 minutes, you should start seeing the `apiserver_longrunning_requests` metrics showing up in your new dashboard
 
 ![apiserver_longrunning_requests dasboard](assets/apiserver_longrunning_requests-dashboard.png)
 
@@ -356,7 +406,9 @@ Congratulations, you have managed to add a specific metric from the `controlplan
 The Azure team does not offer a [pre-built dashboard](https://grafana.com/orgs/azure/dashboards) for some of these metrics, but you can reference the doc on [supported metrics for Azure Managed Prometheus](https://learn.microsoft.com/azure/aks/monitor-aks-reference#supported-metrics-for-microsoftcontainerservicemanagedclusters) and create your own dashboards in Azure Managed Grafana or search for community dashboards on [Grafana.com](https://grafana.com/grafana/dashboards) and import them into Azure Managed Grafana. Just be sure to use the Azure Managed Prometheus data source.
 :::
 
-### Custom scrape jobs for Azure Managed Prometheus
+---
+
+## Custom scrape jobs for Azure Managed Prometheus
 
 Typically, when you want to scrape metrics from a target, you would create a scrape job in Prometheus. With **Azure Managed Prometheus**, you can define custom scrape jobs for your AKS cluster using the `PodMonitor` and `ServiceMonitor` **Custom Resource Definitions (CRDs)**, which are automatically created when you enable Azure Managed Prometheus.
 
@@ -367,8 +419,6 @@ When using Azure Managed Prometheus, specify the `apiVersion` as:
 `azmonitoring.coreos.com/v1` instead of the OSS version: `monitoring.coreos.com/v1`
 :::
 
----
-
 ### What are `PodMonitor` and `ServiceMonitor`?
 
 | CRD Type         | Targets               | Use Case                                                      | Requires Service? |
@@ -377,8 +427,6 @@ When using Azure Managed Prometheus, specify the `apiVersion` as:
 | `ServiceMonitor` | Services (via labels) | Scrape metrics through stable service endpoints (e.g., API svc)| yes                |
 
 This separation allows you to control how Prometheus discovers and scrapes metrics based on how your application is exposed in the cluster.
-
----
 
 ### Deploying a `PodMonitor` and a Sample Application
 
@@ -494,9 +542,18 @@ Once finished, press Ctrl+C to stop the port-forward session.
 
 ### Explore the Metrics in Grafana
 
-Once metrics have been scraped for a few moments, open **Azure Managed Grafana**, go to the **Explore** tab, and query the metrics from the reference app. For example, we can try to query for the `max_dimension_rainfall_histogram_bucket` metric:
+Once metrics have been scraped for a few moments we can now use the **Explore** capability in Grafana to visualize the new metrics.
+
+1. Open **Azure Managed Grafana**, go to the **Explore** tab
+
+2. Change the Data Source from `Azure Monitor` to `Managed_Prometheus_azmon-adk-labs`.
+![grafana-explore-data-source-picker](assets/grafana-explore-data-source-picker.png)
+
+3. For example, we can try to query for the `max_dimension_rainfall_histogram_bucket` metric
 
 ![podMonitor Metric](assets/podMonitor.png)
+
+We can now see the new `PodMonmitor` metrics showing up in Grafana ! From there, you can create your own dashboard using the same principles we saw earlier when we [created a dashboard in Grafana to visualize a new metric](#create-a-dashboard-in-grafana-to-visualize-the-new-metric)
 
 ---
 
