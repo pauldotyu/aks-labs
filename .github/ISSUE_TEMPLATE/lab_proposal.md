@@ -23,6 +23,6 @@ assignees: ''
 - [ ] Platform Engineering
 - [ ] Other. Please specify in a new line below if none of the categories above fit.
 
-**Are you willing to be added to the CODEOWNERS file for this lab?
+**Are you willing to be added to the CODEOWNERS file for this lab?**
 <!-- If you have write permissions on the repo, you will be added as a reviewer for future pull requests -->
 - [ ] Yes
