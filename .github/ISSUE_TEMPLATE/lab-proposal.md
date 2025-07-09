@@ -1,5 +1,5 @@
 ---
-name: Lab proposal template
+name: Lab proposal
 about: Lab proposal
 title: "[LAB]"
 labels: ''
