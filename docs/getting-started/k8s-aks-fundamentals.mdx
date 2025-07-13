@@ -1497,7 +1497,7 @@ POD_NAME=$(kubectl get po -l app=contoso-air -ojsonpath='{.items[0].metadata.nam
 kubectl exec -it $POD_NAME -- printenv
 ```
 
-You should see the environment variables that start with **AZURE*COSMOS*** which have been pulled in from the ConfigMap resource.
+You should see the environment variables that start with `AZURE_COSMOS_` which have been pulled in from the ConfigMap resource.
 
 :::tip
 
