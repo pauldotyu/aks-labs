@@ -15,7 +15,7 @@ In addition, you will need the following tools installed on your local machine:
   <li><a href="https://git-scm.com/" target="_blank" rel="noopener noreferrer">Git</a></li>
   <li><a href="https://kubernetes.io/docs/reference/kubectl/" target="_blank" rel="noopener noreferrer">kubectl</a></li>
   {props.tools && props.tools.map((tool, index) => (
-    <li>{tool.url ? (<a href={tool.url} target="_blank" rel="noopener noreferrer">{tool.name}</a>) : ( tool.name )}{tool.description && ` ${tool.description}`}</li>
+    <li key={index}>{tool.url ? (<a href={tool.url} target="_blank" rel="noopener noreferrer">{tool.name}</a>) : ( tool.name )}{tool.description && ` ${tool.description}`}</li>
   ))}
   <li>POSIX-compliant shell (bash, zsh, <a href="https://shell.azure.com" target="_blank" rel="noopener noreferrer">Azure Cloud Shell</a>)</li>
 </ul>
