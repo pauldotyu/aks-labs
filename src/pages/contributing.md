@@ -168,7 +168,7 @@ When authoring content, you may want to draw attention to certain sections of yo
 
 To maintain consistency across workshops and reduce duplication, this project provides reusable markdown components located in `src/components/SharedMarkdown/`. These components help standardize common sections that appear in most workshops:
 
-- **`_prequitesites.mdx`** - Provides a standard prerequisites section with common tools and Azure CLI setup
+- **`_prerequisites.mdx`** - Provides a standard prerequisites section with common tools and Azure CLI setup
 - **`_provision_resource_group.mdx`** - Creates environment variables and resource group setup
 - **`_provision_aks_cluster.mdx`** - Standard AKS cluster creation commands
 - **`_provision_resources.mdx`** - Additional resource provisioning steps
