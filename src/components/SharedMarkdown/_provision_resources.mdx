@@ -20,7 +20,7 @@ You can deploy these resources using a single [ARM template](https://learn.micro
 To deploy [this ARM template](https://raw.githubusercontent.com/azure-samples/aks-labs/refs/heads/main/docs/getting-started/assets/aks-labs-deploy.json). Run the following command to save your user object ID to a variable.
 
 ```bash
-export USER_ID=""
+export USER_ID=$(az ad signed-in-user show --query id -o tsv)
 ```
 
 Run the following command to save the deployment name to a variable. In this example we set the deployment name to **labdemo**.
