@@ -23,12 +23,6 @@ To deploy [this ARM template](https://raw.githubusercontent.com/azure-samples/ak
 export USER_ID=$(az ad signed-in-user show --query id -o tsv)
 ```
 
-Run the following command to save the deployment name to a variable. In this example we set the deployment name to **labdemo**.
-
-```bash
-export DEPLOY_NAME="labdemo$(date +%s)"
-```
-
 Run the following command to deploy Bicep template into the resource group.
 
 ```bash
