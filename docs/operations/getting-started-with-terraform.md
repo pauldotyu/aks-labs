@@ -414,6 +414,8 @@ The content above is a good starting point for working with Terraform on Azure, 
   - Run `terraform plan` to see the changes that will be made to the resource.
   - Modify the resource block as needed to match the deployed state.
   - Repeat the process until the Terraform configuration matches the deployed state and there are no changes to be made.
+- You can deploy applications to your AKS cluster using the [Kubernetes provider](https://registry.terraform.io/providers/hashicorp/kubernetes/latest) or the [Helm provider](https://registry.terraform.io/providers/hashicorp/helm/latest). These providers allow you to manage Kubernetes resources and Helm charts using Terraform.
+  - Check out the [KAITO project](https://github.com/kaito-project/kaito/tree/main/terraform) for an example of how to various providers to deploy applications to AKS.
 
 ### Read the docs
 
@@ -464,3 +466,5 @@ For further learning and exploration, consider the following resources:
 - [Overview of the Terraform AzAPI provider](https://learn.microsoft.com/en-us/azure/developer/terraform/overview-azapi-provider)
 - [Authenticate Terraform to Azure](https://learn.microsoft.com/en-us/azure/developer/terraform/authenticate-to-azure?tabs=bash)
 - [Store Terraform state in Azure Storage](https://learn.microsoft.com/en-us/azure/developer/terraform/store-state-in-azure-storage?tabs=azure-cli)
+- [Kubernetes provider](https://registry.terraform.io/providers/hashicorp/kubernetes/latest)
+- [Helm provider](https://registry.terraform.io/providers/hashicorp/helm/latest)
