@@ -144,6 +144,8 @@ This block configures the `azurerm` provider and sets some features. The `featur
 
 For more information on all the available features and settings, refer to [The Features Block](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/guides/features-block) documentation.
 
+### Creating resources
+
 Below the provider block, you can add any resources you want to create. Let's start with a simple resource group we looked at earlier. Add the following code to your `main.tf` file:
 
 ```hcl
@@ -152,6 +154,42 @@ resource "azurerm_resource_group" "example" {
   location = "East US"
 }
 ```
+
+Notice the name and location properties are hard-coded in this example. This is not ideal for production scenarios, as you may want to use variables to make your configuration more flexible and reusable. Let's update the resource group to use variables instead. Create a new file named `variables.tf` in the same directory and add the following code:
+
+```hcl
+variable "resource_group_name" {
+  description = "The name of the resource group"
+  type        = string
+  default     = "example-resource-group"
+}
+
+variable "location" {
+  description = "The Azure region where the resource group will be created"
+  type        = string
+  default     = "East US"
+}
+```
+
+Replace the hard-coded values in the `azurerm_resource_group` resource block with the variables you just created. Your `main.tf` file should now look like this:
+
+```hcl
+resource "azurerm_resource_group" "example" {
+  name     = var.resource_group_name
+  location = var.location
+}
+```
+
+You would also want to add output blocks to display properties of resources you create. Create a new file named `outputs.tf` in the same directory and add the following code:
+
+```hcl
+output "rg_name" {
+  description = "The name of the resource group"
+  value       = azurerm_resource_group.example.name
+}
+```
+
+This output block will display the name of the resource group after it has been created. You can add more output blocks for other resources you create in the future.
 
 At this point you have a basic Terraform configuration that defines the `azurerm` provider and a resource group. You can now run the following commands to initialize your Terraform configuration, format your code, validate it, and create the resource group:
 
@@ -230,8 +268,8 @@ Now that you have created the storage account and container, you can configure T
 
 ```hcl
 backend "azurerm" {
-  resource_group_name  = "rg-tfstate"          # Replace with your resource group name
-  storage_account_name = "terraformstate21874" # Replace with your storage account name
+  resource_group_name  = "rg-tfstate"
+  storage_account_name = "SET_YOUR_STORAGE_ACCOUNT_NAME_HERE"
   container_name       = "terraform-state"
   key                  = "terraform.tfstate"
 }
@@ -264,11 +302,110 @@ You should see the `terraform.tfstate` file listed in the output. This means tha
 
 Azure Verified Modules (AVM) are a collection of pre-built Terraform modules that are designed to help you quickly and easily deploy Azure resources. These modules are maintained by Microsoft and are designed to follow best practices for deploying Azure resources.
 
+To get started with Azure Verified Modules, you need to add the `azurerm` provider to your Terraform configuration, as we did earlier. Then, you can use the modules provided by Microsoft to deploy resources.
+
+AVM is available for both Azure Bicep and Terraform, and you can find the Terraform modules in the [Azure Verified Modules repository](https://azure.github.io/Azure-Verified-Modules/).
+
+As soon as you land on the AVM repository website, you will see a list under the **Module Indexes** section. It is divided into two sections: **Bicep** and **Terraform** and under each you will see additional sections that divide the modules into types like **Resource Modules**, **Pattern Modules**, and **Utility Modules**.
+
+Here is a brief overview of the different types of modules:
+
+- **Resource Modules**: These modules are designed to create a single resource or a group of related resources. They are typically used to create resources like virtual machines, storage accounts, or databases.
+- **Pattern Modules**: These modules are designed to implement a specific pattern or architecture in Azure. They are typically used to create more complex architectures and reference one or many resource modules.
+- **Utility Modules**: These modules are designed to provide utility or helper functions that can be used across multiple modules.
+
+:::note
+
+See the [Module Classifications](https://azure.github.io/Azure-Verified-Modules/specs/shared/module-classifications/) documentation for more information on the different types of modules and their intended use cases.
+
+:::
+
 ## Deploy an AKS cluster
+
+Let's deploy an AKS cluster using AVM. For this workshop, we want to deploy a simple AKS cluster with an Azure Container Registry (ACR) for dev/test purposes. Typically you'd need to create these resources separately, but the [avm-ptn-aks-dev](https://registry.terraform.io/modules/Azure/avm-ptn-aks-dev/azurerm/latest) pattern module will create both resources for you and configure them to work together.
+
+If you navigate to the module page, you should end up in the Terraform Registry website. Here you will find the module documentation, including the inputs and outputs, as well as examples of how to use the module (under the **Provision Instructions** heading). The module documentation is very important, as it will tell you what inputs are required and what outputs you can expect from the module.
+
+We will build on our existing `main.tf` file, so add a new line after the `azurerm_resource_group` resource block and add the following code:
+
+```hcl
+module "avm-ptn-aks-dev" {
+  source  = "Azure/avm-ptn-aks-dev/azurerm"
+  version = "0.2.0"
+  # insert the 3 required variables here
+}
+```
+
+The example code calls for you to insert the three required variables. If you click on the **Inputs** tab, you will see the required variables listed. The three required variables are `resource_group_name`, `location`, and `aks_name`. You can also see the optional variables that you can use to customize the AKS cluster.
+
+Update the module block to include the required variables, like this:
+
+```hcl
+module "avm-ptn-aks-dev" {
+  source  = "Azure/avm-ptn-aks-dev/azurerm"
+  version = "0.2.0"
+  resource_group_name = azurerm_resource_group.example.name
+  location            = azurerm_resource_group.example.location
+  name                = "demo"
+}
+```
+
+Let's also add an output block to display the AKS cluster name and the ACR login server. Add the following code to your `outputs.tf` file:
+
+````hcl
+output "aks_name" {
+  description = "The name of the AKS cluster"
+  value       = module.avm-ptn-aks-dev.resource.name
+}
+```
+
+Save the file and run the following command to initialize the module:
+
+```bash
+terraform init
+````
+
+Since you added a new module to your configuration, Terraform will need to download the module and its dependencies. The `terraform init` command will take care of this for you.
+
+You should see output indicating that the module has been successfully initialized.
+
+That should be enough to get started with the module. You can now run the following commands to format, validate, and create the AKS cluster:
+
+```bash
+terraform fmt
+terraform validate
+terraform apply
+```
+
+Within a few minutes, Terraform will create the AKS cluster and the ACR in Azure. You can verify that the resources were created by checking the Azure portal or by running the following command in the Azure CLI:
+
+```bash
+az resource list \
+--resource-group example-resource-group \
+--output table
+```
+
+Now, let's connect to the AKS cluster using the Azure CLI. You can do this by running the following command to pass Terraform outputs to the Azure CLI command:
+
+```bash
+az aks get-credentials \
+--resource-group $(terraform output -raw rg_name) \
+--name $(terraform output -raw aks_name)
+```
+
+This command will configure your local `kubectl` to use the AKS cluster you just created. You can verify that you are connected to the cluster by running the following command:
+
+```bash
+kubectl get nodes
+```
+
+You should see a list of nodes in the AKS cluster, indicating that you are successfully connected to the cluster.
 
 ## Tips, tricks, and best practices
 
 ### Read the docs
+
+### AzAPI provider
 
 ### Agents and MCP
 
