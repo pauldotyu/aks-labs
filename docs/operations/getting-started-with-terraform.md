@@ -11,8 +11,7 @@ In this workshop, you will learn the basics of using Terraform to provision an A
 - Understand what Terraform is
 - Know the basics of working with Terraform on your machine
 - Setup Azure Storage for remote state
-- Deploy AKS cluster using basic AzureRM provider
-- Deploy AKS cluster using Azure Verified Modules
+- Provision an AKS cluster and Azure Container Registry (ACR)
 - Understand AzApi provider
 
 ---
@@ -30,11 +29,11 @@ url: "https://developer.hashicorp.com/terraform/install",
 
 ## What is Terraform?
 
-Terraform is an open-source Infrastructure as Code (IaC) tool created by HashiCorp. It allows you to define and provision infrastructure using a high-level configuration language called HashiCorp Configuration Language (HCL). Terraform is very popular due to it's ability to manage a wide range of cloud providers, including Azure, AWS, Google Cloud, and many others.
+[Terraform](https://developer.hashicorp.com/terraform) is an open-source Infrastructure as Code (IaC) tool created by HashiCorp. It allows you to define and provision infrastructure using a high-level configuration language called HashiCorp Configuration Language (HCL). Terraform is very popular due to it's ability to manage a wide range of cloud providers, including Azure, AWS, Google Cloud, and many others.
 
 ### Infrastructure as Code (IaC)
 
-Infrastructure as Code or IaC is a practice of managing and provisioning infrastructure through code, rather than manual processes. You could click through a portal to create resources, but IaC allows you to define your infrastructure using code, which can be versioned, tested, and reused. This approach brings many benefits, such as consistency, repeatability, and the ability to track changes over time.
+[Infrastructure as Code or IaC](https://learn.microsoft.com/devops/deliver/what-is-infrastructure-as-code) is a practice of managing and provisioning infrastructure through code, rather than manual processes. You could click through a portal to create resources, but IaC allows you to define your infrastructure using code, which can be versioned, tested, and reused. This approach brings many benefits, such as consistency, repeatability, and the ability to track changes over time.
 
 ### Imperative vs Declarative
 
@@ -55,7 +54,7 @@ If you haven't already, install the Terraform CLI on your machine. You can find 
 
 ### HashiCorp Configuration Language (HCL)
 
-Once you have the Terraform CLI installed, you can start writing your first Terraform configuration. Terraform uses a domain-specific language called HashiCorp Configuration Language (HCL) to define infrastructure resources. HCL is designed to be human-readable and easy to understand.
+Once you have the Terraform CLI installed, you can start writing your first Terraform configuration. Terraform uses a domain-specific language called [HashiCorp Configuration Language (HCL)](https://developer.hashicorp.com/terraform/language/syntax/configuration) to define infrastructure resources. HCL is designed to be human-readable and easy to understand.
 
 If you wanted to create a simple Azure resource group, your Terraform configuration might look like this:
 
@@ -403,15 +402,62 @@ You should see a list of nodes in the AKS cluster, indicating that you are succe
 
 ## Tips, tricks, and best practices
 
+The content above is a good starting point for working with Terraform on Azure, but there are many more advanced topics and best practices to consider as you become more familiar with Terraform. Over time, you will learn more about what works best for you and your team, but here are some of my tips and tricks that might be helpful:
+
+- If you are working in a team, consider using a version control system like Git to manage your Terraform configuration files.
+- Use modules to organize your Terraform configuration files and reuse code -- keeping your code nice and DRY (Don't Repeat Yourself).
+- Use counters or for loops to create multiple resources of the same type.
+- Want to conditionally create resources? Use the `count` or `for_each` meta-arguments to conditionally create resources based on variables values.
+- Inherited an existing resources and want to use Terraform to manage it? If you can, delete the resource and recreate it using Terraform. If you can't delete the resource, you can import it into Terraform state using the following steps:
+  - Use the `terraform import` command to import existing resources into your Terraform state.
+  - After importing, create a resource block in your configuration file that matches the imported resource's properties.
+  - Run `terraform plan` to see the changes that will be made to the resource.
+  - Modify the resource block as needed to match the deployed state.
+  - Repeat the process until the Terraform configuration matches the deployed state and there are no changes to be made.
+
 ### Read the docs
 
-### AzAPI provider
+[Terraform Registry docs](https://registry.terraform.io/) are a gold mine of information. You can find documentation for all the available providers, modules, and resources. The documentation is well-organized and easy to navigate, so you can quickly find the information you need including examples of how to use the resources and modules. If you know the resource type you want to use, you can search for it in the registry and find the documentation for that resource.
 
 ### Agents and MCP
 
+Navigating docs isn't always easy, especially if you don't know what you are looking for. There is where Visual Studio Code and GitHub Copilot can help. You can use the [Copilot Chat](https://docs.github.com/copilot/how-tos/chat) in [Agent mode](https://docs.github.com/copilot/how-tos/agents) and [use MCP servers in VS Code](https://code.visualstudio.com/docs/copilot/chat/mcp-servers). HashiCorp has a [Terraform MCP server](https://developer.hashicorp.com/terraform/docs/tools/mcp-server) that you can use to get help with Terraform. This server can help you find documentation resources, examples, and even generate code snippets for you.
+
+Be sure to check out the [Terraform MCP server documentation](https://developer.hashicorp.com/terraform/docs/tools/mcp-server) for more information on how to set it up and use it.
+
+Once the MCP server is set up, you can use the Copilot Chat in Agent mode to ask questions about Terraform and get help with your configuration. For example, let's say you want to move away from the module code and write your own, you can ask:
+
+```text
+I'd like to replace the module code in my main.tf file with the equivalent azurerm resources but I need help deploying an AKS cluster and Azure Container Registry then linking the two using the azurerm provider.
+```
+
+### AzAPI provider
+
+Lastly, one common challenge with using Terraform for Azure is that the `azurerm` provider can be slow to update with new Azure features and resources. If you encounter a situation where a resource or feature you need is not yet available in the `azurerm` provider, you can use the [AzAPI provider](https://registry.terraform.io/providers/Azure/azapi/latest/docs) which is aligned with the Azure Resource Manager API and provides access to all Azure resources and features as soon as they are available.
+
+To view the available resources in the AzAPI provider, you can visit the [Azure Resource Manager template reference documentation](https://learn.microsoft.com/azure/templates/) and search for the resource type you are interested in. This documentation provides a comprehensive list of all the available resources and their properties, which you can use to create your Terraform configuration.
+
+For example, if you wanted to create an AKS cluster using the AzAPI provider, navigate to the [Microsoft.ContainerService.managedClusters](https://learn.microsoft.com/azure/templates/microsoft.containerservice/managedclusters?pivots=deployment-language-terraform) and make sure the **Terraform** tab is selected. You will see the Terraform resource block for the AKS cluster, which provides an example of how to use the AzAPI provider.
+
 ## Summary
 
+In this workshop, you gained hands-on experience with Terraform as an Infrastructure as Code (IaC) solution for Azure. You learned the fundamental difference between imperative and declarative approaches to infrastructure management, with Terraform using the latter to define desired states rather than step-by-step commands.
+
+Key accomplishments include:
+
+- **Environment Setup**: Configured Terraform CLI and established Azure authentication using environment variables
+- **Infrastructure Definition**: Created reusable Terraform configurations using HCL with proper variable and output management
+- **Remote State Management**: Implemented Azure Storage backend for secure, collaborative state file management
+- **Resource Deployment**: Successfully deployed Azure resources using both basic `azurerm` provider resources and Azure Verified Modules (AVM)
+- **AKS Cluster Creation**: Leveraged the `avm-ptn-aks-dev` pattern module to deploy a complete AKS cluster with integrated Azure Container Registry
+
+You also discovered advanced capabilities like the Terraform MCP server for enhanced developer experience and the `azapi` provider for accessing the latest Azure features when the standard `azurerm` provider hasn't yet been updated.
+
+The workshop emphasized best practices including code organization, version control integration, module reusability, and the importance of understanding provider documentation. These foundational skills prepare you to manage complex Azure environments using Infrastructure as Code principles.
+
 ## Additional Resources
+
+For further learning and exploration, consider the following resources:
 
 - [Terraform Tutorials - Get Started - Azure](https://developer.hashicorp.com/terraform/tutorials/azure-get-started)
 - [Overview of Terraform on Azure](https://learn.microsoft.com/en-us/azure/developer/terraform/overview)
