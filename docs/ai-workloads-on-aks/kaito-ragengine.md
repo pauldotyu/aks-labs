@@ -1,12 +1,12 @@
 ---
-title: RAG made easy with KAITO
+title: Build RAG applications with KAITO RAGEngine
 ---
 
 import Prerequisites from "../../src/components/SharedMarkdown/_prerequisites.mdx";
 
-Retrieval Augmented Generation (RAG) is a powerful technique that combines the strengths of large language models (LLMs) with external knowledge sources. This approach allows for more accurate and contextually relevant responses by retrieving information from a knowledge base or database and using it to enhance the LLM's output.
+Retrieval Augmented Generation (RAG) is a powerful technique that combines the strengths of large language models (LLMs) with external knowledge sources. This approach enables more accurate and contextually relevant responses by retrieving information from knowledge bases or databases and using it to augment the LLM's output.
 
-This workshop will guide you through setting up an easy-to-use RAG solution using KAITO on AKS. KAITO is a Kubernetes operator that simplifies the deployment and management AI tooling on Kubernetes. With the v0.5.0 release, KAITO has introduced a new RAGEngine operator which make it really easy to deploy and manage RAG workloads on AKS.
+This workshop will guide you through setting up an easy-to-use RAG solution using KAITO on Azure Kubernetes Service (AKS). KAITO is a Kubernetes operator that simplifies the deployment and management of AI tooling on Kubernetes. With the v0.5.0 release, KAITO has introduced a new RAGEngine operator that makes it simple to deploy and manage RAG workloads on AKS.
 
 ## Objectives
 
@@ -33,7 +33,7 @@ By the end of this workshop, you will be able to:
 
 To get started with KAITO on AKS, you will first need to set up an Azure Kubernetes Service (AKS) cluster. Then you'll need to install the KAITO operators on your AKS cluster. This process can be a bit complex to start, so we'll lean on the Terraform scripts provided by the KAITO project to simplify the deployment. This will allow you to quickly set up the necessary infrastructure and install the operators without having to manually configure everything.
 
-Start by cloning the KAITO repository and navigating to the **terraform** directory:
+Start by cloning the KAITO repository and navigating to the **kaito/terraform** directory:
 
 ```bash
 git clone https://github.com/kaito-project/kaito.git
@@ -46,7 +46,7 @@ Next, you need to set up the Terraform CLI so that it can deploy resources in yo
 export ARM_SUBSCRIPTION_ID=$(az account show --query id -o tsv)
 ```
 
-Now, you can initialize Terraform and apply the configuration to create your AKS cluster:
+Now, you can initialize the Terraform project and apply the configuration to create your AKS cluster:
 
 ```bash
 terraform init
@@ -69,59 +69,56 @@ az aks get-credentials \
 --name $(terraform output -raw aks_name)
 ```
 
-Finally, run the following command to deploy a sample e-commerce application to your AKS cluster. This application will serve as a sample workload that you can use to test the RAG capabilities of KAITO.
+### Deploy KAITO Workspace
+
+Once the AKS cluster is set up with KAITO installed, you can deploy a KAITO workspace. KAITO workspaces are used to manage model inference deployments within your cluster. Run the following command to create a workspace for the **phi-4-mini-instruct** model:
+
+```bash
+kubectl apply -f- <<EOF
+apiVersion: kaito.sh/v1beta1
+kind: Workspace
+metadata:
+  name: workspace-phi-4-mini-instruct
+resource:
+  instanceType: Standard_NC24ads_A100_v4
+  labelSelector:
+    matchLabels:
+      apps: phi-4-mini-instruct
+inference:
+  preset:
+    name: phi-4-mini-instruct
+EOF
+```
+
+:::danger
+
+You must have sufficient quota available in your Azure subscription to deploy the workspace. If you don't have at least 24 vCPUs of Standard NCads A100 v4 GPU quota, you will need to request additional quota from Azure support.
+
+:::
+
+### Deploy Sample Workload
+
+Finally, in order to demonstrate a real-world use case for RAG, you will deploy a sample e-commerce application. This application is a simple online store that sells pet supplies. In our scenario, we will use this application and its product data to build a RAG application that can answer questions about the products available in the store.
+
+Run the following command to deploy the sample workload:
 
 ```bash
 kubectl apply -f https://raw.githubusercontent.com/Azure-Samples/aks-store-demo/refs/heads/main/aks-store-quickstart.yaml
 ```
 
-### Setup Azure OpenAI account
+Once the deployment is complete, you can access the store front by running the following command to get the external IP address of the service:
 
 ```bash
-RG_NAME=$(terraform output -raw rg_name)
-LOCATION=$(az group show --name $RG_NAME --query location -o tsv)
-AI_NAME=$(echo oai-kaitodemo${RANDOM:0:2})
+kubectl get service store-front -ojsonpath='{.status.loadBalancer.ingress[0].ip}'
 ```
 
-```bash
-az cognitiveservices account create \
---name ${AI_NAME} \
---resource-group ${RG_NAME} \
---custom-domain ${AI_NAME} \
---kind OpenAI \
---sku S0 \
---location $LOCATION \
---assign-identity
-```
+This will return the external IP address of the store front service. You can then open this IP address in your web browser to access the store front.
 
-```bash
-az cognitiveservices account deployment create \
--n ${AI_NAME} \
--g ${RG_NAME} \
---deployment-name gpt-4o \
---model-name gpt-4o \
---model-version 2024-11-20 \
---model-format OpenAI \
---sku-capacity 8 \
---sku-name GlobalStandard
-```
+Note the products available in the store, as you will use this data to build and test your RAG application.
 
-```bash
-AI_KEY=$(az cognitiveservices account keys list \
---resource-group $RG_NAME \
---name $AI_NAME \
---query key1 \
---output tsv)
-```
+## What is KAITO RAGEngine?
 
-```bash
-kubectl create secret generic oai-access-secret \
---from-literal=LLM_ACCESS_SECRET=${AI_KEY}
-```
-
-You can proceed with the workshop.
-
-## What is RAGEngine?
+KAITO RAGEngine is a Kubernetes
 
 ## Deploy RAGEngine
 
@@ -141,8 +138,7 @@ spec:
     local:
       modelID: BAAI/bge-small-en-v1.5
   inferenceService:  
-    url: "https://${AI_NAME}.openai.azure.com/openai/deployments/gpt-4o/chat/completions?api-version=2025-01-01-preview"
-    accessSecret: oai-access-secret
+    url: "http://workspace-phi-4-mini-instruct/v1/completions"
 EOF
 ```
 
@@ -232,4 +228,3 @@ curl -s http://localhost:8080/query \
 ## Summary
 
 ## Additional Resources
-
