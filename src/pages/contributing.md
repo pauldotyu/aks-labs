@@ -176,7 +176,7 @@ To maintain consistency across workshops and reduce duplication, this project pr
 
 To use these components in your workshop, import them at the top of your `.mdx` file:
 
-```mdx
+```javascript
 import Prerequisites from "../../src/components/SharedMarkdown/_prerequisites.mdx";
 import ProvisionResourceGroup from "../../src/components/SharedMarkdown/_provision_resource_group.mdx";
 import ProvisionResources from "../../src/components/SharedMarkdown/_provision_resources.mdx";
