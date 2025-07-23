@@ -199,7 +199,7 @@ With the components imported, you can include them in your workshop content like
 
 The **Prerequisites** component accepts optional `tools` props to include additional tools needed for your specific workshop. For example:
 
-```mdx
+```jsx
 <Prerequisites
   tools={[
     {
