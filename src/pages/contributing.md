@@ -191,7 +191,7 @@ Files can use either the `.md` or `.mdx` extension and use the shared components
 
 With the components imported, you can include them in your workshop content like this:
 
-```mdx
+```jsx
 <Prerequisites />
 <ProvisionResourceGroup />
 <ProvisionResources />
