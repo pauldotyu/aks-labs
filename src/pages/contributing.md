@@ -176,45 +176,51 @@ To maintain consistency across workshops and reduce duplication, this project pr
 
 To use these components in your workshop, import them at the top of your `.mdx` file:
 
-```markdown
-import Prerequisites from "../../src/components/SharedMarkdown/\_prerequisites.mdx";
-import ProvisionResourceGroup from "../../src/components/SharedMarkdown/\_provision_resource_group.mdx";
-import Cleanup from "../../src/components/SharedMarkdown/\_cleanup.mdx";
+```mdx
+import Prerequisites from "../../src/components/SharedMarkdown/_prerequisites.mdx";
+import ProvisionResourceGroup from "../../src/components/SharedMarkdown/_provision_resource_group.mdx";
+import ProvisionResources from "../../src/components/SharedMarkdown/_provision_resources.mdx";
+import Cleanup from "../../src/components/SharedMarkdown/_cleanup.mdx";
 ```
 
-Then use them within your content:
-
-```markdown
-## Prerequisites
-
-<Prerequisites
-tools={[
-{
-name: "Docker Desktop",
-url: "https://www.docker.com/products/docker-desktop/"
-},
-{
-name: "Helm",
-url: "https://helm.sh/docs/intro/install/"
-}
-]}
-provision_resource_group="true"
-/>
-```
-
-The `Prerequisites` component accepts optional props:
-
-- `tools` - Array of additional tools needed for your specific workshop
-- `provision_resource_group` - Set to "true" to include resource group setup
-- `provision_resources` - Set to "true" to include additional resource provisioning
-
-This approach ensures all workshops have a consistent starting point while allowing customization for specific requirements.
-
-:::note
+:::info
 
 Files can use either the `.md` or `.mdx` extension and use the shared components as needed. The `.mdx` format will give you better support for syntax highlighting and rendering of React components, but `.md` files will also work if you prefer plain markdown.
 
 :::
+
+With the components imported, you can include them in your workshop content like this:
+
+```mdx
+<Prerequisites />
+<ProvisionResourceGroup />
+<ProvisionResources />
+```
+
+The **Prerequisites** component accepts optional `tools` props to include additional tools needed for your specific workshop. For example:
+
+```mdx
+<Prerequisites
+  tools={[
+    {
+      name: "Helm",
+      url: "https://helm.sh/docs/intro/install/",
+    },
+    {
+      name: "Kustomize",
+      url: "https://kubectl.docs.kubernetes.io/installation/kustomize/",
+    }
+  ]}
+/>
+```
+
+:::info
+
+**Prerequisites** also includes a H2 heading so you don't need to include `## Prerequisites` markdown above the component. Each of the **Provision\*** components will include a H3 heading for the section they represent, so you don't need to include those headings in your lab guide either.
+
+:::
+
+This approach ensures all workshops have a consistent starting point while allowing customization for specific requirements.
 
 ### Directory Structure {#directory-structure}
 
