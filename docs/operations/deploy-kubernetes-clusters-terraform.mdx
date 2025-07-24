@@ -333,7 +333,7 @@ Let's deploy an AKS cluster using AVM. For this workshop, we want to deploy a si
 
 If you navigate to the module page, you should end up in the Terraform Registry website. Here you will find the module documentation, including the inputs and outputs, as well as examples of how to use the module (under the **Provision Instructions** heading). The module documentation is very important, as it will tell you what inputs are required and what outputs you can expect from the module.
 
-We will build on our existing `main.tf` file, so add a new line after the `azurerm_resource_group` resource block and add code similar to the sample that is included in the provisioning instructions found on the module documentation page.
+We will build on our existing `main.tf` file, so add a new line after the `azurerm_resource_group` resource block and add code similar to the provisioning instructions found on the module documentation page.
 
 Here is what the sample looks like:
 
@@ -344,6 +344,12 @@ module "avm-ptn-aks-dev" {
   # insert the 3 required variables here
 }
 ```
+
+:::tip
+
+This code sets the module version to `0.2.0` but you should always refer to the Terraform Registry docs to check for the latest stable version.
+
+:::
 
 The example code calls for you to insert the three required variables. If you click on the **Inputs** tab, you will see the required variables listed. The three required variables are `resource_group_name`, `location`, and `aks_name`. You can also see the optional variables that you can use to customize the AKS cluster.
 
