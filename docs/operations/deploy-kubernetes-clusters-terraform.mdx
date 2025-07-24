@@ -416,10 +416,16 @@ kubectl get nodes
 
 You should see a list of nodes in the AKS cluster, indicating that you are successfully connected to the cluster.
 
-Just for kicks, we can also deploy a sample app with the following command:
+Just for kicks, we can also deploy a sample app. First, download the manifest file and review its contents.
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/Azure-Samples/aks-store-demo/refs/heads/main/aks-store-quickstart.yaml
+curl -O https://raw.githubusercontent.com/Azure-Samples/aks-store-demo/2e5ea719179157a2051e078b95c8d7f47b7c3cf9/aks-store-quickstart.yaml
+```
+
+Once you have reviewed the file, apply it with the following command:
+
+```bash
+kubectl apply -f aks-store-quickstart.yaml
 ```
 
 Wait a few minutes then run the following command to print the URL to the terminal. Once the URL is printed, you should be able to click from the terminal or copy and paste the URL into a web browser.
