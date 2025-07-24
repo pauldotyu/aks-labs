@@ -154,7 +154,7 @@ In a typical RAG workflow, you have a knowledge base (like a database or an inde
 - **Embedding model**: A model that converts text into vector representations, which are then stored in the vector database.
 - **Inference Service**: A service that provides access to a large language model (LLM) for generating responses based on the retrieved information.
 
-With KAITO RAGEngine the deployment of these components are simplified by providing a single CRD that encapsulates the necessary configurations for the vector database, embedding model, and inference service. By default, it uses the [Faiss](https://faiss.ai/) vector database and the [BAAI general embedding (bge)](https://huggingface.co/BAAI/bge-small-en-v1.5) model, but it can be configured to use other embedding models as needed.
+With KAITO RAGEngine, the deployment of these components is simplified by providing a single CRD that encapsulates the necessary configurations for the vector database, embedding model, and inference service. By default, it uses the [Faiss](https://faiss.ai/) vector database and the [BAAI general embedding (bge)](https://huggingface.co/BAAI/bge-small-en-v1.5) model, but it can be configured to use other embedding models as needed.
 
 Here is a high-level overview of the RAGEngine architecture:
 
