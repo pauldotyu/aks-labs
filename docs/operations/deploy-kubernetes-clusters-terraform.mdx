@@ -40,11 +40,11 @@ In the context of IaC, there are two main approaches: imperative and declarative
 - **Imperative**: In an imperative approach, you define a sequence of commands that must be executed to achieve the desired state. This means you specify how to create and configure resources step by step.
 - **Declarative**: In a declarative approach, you define the desired state of your infrastructure without specifying how to achieve it. This means you describe what you want, and the tool (like Terraform) figures out how to make it happen.
 
-The AKS labs sites uses an imperative approach frequently, where you are given a series of commands to run in order to create resources. This is often easier for beginners to understand, as it provides a clear step-by-step guide. However, Terraform uses a declarative approach, which allows you to define your infrastructure in a more abstract way. Much like Kubernetes manifests, you describe the desired state of your infrastructure, and Terraform takes care of the details of how to achieve that state.
+Workshops on this site uses an imperative approach frequently, where you are given a series of commands to run in order to create resources. This is often easier for beginners to understand, as it provides a clear step-by-step guide. However, Terraform uses a declarative approach, which allows you to define your infrastructure in a more abstract way. Much like Kubernetes manifests, you describe the desired state of your infrastructure, and Terraform takes care of the details of how to achieve that state.
 
 ## Terraform basics
 
-To get started with Terraform, you need to understand a few key concepts and components. But before we dive into the details, let's set up your workstation and familiarize ourselves with the HashiCorp Configuration Language (HCL) used in Terraform.
+To get started with Terraform, you need to understand a few key concepts and components. But before we dive into the details, let's set up your workstation and familiarize ourselves with some basics.
 
 ### Workstation setup
 
@@ -102,11 +102,21 @@ This environment variable will be used by Terraform to determine which Azure sub
 
 When working with Terraform, the directory structure of your Terraform configuration files is important to consider but not strictly enforced. The only requirement is that your Terraform configuration files must have the `.tf` extension. You could have a single file named `main.tf` and put all your resources in that file, but it's often better to organize your files into a directory structure that makes sense for your project.
 
+Run the following commands to create a new demo project directory and Terraform configuration file.
+
+```bash
+mkdir aks-terraform
+cd aks-terraform
+touch main.tf
+```
+
+Open the project directory with VS Code.
+
 ### Provider setup
 
-Terraform uses providers to interact with different cloud platforms and services. Providers are responsible for understanding the APIs of the services they manage and translating your Terraform configuration into API calls. There are many providers available so refer to the [Terraform Registry](https://registry.terraform.io/browse/providers) to find the one you need.
+Terraform uses providers to interact with different cloud platforms and services. [Providers](https://developer.hashicorp.com/terraform/language/providers) are responsible for understanding the APIs of the services they manage and translating your Terraform configuration into API calls. There are many providers available so refer to the [Terraform Registry](https://registry.terraform.io/browse/providers) to find the one you need.
 
-In Azure, the `azurerm` provider, which is the official Terraform provider for Azure resources is the most commonly used. One common complaint about the `azurerm` provider is that it can be slow to update with new Azure features and resources. This is because most often the Hashicorp team has to wait for the Azure API to be stable before they can implement it in the provider. This can lead to situations where preview features in Azure are not yet available in the `azurerm` provider, or where new resources are not yet supported.
+For Azure, the `azurerm` provider, which is the official Terraform provider for Azure resources is the most commonly used. One common challenge with the `azurerm` provider is that it can be slow to update with new Azure features and resources. This is because most often the Hashicorp team has to wait for the Azure API to be stable before they can implement it in the provider. This can lead to situations where preview features in Azure are not yet available in the `azurerm` provider, or where new resources are not yet supported.
 
 As an alternative, the Microsoft Azure team maintains the `azapi` provider, which is aligned with the Azure Resource Manager API and provides access to all Azure resources and features as soon as they are available in the Azure API. So you may find yourself using both the `azurerm` and the `azapi` provider for certain situations. This is perfectly acceptable and you can use both providers in the same Terraform configuration.
 
@@ -224,9 +234,9 @@ If you run the following command, you can see the contents of the state file:
 cat terraform.tfstate
 ```
 
-You will see a JSON file that contains information about the resources you have created, including their IDs, properties. Notice that the state file may contain sensitive information, such as access keys or passwords, so you should treat this file with care and avoid committing it to version control. Also since the state file is the source of truth for your Terraform-managed resources, you should avoid keeping it in your local directory. This is especially important when working in teams, as multiple people may be making changes to the same resources.
+You will see a JSON file that contains information about the resources you have created, including their IDs and all its properties. Notice that the state file may contain sensitive information, such as access keys or passwords, so you should treat this file with care and avoid committing it to version control. Also since the state file is the source of truth for your Terraform-managed resources, you should avoid keeping it in your local directory. This is especially important when working in teams, as multiple people may be making changes to the same resources.
 
-In Azure, it is common to use Azure Storage to store Terraform state files but you could also use other remote storage solutions like Terraform Cloud.
+In Azure, it is common to use [Azure Storage](https://learn.microsoft.com/azure/storage/blobs/storage-blobs-overview) to store Terraform state files but you could also use other remote storage solutions like [HCP Terraform](https://developer.hashicorp.com/terraform/tutorials/cloud/cloud-migrate#configure-hcp-terraform-integration).
 
 To store the Terraform state in Azure Storage, you need to create a storage account and a container to hold the state files. You can do this using the Azure CLI or the Azure portal. For this workshop, we will use the Azure CLI.
 
@@ -297,7 +307,7 @@ You should see the `terraform.tfstate` file listed in the output. This means tha
 
 ## Azure Verified Modules (AVM)
 
-Azure Verified Modules (AVM) are a collection of pre-built Terraform modules that are designed to help you quickly and easily deploy Azure resources. These modules are maintained by Microsoft and are designed to follow best practices for deploying Azure resources.
+[Azure Verified Modules (AVM)](https://learn.microsoft.com/community/content/azure-verified-modules) are a collection of pre-built Terraform modules that are designed to help you quickly and easily deploy Azure resources. These modules are maintained by Microsoft and are designed to follow best practices for deploying Azure resources.
 
 To get started with Azure Verified Modules, you need to add the `azurerm` provider to your Terraform configuration, as we did earlier. Then, you can use the modules provided by Microsoft to deploy resources.
 
@@ -323,7 +333,9 @@ Let's deploy an AKS cluster using AVM. For this workshop, we want to deploy a si
 
 If you navigate to the module page, you should end up in the Terraform Registry website. Here you will find the module documentation, including the inputs and outputs, as well as examples of how to use the module (under the **Provision Instructions** heading). The module documentation is very important, as it will tell you what inputs are required and what outputs you can expect from the module.
 
-We will build on our existing `main.tf` file, so add a new line after the `azurerm_resource_group` resource block and add the following code:
+We will build on our existing `main.tf` file, so add a new line after the `azurerm_resource_group` resource block and add code similar to the sample that is included in the provisioning instructions found on the module documentation page.
+
+Here is what the sample looks like:
 
 ```hcl
 module "avm-ptn-aks-dev" {
@@ -335,7 +347,7 @@ module "avm-ptn-aks-dev" {
 
 The example code calls for you to insert the three required variables. If you click on the **Inputs** tab, you will see the required variables listed. The three required variables are `resource_group_name`, `location`, and `aks_name`. You can also see the optional variables that you can use to customize the AKS cluster.
 
-Update the module block to include the required variables, like this:
+Add the following code to add a new module block with the required variables:
 
 ```hcl
 module "avm-ptn-aks-dev" {
@@ -398,20 +410,33 @@ kubectl get nodes
 
 You should see a list of nodes in the AKS cluster, indicating that you are successfully connected to the cluster.
 
+Just for kicks, we can also deploy a sample app with the following command:
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/Azure-Samples/aks-store-demo/refs/heads/main/aks-store-quickstart.yaml
+```
+
+Wait a few minutes then run the following command to print the URL to the terminal. Once the URL is printed, you should be able to click from the terminal or copy and paste the URL into a web browser.
+
+```bash
+echo "http://$(kubectl get service store-front -ojsonpath='{.status.loadBalancer.ingress[0].ip}')"
+```
+
 ## Tips, tricks, and best practices
 
 The content above is a good starting point for working with Terraform on Azure, but there are many more advanced topics and best practices to consider as you become more familiar with Terraform. Over time, you will learn more about what works best for you and your team, but here are some of my tips and tricks that might be helpful:
 
-- If you are working in a team, consider using a version control system like Git to manage your Terraform configuration files.
-- Use modules to organize your Terraform configuration files and reuse code -- keeping your code nice and DRY (Don't Repeat Yourself).
-- Use counters or for loops to create multiple resources of the same type.
-- Want to conditionally create resources? Use the `count` or `for_each` meta-arguments to conditionally create resources based on variables values.
+- If you are working in a team, consider using a version control system like [Git](https://learn.microsoft.com/training/modules/intro-to-git/) to manage your Terraform configuration files.
+- Use modules to organize your Terraform configuration files and reuse code -- keeping your code nice and [DRY (Don't Repeat Yourself)](https://learn.microsoft.com/dotnet/architecture/modern-web-apps-azure/architectural-principles#dont-repeat-yourself-dry).
+- Use [counters](https://developer.hashicorp.com/terraform/language/meta-arguments/count) or [for loops](https://developer.hashicorp.com/terraform/language/expressions/for) to create multiple resources of the same type.
+- Want to conditionally create resources? Use the `count` or `for_each` meta-arguments to conditionally create resources based on variables values - this is also known as [dynamic expressions](https://developer.hashicorp.com/terraform/tutorials/configuration-language/expressions)
 - Inherited an existing resources and want to use Terraform to manage it? If you can, delete the resource and recreate it using Terraform. If you can't delete the resource, you can import it into Terraform state using the following steps:
-  - Use the `terraform import` command to import existing resources into your Terraform state.
+  - Use the `terraform import` command to [import existing resources](https://developer.hashicorp.com/terraform/cli/import) into your Terraform state.
   - After importing, create a resource block in your configuration file that matches the imported resource's properties.
-  - Run `terraform plan` to see the changes that will be made to the resource.
+  - Run [`terraform plan`](https://developer.hashicorp.com/terraform/cli/commands/plan) to see the changes that will be made to the resource.
   - Modify the resource block as needed to match the deployed state.
   - Repeat the process until the Terraform configuration matches the deployed state and there are no changes to be made.
+  - Optionally you can use the [import block](https://developer.hashicorp.com/terraform/language/import) to [generate configuration](https://developer.hashicorp.com/terraform/language/import/generating-configuration) but as currently this is considered to be experimental.
 - You can deploy applications to your AKS cluster using the [Kubernetes provider](https://registry.terraform.io/providers/hashicorp/kubernetes/latest) or the [Helm provider](https://registry.terraform.io/providers/hashicorp/helm/latest). These providers allow you to manage Kubernetes resources and Helm charts using Terraform.
   - Check out the [KAITO project](https://github.com/kaito-project/kaito/tree/main/terraform) for an example of how to use various providers to deploy applications to AKS.
 
