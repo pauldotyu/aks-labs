@@ -397,10 +397,12 @@ Here is an example of what the response might look like:
 
 ```json
 {
-  "response": " Yes, there is a Seashell Snuggle Bed available from Contoso Pet Supply. It's priced at $19.99. It's shaped like a seashell and designed to provide comfort and relaxation for your cat. You can find it [here](http://4.228.8.226/product/7).\n\n\n",
+  "response": " Yes, there is a Seashell Snuggle Bed available from Contoso Pet Supply. It's priced at $19.99. It's shaped like a seashell and designed to provide comfort and relaxation for your cat. You can find it [here](http://<STORE_IP>/product/7).\n\n\n",
   "source_nodes": [
   ...
   ]
+  ...
+}
 ```
 
 Also included in the response is a `source_nodes` array that contains the documents and relevancy scores that were retrieved from the vector database and used to generate the response. This can be useful for debugging and understanding how the RAGEngine is generating responses based on the indexed data.
