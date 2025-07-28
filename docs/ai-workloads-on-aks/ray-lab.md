@@ -63,7 +63,7 @@ git clone https://github.com/Azure-Samples/aks-labs.git
 cd aks-labs
 
 # Verify you can access the Ray lab artifacts
-ls lab-artifacts/ray-lab/
+ls docs/ai-workloads-on-aks/assets/ray-lab/artifacts/
 ```
 
 This repository contains all the artifact files referenced throughout this lab, making it easy to copy and execute commands.
@@ -212,7 +212,7 @@ echo "Ray cluster name: $RAY_CLUSTER_NAME"
 >
 > ```bash
 > # Standard pattern used throughout the lab
-> envsubst < lab-artifacts/ray-lab/filename.yaml | kubectl apply -f -
+> envsubst < docs/ai-workloads-on-aks/assets/ray-lab/artifacts/filename.yaml | kubectl apply -f -
 > ```
 >
 > **Alternative if `envsubst` not available:**
@@ -325,7 +325,7 @@ git clone https://github.com/Azure-Samples/aks-labs.git
 cd aks-labs
 
 # Verify you can access the Ray lab artifacts
-ls lab-artifacts/ray-lab/
+ls docs/ai-workloads-on-aks/assets/ray-lab/artifacts/
 
 # You should see files like:
 # ray-cluster.yaml, distributed_training.py, simple_serving.py, etc.
@@ -333,7 +333,7 @@ ls lab-artifacts/ray-lab/
 
 <div class="tip" data-title="Lab Artifacts">
 
-> All YAML configurations and Python scripts referenced in this lab are available in the `lab-artifacts/ray-lab/` directory. This approach allows you to:
+> All YAML configurations and Python scripts referenced in this lab are available in the `docs/ai-workloads-on-aks/assets/ray-lab/artifacts/` directory. This approach allows you to:
 >
 > - Copy and paste commands directly
 > - Modify configurations for your environment
@@ -394,7 +394,7 @@ Key features of the CPU configuration:
 - Resource limits and requests for production stability
 - Volume mounts for Ray logs and temporary files
 
-The complete configuration is available in [`lab-artifacts/ray-lab/ray-cluster.yaml`](../../lab-artifacts/ray-lab/ray-cluster.yaml).
+The complete configuration is available in [`docs/ai-workloads-on-aks/assets/ray-lab/artifacts/ray-cluster.yaml`](../../docs/ai-workloads-on-aks/assets/ray-lab/artifacts/ray-cluster.yaml).
 
 ### GPU Configuration (Alternative)
 
@@ -408,7 +408,7 @@ Key differences for GPU deployment:
 - Adds tolerations for GPU node taints
 - Configures Ray resources with GPU allocation
 
-The complete GPU configuration is available in [`lab-artifacts/ray-lab/ray-cluster-gpu.yaml`](../../lab-artifacts/ray-lab/ray-cluster-gpu.yaml).
+The complete GPU configuration is available in [`docs/ai-workloads-on-aks/assets/ray-lab/artifacts/ray-cluster-gpu.yaml`](../../docs/ai-workloads-on-aks/assets/ray-lab/artifacts/ray-cluster-gpu.yaml).
 
 <div class="important" data-title="GPU Configuration Notes">
 
@@ -427,10 +427,10 @@ Now let's deploy the Ray cluster using the artifact files with environment varia
 
 ```bash
 # Deploy the CPU-based Ray cluster (default) with environment variable substitution
-envsubst < lab-artifacts/ray-lab/ray-cluster.yaml | kubectl apply -f -
+envsubst < docs/ai-workloads-on-aks/assets/ray-lab/artifacts/ray-cluster.yaml | kubectl apply -f -
 
 # Alternative: Deploy GPU-enabled Ray cluster (if you have GPU nodes)
-# envsubst < lab-artifacts/ray-lab/ray-cluster-gpu.yaml | kubectl apply -f -
+# envsubst < docs/ai-workloads-on-aks/assets/ray-lab/artifacts/ray-cluster-gpu.yaml | kubectl apply -f -
 
 # Wait for the cluster to be ready
 kubectl get raycluster -n $RAY_NAMESPACE -w
@@ -576,7 +576,7 @@ Our training script demonstrates the transformation from single-node to distribu
 - **Fault Tolerance**: Training continues if individual workers fail
 - **Resource Management**: Configurable CPU/GPU allocation per worker
 
-The complete training script is available in [`lab-artifacts/ray-lab/distributed_training.py`](../../lab-artifacts/ray-lab/distributed_training.py).
+The complete training script is available in [`docs/ai-workloads-on-aks/assets/ray-lab/artifacts/distributed_training.py`](../../docs/ai-workloads-on-aks/assets/ray-lab/artifacts/distributed_training.py).
 
 **Code Highlights** (from the training script):
 
@@ -605,11 +605,11 @@ Create and run the distributed training job:
 ```bash
 # Create ConfigMap with the training script
 kubectl create configmap training-script \
-  --from-file=lab-artifacts/ray-lab/distributed_training.py \
+  --from-file=docs/ai-workloads-on-aks/assets/ray-lab/artifacts/distributed_training.py \
   -n $RAY_NAMESPACE
 
 # Deploy the training job using environment variable substitution
-envsubst < lab-artifacts/ray-lab/training-job.yaml | kubectl apply -f -
+envsubst < docs/ai-workloads-on-aks/assets/ray-lab/artifacts/training-job.yaml | kubectl apply -f -
 
 # Monitor the job progress - you'll see it utilizing multiple workers
 kubectl get jobs -n $RAY_NAMESPACE -w
@@ -771,7 +771,7 @@ Input formats supported:
 - 3D array: 1×28×28 with channel dimension
 - 4D array: 1×1×28×28 with batch and channel dimensions
 
-The complete serving application is available in [`lab-artifacts/ray-lab/simple_serving.py`](../../lab-artifacts/ray-lab/simple_serving.py).
+The complete serving application is available in [`docs/ai-workloads-on-aks/assets/ray-lab/artifacts/simple_serving.py`](../../docs/ai-workloads-on-aks/assets/ray-lab/artifacts/simple_serving.py).
 
 ### Deploy the Serving Application
 
@@ -779,18 +779,18 @@ The complete serving application is available in [`lab-artifacts/ray-lab/simple_
 
 **After Deployment**: Your model serves real-time inference requests through a scalable HTTP API.
 
-The deployment configuration is available in [`lab-artifacts/ray-lab/serving-deployment.yaml`](../../lab-artifacts/ray-lab/serving-deployment.yaml).
+The deployment configuration is available in [`docs/ai-workloads-on-aks/assets/ray-lab/artifacts/serving-deployment.yaml`](../../docs/ai-workloads-on-aks/assets/ray-lab/artifacts/serving-deployment.yaml).
 
 Deploy the serving application:
 
 ```bash
 # Create ConfigMap with the serving code (using your environment variables)
 kubectl create configmap serving-script \
-  --from-file=lab-artifacts/ray-lab/simple_serving.py \
+  --from-file=docs/ai-workloads-on-aks/assets/ray-lab/artifacts/simple_serving.py \
   -n $RAY_NAMESPACE
 
 # Apply the serving deployment and service
-envsubst < lab-artifacts/ray-lab/serving-deployment.yaml | kubectl apply -f -
+envsubst < docs/ai-workloads-on-aks/assets/ray-lab/artifacts/serving-deployment.yaml | kubectl apply -f -
 
 # Wait for the deployment to be ready
 kubectl get pods -n $RAY_NAMESPACE -l app=ray-serve-mnist -w
@@ -825,10 +825,10 @@ kubectl port-forward -n $RAY_NAMESPACE service/ray-serve-mnist-svc 8000:8000
 
 ```bash
 # Test with a blank image (all zeros)
-./lab-artifacts/ray-lab/test-model.sh blank
+./docs/ai-workloads-on-aks/assets/ray-lab/artifacts/test-model.sh blank
 
 # Test with a sample pattern
-./lab-artifacts/ray-lab/test-model.sh sample
+./docs/ai-workloads-on-aks/assets/ray-lab/artifacts/test-model.sh sample
 ```
 
 Expected response:
@@ -863,7 +863,7 @@ The configuration includes sophisticated scaling behavior:
 - **Scale-up**: Aggressive scaling (100% increase) with 60-second stabilization
 - **Scale-down**: Conservative scaling (50% decrease) with 300-second stabilization
 
-The complete HPA configuration is available in [`lab-artifacts/ray-lab/hpa.yaml`](../../lab-artifacts/ray-lab/hpa.yaml).
+The complete HPA configuration is available in [`docs/ai-workloads-on-aks/assets/ray-lab/artifacts/hpa.yaml`](../../docs/ai-workloads-on-aks/assets/ray-lab/artifacts/hpa.yaml).
 
 Apply the HPA configuration:
 
@@ -872,7 +872,7 @@ Apply the HPA configuration:
 kubectl get deployment metrics-server -n kube-system
 
 # Apply HPA using environment variable substitution
-envsubst < lab-artifacts/ray-lab/hpa.yaml | kubectl apply -f -
+envsubst < docs/ai-workloads-on-aks/assets/ray-lab/artifacts/hpa.yaml | kubectl apply -f -
 
 # Monitor HPA status
 kubectl get hpa -n $RAY_NAMESPACE -w
@@ -958,7 +958,7 @@ Our data processing pipeline demonstrates real-world ETL operations including da
 - **Custom Transformations**: Apply user-defined functions at scale
 - **Performance Monitoring**: Track processing speed and resource usage
 
-The complete data processing script is available in [`lab-artifacts/ray-lab/data_processing.py`](../../lab-artifacts/ray-lab/data_processing.py).
+The complete data processing script is available in [`docs/ai-workloads-on-aks/assets/ray-lab/artifacts/data_processing.py`](../../docs/ai-workloads-on-aks/assets/ray-lab/artifacts/data_processing.py).
 
 ### Deploy the Data Processing Job
 
@@ -971,18 +971,18 @@ The Kubernetes Job configuration runs our data processing pipeline within the cl
 3. Ray Data automatically distributes work across available nodes
 4. Processing results are collected and displayed
 
-The job configuration is available in [`lab-artifacts/ray-lab/data-processing-job.yaml`](../../lab-artifacts/ray-lab/data-processing-job.yaml).
+The job configuration is available in [`docs/ai-workloads-on-aks/assets/ray-lab/artifacts/data-processing-job.yaml`](../../docs/ai-workloads-on-aks/assets/ray-lab/artifacts/data-processing-job.yaml).
 
 Deploy and run the data processing job:
 
 ```bash
 # Create ConfigMap with the processing script
 kubectl create configmap processing-script \
-  --from-file=lab-artifacts/ray-lab/data_processing.py \
+  --from-file=docs/ai-workloads-on-aks/assets/ray-lab/artifacts/data_processing.py \
   -n $RAY_NAMESPACE
 
 # Apply the processing job using environment variable substitution
-envsubst < lab-artifacts/ray-lab/data-processing-job.yaml | kubectl apply -f -
+envsubst < docs/ai-workloads-on-aks/assets/ray-lab/artifacts/data-processing-job.yaml | kubectl apply -f -
 
 # Monitor the job progress
 kubectl logs -n $RAY_NAMESPACE job/ray-data-processing -f
@@ -1054,7 +1054,7 @@ Key monitoring components:
 - **Service Discovery**: Kubernetes-native service discovery for dynamic scaling
 - **Alert Rules**: Built-in alerting for common Ray issues
 
-The complete monitoring stack configuration is available in [`lab-artifacts/ray-lab/ray-monitoring.yaml`](../../lab-artifacts/ray-lab/ray-monitoring.yaml). - job_name: 'ray-workers'
+The complete monitoring stack configuration is available in [`docs/ai-workloads-on-aks/assets/ray-lab/artifacts/ray-monitoring.yaml`](../../docs/ai-workloads-on-aks/assets/ray-lab/artifacts/ray-monitoring.yaml). - job_name: 'ray-workers'
 kubernetes_sd_configs: - role: pod
 namespaces:
 names: - $RAY_NAMESPACE  # Your namespace
@@ -1094,14 +1094,13 @@ args: - '--config.file=/etc/prometheus/prometheus.yml' - '--storage.tsdb.path=/p
 volumes: - name: config
 configMap:
 name: ray-prometheus-config
-
-````
+```
 
 Apply the monitoring configuration:
 
 ```bash
 # Deploy Ray monitoring stack using environment variable substitution
-envsubst < lab-artifacts/ray-lab/ray-monitoring.yaml | kubectl apply -f -
+envsubst < docs/ai-workloads-on-aks/assets/ray-lab/artifacts/ray-monitoring.yaml | kubectl apply -f -
 
 # Access Prometheus dashboard
 kubectl port-forward -n $RAY_NAMESPACE deployment/ray-prometheus 9090:9090
