@@ -7,7 +7,7 @@ level: intermediate
 authors:
   - AKS Labs Team
 duration_minutes: 120
-tags: 
+tags:
   - ai
   - ray
   - distributed-computing
@@ -67,6 +67,7 @@ ls lab-artifacts/ray-lab/
 ```
 
 This repository contains all the artifact files referenced throughout this lab, making it easy to copy and execute commands.
+
 - [kubectl](https://kubernetes.io/docs/tasks/tools/) configured for your AKS cluster
 - [Helm](https://helm.sh/docs/intro/install/) installed
 - [Python 3.8+](https://www.python.org/downloads) with pip
@@ -81,13 +82,15 @@ This repository contains all the artifact files referenced throughout this lab, 
 <div class="important" data-title="Resource Requirements">
 
 > Ray workloads can be resource-intensive. Ensure your AKS cluster has sufficient resources:
-> 
+>
 > **For CPU deployment (default):**
+>
 > - At least 3 worker nodes
 > - Minimum 4 vCPUs and 16GB RAM per node (Standard_DS3_v2 or larger)
 > - Consider enabling cluster autoscaler for dynamic scaling
-> 
+>
 > **For GPU deployment (optional):**
+>
 > - GPU-enabled node pool with Standard_NC6s_v3 or similar
 > - Sufficient GPU quota in your Azure subscription
 > - NVIDIA drivers (automatically installed by AKS)
@@ -103,17 +106,20 @@ Before we begin setting up the environment, you need to decide whether to run Ra
 ### CPU-Based Deployment (Recommended for Most Users)
 
 **Best for:**
+
 - Learning Ray concepts and distributed computing
 - Cost-effective development and testing
 - General machine learning workloads
 - Clusters without GPU nodes
 
 **Requirements:**
+
 - Standard AKS cluster with CPU nodes
 - Minimum 4 vCPUs and 16GB RAM per node
 - No special quota requirements
 
 **Pros:**
+
 - Lower cost
 - Easier setup
 - Works on any AKS cluster
@@ -122,12 +128,14 @@ Before we begin setting up the environment, you need to decide whether to run Ra
 ### GPU-Based Deployment (For ML Accelerated Workloads)
 
 **Best for:**
+
 - Deep learning with large models
 - Computer vision workloads
 - High-performance training scenarios
 - Production ML pipelines requiring acceleration
 
 **Requirements:**
+
 - AKS cluster with GPU-enabled node pools (NC, ND, or NV series VMs)
 - GPU quota in your Azure subscription
 - NVIDIA device plugin installed on AKS
@@ -142,6 +150,7 @@ Before we begin setting up the environment, you need to decide whether to run Ra
 </div>
 
 **Throughout this lab:**
+
 - **CPU users**: Follow the default configurations
 - **GPU users**: Look for the GPU variant sections and modify configurations accordingly
 
@@ -176,6 +185,7 @@ echo "Ray cluster name: $RAY_CLUSTER_NAME"
 <div class="important" data-title="Environment Variables">
 
 > **These environment variables are used throughout the lab:**
+>
 > - **Azure Resources**: Used in `az aks create` and `az aks get-credentials` commands
 > - **Ray Configuration**: Used in all YAML files for dynamic configuration with environment variables
 > - **Variable Substitution**: Commands will use `kubectl apply -f` with automatic environment variable substitution
@@ -187,30 +197,34 @@ echo "Ray cluster name: $RAY_CLUSTER_NAME"
 <div class="tip" data-title="Environment Variable Substitution in YAML Files">
 
 > **Understanding `envsubst` Usage**
-> 
+>
 > Throughout this lab, you'll use YAML configuration files that contain environment variable placeholders like `$RAY_NAMESPACE` and `$RAY_CLUSTER_NAME`. These placeholders need to be substituted with actual values before applying the configurations.
-> 
+>
 > **Example YAML with placeholders:**
+>
 > ```yaml
 > metadata:
->   name: $RAY_CLUSTER_NAME    # Will become: raycluster-ml
->   namespace: $RAY_NAMESPACE  # Will become: ray-system
+>   name: $RAY_CLUSTER_NAME # Will become: raycluster-ml
+>   namespace: $RAY_NAMESPACE # Will become: ray-system
 > ```
-> 
+>
 > **How to use `envsubst`:**
+>
 > ```bash
 > # Standard pattern used throughout the lab
 > envsubst < lab-artifacts/ray-lab/filename.yaml | kubectl apply -f -
 > ```
-> 
+>
 > **Alternative if `envsubst` not available:**
+>
 > ```bash
 > # Manual substitution using sed
 > sed "s/\$RAY_NAMESPACE/$RAY_NAMESPACE/g; s/\$RAY_CLUSTER_NAME/$RAY_CLUSTER_NAME/g" \
 >   filename.yaml | kubectl apply -f -
 > ```
-> 
+>
 > **Why this approach?**
+>
 > - Makes configurations reusable across different environments
 > - Allows you to customize cluster names and namespaces easily
 > - Prevents hardcoded values in YAML files
@@ -265,7 +279,7 @@ kubectl apply -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/main
 <div class="info" data-title="Using Existing Cluster">
 
 > If you already have an AKS cluster with sufficient resources (at least 3 nodes with 4+ vCPUs each), you can skip this step and proceed to the next section. You can check your existing cluster with:
-> 
+>
 > ```bash
 > az aks list --output table
 > ```
@@ -273,6 +287,7 @@ kubectl apply -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/main
 <div class="important" data-title="Cluster Creation Time">
 
 > **AKS cluster creation typically takes 10-15 minutes.** You can monitor the progress in the Azure portal or by running:
+>
 > ```bash
 > az aks list --resource-group $RESOURCE_GROUP --output table
 > ```
@@ -298,8 +313,6 @@ kubectl get nodes -o wide
 kubectl top nodes
 ```
 
-
-
 </div>
 
 ### Access Lab Artifacts
@@ -321,6 +334,7 @@ ls lab-artifacts/ray-lab/
 <div class="tip" data-title="Lab Artifacts">
 
 > All YAML configurations and Python scripts referenced in this lab are available in the `lab-artifacts/ray-lab/` directory. This approach allows you to:
+>
 > - Copy and paste commands directly
 > - Modify configurations for your environment
 > - Version control your changes
@@ -374,6 +388,7 @@ Let's create a Ray cluster configuration that includes both head and worker node
 The basic Ray cluster configuration includes a head node for coordination and worker nodes for computation. This configuration uses CPU-only resources and is suitable for most distributed computing tasks.
 
 Key features of the CPU configuration:
+
 - Ray head node with dashboard and API access
 - Scalable worker group (1-5 replicas)
 - Resource limits and requests for production stability
@@ -386,9 +401,10 @@ The complete configuration is available in [`lab-artifacts/ray-lab/ray-cluster.y
 If you chose GPU deployment, use the GPU-optimized configuration which includes specialized settings for machine learning workloads that require GPU acceleration.
 
 Key differences for GPU deployment:
+
 - Uses `rayproject/ray-ml:2.8.0-gpu` image with CUDA support
 - Adds `nvidia.com/gpu: 1` resource requests
-- Includes node selector for GPU nodes  
+- Includes node selector for GPU nodes
 - Adds tolerations for GPU node taints
 - Configures Ray resources with GPU allocation
 
@@ -397,6 +413,7 @@ The complete GPU configuration is available in [`lab-artifacts/ray-lab/ray-clust
 <div class="important" data-title="GPU Configuration Notes">
 
 > **Key considerations:**
+>
 > - Ensure your AKS cluster has GPU-enabled node pools
 > - Verify the NVIDIA device plugin is installed
 > - Adjust node selectors based on your GPU types
@@ -423,6 +440,7 @@ kubectl get pods -n $RAY_NAMESPACE -l ray.io/cluster=$RAY_CLUSTER_NAME
 ```
 
 **Verify the deployment:**
+
 ```bash
 # Check Ray cluster status
 kubectl get raycluster -n $RAY_NAMESPACE
@@ -453,12 +471,13 @@ You should see the Ray cluster overview with all nodes running:
 <div class="tip" data-title="Screenshot Opportunity">
 
 > **📸 Take a Screenshot Here!**
-> 
+>
 > With the Ray cluster deployed and the dashboard accessible, this is an excellent opportunity to capture a screenshot showing:
+>
 > - The Ray cluster overview with head and worker nodes
 > - Resource utilization metrics
 > - Cluster status and health indicators
-> 
+>
 > This screenshot will demonstrate the successful deployment of your Ray cluster on AKS.
 
 </div>
@@ -466,6 +485,7 @@ You should see the Ray cluster overview with all nodes running:
 <div class="tip" data-title="Dashboard Features">
 
 > The Ray dashboard shows:
+>
 > - **Cluster Overview**: Head and worker nodes status and resource allocation
 > - **Resource Utilization**: Real-time CPU, memory, and network usage across nodes
 > - **Running Jobs**: Active and completed jobs with execution details
@@ -478,12 +498,14 @@ You should see the Ray cluster overview with all nodes running:
 <div class="info" data-title="Alternative Access Methods">
 
 > **Via kubectl proxy:**
+>
 > ```bash
 > kubectl proxy
 > # Then access: http://localhost:8001/api/v1/namespaces/$RAY_NAMESPACE/services/${RAY_CLUSTER_NAME}-head-svc:8265/proxy/
 > ```
-> 
+>
 > **Check service name:**
+>
 > ```bash
 > kubectl get svc -n $RAY_NAMESPACE | grep head
 > ```
@@ -503,6 +525,7 @@ In this section, we'll transform a simple single-machine machine learning traini
 **The Solution**: Ray Train enables us to distribute training across multiple machines with minimal code changes, dramatically reducing training time and enabling larger models/datasets.
 
 **What You'll Learn**:
+
 - How to convert single-node training to distributed training
 - How Ray Train handles data distribution and worker coordination
 - How to run distributed training jobs on Kubernetes
@@ -513,12 +536,14 @@ In this section, we'll transform a simple single-machine machine learning traini
 Before we start, let's understand what happens when we distribute training:
 
 **Single-Machine Training (Before)**:
+
 ```
 [Data] → [Single GPU/CPU] → [Model] → [Save Model]
          (Limited resources)
 ```
 
 **Distributed Training with Ray Train (After)**:
+
 ```
 [Data] → [Ray Train Coordinator] → [Worker 1: GPU/CPU] → [Gradient Sync] → [Updated Model]
                                  → [Worker 2: GPU/CPU] → [Gradient Sync] ↗
@@ -526,6 +551,7 @@ Before we start, let's understand what happens when we distribute training:
 ```
 
 **Key Benefits**:
+
 - 🚀 **Faster Training**: Parallel processing across multiple workers
 - 📈 **Scalability**: Add more workers as needed
 - 🔄 **Automatic Coordination**: Ray handles data distribution and gradient synchronization
@@ -536,6 +562,7 @@ Before we start, let's understand what happens when we distribute training:
 Our training script demonstrates the transformation from single-node to distributed training:
 
 **What the Script Does**:
+
 1. **Defines a CNN Model**: Simple but effective MNIST classifier
 2. **Sets up Ray Train**: Configures distributed training environment
 3. **Handles Data Distribution**: Automatically splits data across workers
@@ -543,6 +570,7 @@ Our training script demonstrates the transformation from single-node to distribu
 5. **Reports Progress**: Provides metrics and logging across all workers
 
 **Key Ray Train Features**:
+
 - **Automatic Data Sharding**: Each worker gets a portion of the dataset
 - **Gradient Synchronization**: Workers coordinate model updates
 - **Fault Tolerance**: Training continues if individual workers fail
@@ -551,6 +579,7 @@ Our training script demonstrates the transformation from single-node to distribu
 The complete training script is available in [`lab-artifacts/ray-lab/distributed_training.py`](../../lab-artifacts/ray-lab/distributed_training.py).
 
 **Code Highlights** (from the training script):
+
 ```python
 # Ray Train setup - this is what makes training distributed
 @ray.remote
@@ -558,7 +587,7 @@ class TrainingWorker:
     def train(self, config):
         # Each worker gets its own portion of data
         # Ray automatically handles synchronization
-        
+
 # Scale to multiple workers
 ray.get([worker.train.remote(config) for worker in workers])
 ```
@@ -600,6 +629,7 @@ kubectl port-forward -n $RAY_NAMESPACE service/${RAY_CLUSTER_NAME}-head-svc 8265
 ```
 
 **What to Look For**:
+
 - 📊 **Multiple Workers**: Training should show multiple workers in the Ray dashboard
 - 📈 **Resource Utilization**: CPU/GPU usage across multiple nodes
 - 🔄 **Synchronization**: Workers coordinating gradient updates
@@ -608,13 +638,14 @@ kubectl port-forward -n $RAY_NAMESPACE service/${RAY_CLUSTER_NAME}-head-svc 8265
 <div class="tip" data-title="Second Screenshot Opportunity">
 
 > **📸 Another Great Screenshot Opportunity!**
-> 
+>
 > With distributed training running, this is an excellent time to capture a screenshot of the Ray dashboard showing:
+>
 > - Active training job in the "Jobs" tab
 > - Multiple workers processing training data
 > - Resource utilization across Ray worker nodes
 > - Task distribution and execution metrics
-> 
+>
 > This demonstrates Ray's distributed training capabilities in action on AKS.
 
 </div>
@@ -627,6 +658,7 @@ Here's what you should see in the Ray dashboard while distributed training is ru
 ### Expected Results
 
 **Training Progress You'll See**:
+
 ```
 Worker 1: Epoch 1/5, Loss: 2.3, Accuracy: 10%
 Worker 2: Epoch 1/5, Loss: 2.2, Accuracy: 12%
@@ -636,6 +668,7 @@ Epoch 1 Complete: Average Loss: 2.1, Average Accuracy: 15%
 ```
 
 **Performance Comparison**:
+
 - **Single Node**: ~30 seconds per epoch
 - **2-Node Distributed**: ~15 seconds per epoch
 - **4-Node Distributed**: ~8 seconds per epoch
@@ -668,18 +701,21 @@ kubectl logs -n $RAY_NAMESPACE -l job-name=ray-distributed-training
 In this section, we'll deploy our trained model as a scalable, production-ready inference service using Ray Serve on AKS.
 
 **The Challenge**: Moving from a trained model to a production-ready inference service involves:
+
 - Handling varying request loads (from 1 to 1000s requests/second)
 - Managing model loading and memory efficiently
 - Providing reliable HTTP APIs with proper error handling
 - Scaling automatically based on demand
 
 **The Solution**: Ray Serve provides a distributed serving framework that can:
+
 - Scale inference across multiple workers automatically
 - Handle load balancing and request routing
 - Provide HTTP REST APIs with minimal code
 - Integrate seamlessly with Kubernetes for production deployment
 
 **What You'll Learn**:
+
 - How to wrap ML models in Ray Serve for production serving
 - How to deploy scalable inference services on Kubernetes
 - How to test and monitor model serving endpoints
@@ -688,12 +724,14 @@ In this section, we'll deploy our trained model as a scalable, production-ready 
 ### Understanding Ray Serve Architecture
 
 **Before Ray Serve**: Traditional model serving approaches:
+
 ```
 [Client Request] → [Single Server] → [Model] → [Response]
                    (Limited by single server resources)
 ```
 
 **After Ray Serve**: Distributed serving architecture:
+
 ```
 [Client Requests] → [HTTP Proxy] → [Serve Controller] → [Worker 1: Model Copy] → [Response]
                                                       → [Worker 2: Model Copy] → [Response]
@@ -701,6 +739,7 @@ In this section, we'll deploy our trained model as a scalable, production-ready 
 ```
 
 **Key Benefits**:
+
 - 🚀 **Auto-scaling**: Automatically scales based on request load
 - 🔄 **Load Balancing**: Distributes requests across multiple workers
 - 💾 **Resource Efficiency**: Shares model weights across replicas
@@ -711,6 +750,7 @@ In this section, we'll deploy our trained model as a scalable, production-ready 
 Our serving application demonstrates the transformation from a simple model to a production-ready service:
 
 **What the Application Does**:
+
 1. **Loads the Model**: Efficiently loads and caches the trained model
 2. **Handles Multiple Input Formats**: Accepts various MNIST image formats
 3. **Provides HTTP API**: Creates REST endpoints for easy integration
@@ -718,14 +758,16 @@ Our serving application demonstrates the transformation from a simple model to a
 5. **Includes Error Handling**: Provides meaningful error messages and status codes
 
 **Key Ray Serve Features**:
+
 - **Flexible Input Processing**: Handles flattened, 2D, 3D, and 4D arrays
 - **Automatic Batching**: Groups requests for efficient processing
 - **Health Checks**: Built-in health monitoring for Kubernetes
 - **Metrics Integration**: Exposes metrics for monitoring and alerting
 
 Input formats supported:
+
 - Flattened array: 784 elements (28×28 pixels)
-- 2D array: 28×28 pixel values  
+- 2D array: 28×28 pixel values
 - 3D array: 1×28×28 with channel dimension
 - 4D array: 1×1×28×28 with batch and channel dimensions
 
@@ -758,6 +800,7 @@ kubectl logs -n $RAY_NAMESPACE deployment/ray-serve-mnist --tail=20
 ```
 
 **What to Expect**:
+
 - Pods should reach "Running" status within 1-2 minutes
 - Logs should show "Deployed Serve app successfully" message
 - Service should be accessible via the configured port
@@ -767,6 +810,7 @@ kubectl logs -n $RAY_NAMESPACE deployment/ray-serve-mnist --tail=20
 Now let's validate that our model serving endpoint works correctly with different input formats.
 
 **Testing Strategy**:
+
 1. **Port Forward**: Access the service locally for testing
 2. **Sample Requests**: Test with known data patterns
 3. **Error Handling**: Verify proper error responses
@@ -788,6 +832,7 @@ kubectl port-forward -n $RAY_NAMESPACE service/ray-serve-mnist-svc 8000:8000
 ```
 
 Expected response:
+
 ```json
 {
   "prediction": 5,
@@ -807,12 +852,14 @@ Ray on AKS can automatically scale based on workload demands. Let's configure ho
 The HPA configuration enables automatic scaling of Ray worker nodes based on CPU and memory utilization metrics.
 
 Key features:
+
 - **CPU and Memory Metrics**: Monitors both CPU (70% threshold) and memory (80% threshold)
 - **Scaling Behavior**: Controlled scale-up and scale-down policies
 - **Resource Limits**: Minimum 2 replicas, maximum 10 replicas
 - **Stabilization**: Prevents rapid scaling fluctuations
 
 The configuration includes sophisticated scaling behavior:
+
 - **Scale-up**: Aggressive scaling (100% increase) with 60-second stabilization
 - **Scale-down**: Conservative scaling (50% decrease) with 300-second stabilization
 
@@ -857,12 +904,14 @@ kubectl get pods -n kube-system | grep cluster-autoscaler
 In this section, we'll explore Ray's distributed data processing capabilities using Ray Data. We'll process a large synthetic dataset across multiple nodes, demonstrating how Ray can handle ETL workloads that exceed single-node memory capacity.
 
 **Before:** Traditional data processing approaches
+
 - Single-node processing limited by memory
 - Manual data partitioning and distribution
 - Complex coordination between processing nodes
 - Difficult scaling and resource management
 
 **After:** Ray Data distributed processing
+
 - Automatic data distribution across cluster nodes
 - Built-in fault tolerance and retry mechanisms
 - Seamless scaling from single-node to multi-node
@@ -891,6 +940,7 @@ Ray Data provides a distributed data processing framework that automatically:
 ```
 
 **Why Ray Data is valuable:**
+
 - **Automatic Parallelization**: No manual data partitioning required
 - **Memory Efficiency**: Streams data without loading everything into memory
 - **Fault Tolerance**: Automatic retry and recovery from node failures
@@ -901,6 +951,7 @@ Ray Data provides a distributed data processing framework that automatically:
 Our data processing pipeline demonstrates real-world ETL operations including data generation, filtering, aggregation, and transformation.
 
 **Key capabilities demonstrated:**
+
 - **Synthetic Data Generation**: Create large datasets for testing (1M+ records)
 - **Distributed Filtering**: Apply conditions across the entire dataset
 - **Aggregation Operations**: Group-by operations with statistical functions
@@ -914,6 +965,7 @@ The complete data processing script is available in [`lab-artifacts/ray-lab/data
 The Kubernetes Job configuration runs our data processing pipeline within the cluster, connecting to the Ray cluster for distributed execution. This demonstrates how to integrate Ray workloads with Kubernetes job management.
 
 **What happens when you deploy:**
+
 1. Kubernetes creates a job pod with the processing script
 2. The job connects to your existing Ray cluster
 3. Ray Data automatically distributes work across available nodes
@@ -939,6 +991,7 @@ kubectl logs -n $RAY_NAMESPACE job/ray-data-processing -f
 ### Expected Results and Monitoring
 
 **What you should see in the logs:**
+
 ```
 📊 Starting Ray Data Processing Pipeline
 🔗 Connected to Ray cluster: ray://ray-cluster-head-svc:10001
@@ -950,17 +1003,20 @@ kubectl logs -n $RAY_NAMESPACE job/ray-data-processing -f
 ```
 
 **Monitor the processing in Ray Dashboard:**
+
 1. Access the dashboard: `kubectl port-forward -n $RAY_NAMESPACE service/${RAY_CLUSTER_NAME}-head-svc 8265:8265`
 2. Navigate to the "Jobs" tab to see your data processing job
 3. Monitor resource usage across cluster nodes
 4. View task distribution and execution times
 
 **Troubleshooting tips:**
+
 - If the job fails to connect, verify your Ray cluster is running: `kubectl get pods -n $RAY_NAMESPACE`
 - For slow processing, check resource allocation in the Ray dashboard
 - Monitor pod logs for memory or CPU constraints: `kubectl describe pod -n $RAY_NAMESPACE`
 
 **Performance indicators:**
+
 - Processing 1M records should complete in under 2 minutes on a 4-node cluster
 - CPU utilization should be distributed across all worker nodes
 - Memory usage should remain stable throughout processing
@@ -981,6 +1037,7 @@ kubectl port-forward -n $RAY_NAMESPACE service/${RAY_CLUSTER_NAME}-head-svc 8265
 ```
 
 Key metrics to monitor:
+
 - **Cluster utilization**: CPU, memory, and network usage
 - **Task execution**: Task queues, execution times, and failures
 - **Actor lifecycle**: Actor creation, destruction, and resource usage
@@ -991,18 +1048,16 @@ Key metrics to monitor:
 Our monitoring setup includes Prometheus for metrics collection and Grafana for visualization, specifically configured for Ray workloads.
 
 Key monitoring components:
+
 - **Prometheus Configuration**: Automatically discovers Ray head and worker services
 - **Grafana Dashboard**: Pre-configured with Ray-specific visualizations
 - **Service Discovery**: Kubernetes-native service discovery for dynamic scaling
 - **Alert Rules**: Built-in alerting for common Ray issues
 
-The complete monitoring stack configuration is available in [`lab-artifacts/ray-lab/ray-monitoring.yaml`](../../lab-artifacts/ray-lab/ray-monitoring.yaml).
-    - job_name: 'ray-workers'
-      kubernetes_sd_configs:
-      - role: pod
-        namespaces:
-          names:
-          - $RAY_NAMESPACE  # Your namespace
+The complete monitoring stack configuration is available in [`lab-artifacts/ray-lab/ray-monitoring.yaml`](../../lab-artifacts/ray-lab/ray-monitoring.yaml). - job_name: 'ray-workers'
+kubernetes_sd_configs: - role: pod
+namespaces:
+names: - $RAY_NAMESPACE  # Your namespace
       relabel_configs:
       - source_labels: [__meta_kubernetes_pod_label_ray_io_node_type]
         action: keep
@@ -1012,40 +1067,35 @@ The complete monitoring stack configuration is available in [`lab-artifacts/ray-
         regex: '([^:]+):.*'
         target_label: __address__
         replacement: '${1}:8080'
+
 ---
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ray-prometheus
-  namespace: $RAY_NAMESPACE  # Will be substituted with your namespace
+name: ray-prometheus
+namespace: $RAY_NAMESPACE # Will be substituted with your namespace
 spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: ray-prometheus
-  template:
-    metadata:
-      labels:
-        app: ray-prometheus
-    spec:
-      containers:
-      - name: prometheus
-        image: prom/prometheus:latest
-        ports:
-        - containerPort: 9090
-        volumeMounts:
-        - name: config
-          mountPath: /etc/prometheus
-        args:
-        - '--config.file=/etc/prometheus/prometheus.yml'
-        - '--storage.tsdb.path=/prometheus/'
-        - '--web.console.libraries=/etc/prometheus/console_libraries'
-        - '--web.console.templates=/etc/prometheus/consoles'
-      volumes:
-      - name: config
-        configMap:
-          name: ray-prometheus-config
-```
+replicas: 1
+selector:
+matchLabels:
+app: ray-prometheus
+template:
+metadata:
+labels:
+app: ray-prometheus
+spec:
+containers: - name: prometheus
+image: prom/prometheus:latest
+ports: - containerPort: 9090
+volumeMounts: - name: config
+mountPath: /etc/prometheus
+args: - '--config.file=/etc/prometheus/prometheus.yml' - '--storage.tsdb.path=/prometheus/' - '--web.console.libraries=/etc/prometheus/console_libraries' - '--web.console.templates=/etc/prometheus/consoles'
+volumes: - name: config
+configMap:
+name: ray-prometheus-config
+
+````
 
 Apply the monitoring configuration:
 
@@ -1058,7 +1108,7 @@ kubectl port-forward -n $RAY_NAMESPACE deployment/ray-prometheus 9090:9090
 
 # Access Grafana dashboard
 kubectl port-forward -n $RAY_NAMESPACE service/ray-grafana-svc 3000:3000
-```
+````
 
 ---
 
@@ -1078,34 +1128,34 @@ Proper resource allocation is critical for Ray cluster performance.
 # Example resource pool configuration
 spec:
   workerGroupSpecs:
-  - replicas: 2
-    groupName: cpu-intensive
-    rayStartParams:
-      resources: '{"CPU": 4}'
-    template:
-      spec:
-        nodeSelector:
-          workload: cpu-intensive
-        containers:
-        - name: ray-worker
-          resources:
-            requests:
-              cpu: 4
-              memory: 2Gi
-  - replicas: 2
-    groupName: memory-intensive
-    rayStartParams:
-      resources: '{"CPU": 2, "memory": 8000000000}'
-    template:
-      spec:
-        nodeSelector:
-          workload: memory-intensive
-        containers:
-        - name: ray-worker
-          resources:
-            requests:
-              cpu: 2
-              memory: 8Gi
+    - replicas: 2
+      groupName: cpu-intensive
+      rayStartParams:
+        resources: '{"CPU": 4}'
+      template:
+        spec:
+          nodeSelector:
+            workload: cpu-intensive
+          containers:
+            - name: ray-worker
+              resources:
+                requests:
+                  cpu: 4
+                  memory: 2Gi
+    - replicas: 2
+      groupName: memory-intensive
+      rayStartParams:
+        resources: '{"CPU": 2, "memory": 8000000000}'
+      template:
+        spec:
+          nodeSelector:
+            workload: memory-intensive
+          containers:
+            - name: ray-worker
+              resources:
+                requests:
+                  cpu: 2
+                  memory: 8Gi
 ```
 
 ### Performance Tuning
@@ -1143,31 +1193,31 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: ray-cluster-netpol
-  namespace: $RAY_NAMESPACE  # Uses your environment variable
+  namespace: $RAY_NAMESPACE # Uses your environment variable
 spec:
   podSelector:
     matchLabels:
-      ray.io/cluster: $RAY_CLUSTER_NAME  # Uses your cluster name
+      ray.io/cluster: $RAY_CLUSTER_NAME # Uses your cluster name
   policyTypes:
-  - Ingress
-  - Egress
+    - Ingress
+    - Egress
   ingress:
-  - from:
-    - podSelector:
-        matchLabels:
-          ray.io/cluster: $RAY_CLUSTER_NAME  # Uses your cluster name
-    ports:
-    - protocol: TCP
-      port: 6379
-    - protocol: TCP
-      port: 8265
+    - from:
+        - podSelector:
+            matchLabels:
+              ray.io/cluster: $RAY_CLUSTER_NAME # Uses your cluster name
+      ports:
+        - protocol: TCP
+          port: 6379
+        - protocol: TCP
+          port: 8265
   egress:
-  - to: []
-    ports:
-    - protocol: TCP
-      port: 443
-    - protocol: TCP
-      port: 6379
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 6379
 ```
 
 ---
@@ -1178,7 +1228,7 @@ Congratulations! You've successfully deployed and managed distributed AI workloa
 
 - Deploy Ray clusters using the KubeRay operator
 - Implement distributed machine learning training with Ray Train
-- Serve ML models at scale using Ray Serve  
+- Serve ML models at scale using Ray Serve
 - Process large datasets with Ray Data
 - Configure auto-scaling for dynamic resource management
 - Monitor Ray workloads with observability tools
@@ -1209,6 +1259,7 @@ To further explore Ray and distributed AI workloads:
 ### Ray Cluster Connectivity Issues
 
 **Problem**: Ray jobs fail to connect to the cluster (like our training or data processing jobs)
+
 ```bash
 # Check if Ray head service is running (using your environment variables)
 kubectl get svc -n $RAY_NAMESPACE ${RAY_CLUSTER_NAME}-head-svc
@@ -1225,6 +1276,7 @@ kubectl logs -n $RAY_NAMESPACE -l ray.io/node-type=head
 ### Pod Resource Issues
 
 **Problem**: Pods stuck in Pending state (can affect Ray head/worker pods or job pods)
+
 ```bash
 # Check pod status and events (using your environment variables)
 kubectl describe pod -n $RAY_NAMESPACE <pod-name>
@@ -1240,6 +1292,7 @@ kubectl top nodes
 **Problem**: Ray Serve applications crash or fail to start
 
 **Solution**: Use port-forwarding for testing (matches our serving setup):
+
 ```bash
 # Forward Ray head service port (using your environment variables)
 kubectl port-forward -n $RAY_NAMESPACE service/${RAY_CLUSTER_NAME}-head-svc 8265:8265
@@ -1252,6 +1305,7 @@ kubectl port-forward -n $RAY_NAMESPACE service/${RAY_CLUSTER_NAME}-head-svc 8265
 **Problem**: Distributed training jobs fail with checkpointing errors
 
 **Solution**: Use simple metrics reporting without checkpointing (as implemented in our `distributed_training.py`):
+
 ```python
 # Simple approach - report metrics without checkpointing
 train.report({"loss": epoch_loss, "accuracy": epoch_acc})
