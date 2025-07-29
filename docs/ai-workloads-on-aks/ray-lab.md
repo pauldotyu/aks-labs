@@ -965,7 +965,7 @@ Deploy and run the data processing job:
 
 ```bash
 # Create ConfigMap with the processing script
-kubectl create configmap processing-script \
+kubectl create configmap ray-data-processing-script \
   --from-file=docs/ai-workloads-on-aks/assets/ray-lab/artifacts/data_processing.py \
   -n $RAY_NAMESPACE
 
