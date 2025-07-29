@@ -448,6 +448,8 @@ az aks update \
 
 Using the `--enable-azure-monitor-app-monitoring` flag for AKS requires the `aks-preview` extension installed for Azure CLI. Run the `az extension add --name aks-preview` command to install it.
 
+:::
+
 With this feature enabled, you can now deploy a new Instrumentation custom resource to your AKS cluster to automatically instrument your applications without any modifications to the code.
 
 Before proceeding, retrieve the Application Insights connection string from your Azure deployment by running the command below and saving the result to an environment variable:
@@ -576,6 +578,7 @@ The workbook visuals will include a query button that you can click to view the 
 Refer back to the earlier step where we troubleshot the Contoso Air app using the **Logs** section in the left-hand menu. Here, you can create custom KQL queries or use pre-configured ones to analyze logs from your cluster and applications. The **Queries hub** offers a variety of pre-configured queries—simply navigate to the **Container Logs** table in the left-hand menu under **All Queries**, choose a query, and click **Run** to view the results.
 
 :::note
+
 Some of the queries might not have enough data to return results.
 
 :::
