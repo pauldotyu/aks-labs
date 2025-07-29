@@ -37,6 +37,7 @@ az feature register --namespace Microsoft.ContainerService --name AzureMonitorAp
 Register resource providers.
 
 ```bash
+az provider register --namespace Microsoft.DevHub
 az provider register --namespace Microsoft.Insights
 az provider register --namespace Microsoft.ServiceLinker
 ```
@@ -110,7 +111,7 @@ gh auth login
 After you've completed the login process, run the following command to fork the [contoso-air](https://github.com/Azure-Samples/contoso-air) repository to your GitHub account.
 
 ```bash
-gh repo fork Azure-Samples/contoso-air --clone
+gh repo fork Azure-Samples/contoso-air --clone --default-branch-only
 ```
 
 Change into the `contoso-air` directory.
