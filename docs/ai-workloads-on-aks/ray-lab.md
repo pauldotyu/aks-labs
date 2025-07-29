@@ -1,12 +1,7 @@
 ---
-title: Scaling AI Workloads with Ray on AKS
+title: Scaling AI Workloads with Ray
 description: Learn how to deploy and scale distributed AI workloads using Ray on Azure Kubernetes Service (AKS). This lab covers Ray cluster setup, distributed machine learning training, and scaling AI inference workloads.
 sidebar_position: 2
-sidebar_label: Ray on AKS
-level: intermediate
-authors:
-  - AKS Labs Team
-duration_minutes: 120
 tags:
   - ai
   - ray
@@ -15,11 +10,7 @@ tags:
   - kubernetes
 ---
 
-# Scaling AI Workloads with Ray on AKS
-
 In this lab, you will learn how to deploy and scale distributed AI workloads using Ray on Azure Kubernetes Service (AKS). Ray is an open-source framework for scaling AI and Python applications, providing distributed computing capabilities that are essential for modern machine learning workloads.
-
-## Overview
 
 Ray enables you to scale your AI workloads from a single machine to a cluster of machines with minimal code changes. It provides several key libraries:
 
