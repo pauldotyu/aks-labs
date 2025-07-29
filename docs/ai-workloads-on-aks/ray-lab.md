@@ -64,29 +64,28 @@ This repository contains all the artifact files referenced throughout this lab, 
 - [Python 3.8+](https://www.python.org/downloads) with pip
 - Basic knowledge of Kubernetes, Python, and machine learning concepts
 
-<div class="info" data-title="Note">
+:::info Note
 
-> This lab assumes you have an existing AKS cluster. If you need to create one, you can use the AKS Automatic cluster from the previous workshop or create a standard AKS cluster with at least 3 nodes (Standard_DS3_v2 or larger) to handle Ray workloads effectively.
+This lab assumes you have an existing AKS cluster. If you need to create one, you can use the AKS Automatic cluster from the previous workshop or create a standard AKS cluster with at least 3 nodes (Standard_DS3_v2 or larger) to handle Ray workloads effectively.
 
-</div>
+:::
 
-<div class="important" data-title="Resource Requirements">
+:::warning Resource Requirements
+Ray workloads can be resource-intensive. Ensure your AKS cluster has sufficient resources:
 
-> Ray workloads can be resource-intensive. Ensure your AKS cluster has sufficient resources:
->
-> **For CPU deployment (default):**
->
-> - At least 3 worker nodes
-> - Minimum 4 vCPUs and 16GB RAM per node (Standard_DS3_v2 or larger)
-> - Consider enabling cluster autoscaler for dynamic scaling
->
-> **For GPU deployment (optional):**
->
-> - GPU-enabled node pool with Standard_NC6s_v3 or similar
-> - Sufficient GPU quota in your Azure subscription
-> - NVIDIA drivers (automatically installed by AKS)
+**For CPU deployment (default):**
 
-</div>
+- At least 3 worker nodes
+- Minimum 4 vCPUs and 16GB RAM per node (Standard_DS3_v2 or larger)
+- Consider enabling cluster autoscaler for dynamic scaling
+
+**For GPU deployment (optional):**
+
+- GPU-enabled node pool with Standard_NC6s_v3 or similar
+- Sufficient GPU quota in your Azure subscription
+- NVIDIA drivers (automatically installed by AKS)
+
+:::
 
 ---
 
@@ -134,11 +133,11 @@ Before we begin setting up the environment, you need to decide whether to run Ra
 
 ### Making Your Choice
 
-<div class="tip" data-title="Recommendation">
+:::tip Recommendation
 
-> **For this lab, we recommend starting with CPU-based deployment** unless you specifically need GPU acceleration and have the required infrastructure setup. All Ray concepts and distributed computing patterns work the same way on both CPU and GPU.
+**For this lab, we recommend starting with CPU-based deployment** unless you specifically need GPU acceleration and have the required infrastructure setup. All Ray concepts and distributed computing patterns work the same way on both CPU and GPU.
 
-</div>
+:::
 
 **Throughout this lab:**
 
@@ -173,54 +172,54 @@ echo "Ray namespace: $RAY_NAMESPACE"
 echo "Ray cluster name: $RAY_CLUSTER_NAME"
 ```
 
-<div class="important" data-title="Environment Variables">
+:::warning Environment Variables
 
-> **These environment variables are used throughout the lab:**
->
-> - **Azure Resources**: Used in `az aks create` and `az aks get-credentials` commands
-> - **Ray Configuration**: Used in all YAML files for dynamic configuration with environment variables
-> - **Variable Substitution**: Commands will use `kubectl apply -f` with automatic environment variable substitution
-> - Make sure to set these variables in each new terminal session
-> - **Customize the values** to match your naming preferences
+**These environment variables are used throughout the lab:**
 
-</div>
+- **Azure Resources**: Used in `az aks create` and `az aks get-credentials` commands
+- **Ray Configuration**: Used in all YAML files for dynamic configuration with environment variables
+- **Variable Substitution**: Commands will use `kubectl apply -f` with automatic environment variable substitution
+- Make sure to set these variables in each new terminal session
+- **Customize the values** to match your naming preferences
 
-<div class="tip" data-title="Environment Variable Substitution in YAML Files">
+:::
 
-> **Understanding `envsubst` Usage**
->
-> Throughout this lab, you'll use YAML configuration files that contain environment variable placeholders like `$RAY_NAMESPACE` and `$RAY_CLUSTER_NAME`. These placeholders need to be substituted with actual values before applying the configurations.
->
-> **Example YAML with placeholders:**
->
-> ```yaml
-> metadata:
->   name: $RAY_CLUSTER_NAME # Will become: raycluster-ml
->   namespace: $RAY_NAMESPACE # Will become: ray-system
-> ```
->
-> **How to use `envsubst`:**
->
-> ```bash
-> # Standard pattern used throughout the lab
-> envsubst < docs/ai-workloads-on-aks/assets/ray-lab/artifacts/filename.yaml | kubectl apply -f -
-> ```
->
-> **Alternative if `envsubst` not available:**
->
-> ```bash
-> # Manual substitution using sed
-> sed "s/\$RAY_NAMESPACE/$RAY_NAMESPACE/g; s/\$RAY_CLUSTER_NAME/$RAY_CLUSTER_NAME/g" \
->   filename.yaml | kubectl apply -f -
-> ```
->
-> **Why this approach?**
->
-> - Makes configurations reusable across different environments
-> - Allows you to customize cluster names and namespaces easily
-> - Prevents hardcoded values in YAML files
+:::tip Environment Variable Substitution in YAML Files
 
-</div>
+**Understanding `envsubst` Usage**
+
+Throughout this lab, you'll use YAML configuration files that contain environment variable placeholders like `$RAY_NAMESPACE` and `$RAY_CLUSTER_NAME`. These placeholders need to be substituted with actual values before applying the configurations.
+
+**Example YAML with placeholders:**
+
+```yaml
+metadata:
+  name: $RAY_CLUSTER_NAME # Will become: raycluster-ml
+  namespace: $RAY_NAMESPACE # Will become: ray-system
+```
+
+**How to use `envsubst`:**
+
+```bash
+# Standard pattern used throughout the lab
+envsubst < docs/ai-workloads-on-aks/assets/ray-lab/artifacts/filename.yaml | kubectl apply -f -
+```
+
+**Alternative if `envsubst` not available:**
+
+```bash
+# Manual substitution using sed
+sed "s/\$RAY_NAMESPACE/$RAY_NAMESPACE/g; s/\$RAY_CLUSTER_NAME/$RAY_CLUSTER_NAME/g" \
+  filename.yaml | kubectl apply -f -
+```
+
+**Why this approach?**
+
+- Makes configurations reusable across different environments
+- Allows you to customize cluster names and namespaces easily
+- Prevents hardcoded values in YAML files
+
+:::
 
 ### Create AKS Cluster (Optional)
 
@@ -267,23 +266,23 @@ az aks create \
 kubectl apply -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/main/deployments/static/nvidia-device-plugin.yml
 ```
 
-<div class="info" data-title="Using Existing Cluster">
+:::info Using Existing Cluster
 
-> If you already have an AKS cluster with sufficient resources (at least 3 nodes with 4+ vCPUs each), you can skip this step and proceed to the next section. You can check your existing cluster with:
->
-> ```bash
-> az aks list --output table
-> ```
+If you already have an AKS cluster with sufficient resources (at least 3 nodes with 4+ vCPUs each), you can skip this step and proceed to the next section. You can check your existing cluster with:
 
-<div class="important" data-title="Cluster Creation Time">
+```bash
+az aks list --output table
+```
 
-> **AKS cluster creation typically takes 10-15 minutes.** You can monitor the progress in the Azure portal or by running:
->
-> ```bash
-> az aks list --resource-group $RESOURCE_GROUP --output table
-> ```
+:::warning Cluster Creation Time
 
-</div>
+**AKS cluster creation typically takes 10-15 minutes.** You can monitor the progress in the Azure portal or by running:
+
+```bash
+az aks list --resource-group $RESOURCE_GROUP --output table
+```
+
+:::
 
 ### Connect to Your AKS Cluster
 
@@ -304,8 +303,6 @@ kubectl get nodes -o wide
 kubectl top nodes
 ```
 
-</div>
-
 ### Access Lab Artifacts
 
 Make sure you have cloned the lab repository as mentioned in the prerequisites:
@@ -322,16 +319,16 @@ ls docs/ai-workloads-on-aks/assets/ray-lab/artifacts/
 # ray-cluster.yaml, distributed_training.py, simple_serving.py, etc.
 ```
 
-<div class="tip" data-title="Lab Artifacts">
+:::tip Lab Artifacts
 
-> All YAML configurations and Python scripts referenced in this lab are available in the `docs/ai-workloads-on-aks/assets/ray-lab/artifacts/` directory. This approach allows you to:
->
-> - Copy and paste commands directly
-> - Modify configurations for your environment
-> - Version control your changes
-> - Reuse artifacts across different deployments
+All YAML configurations and Python scripts referenced in this lab are available in the `docs/ai-workloads-on-aks/assets/ray-lab/artifacts/` directory. This approach allows you to:
 
-</div>
+- Copy and paste commands directly
+- Modify configurations for your environment
+- Version control your changes
+- Reuse artifacts across different deployments
+
+:::
 
 ### Install KubeRay Operator
 
@@ -353,11 +350,11 @@ kubectl get pods -n $RAY_NAMESPACE
 kubectl get crd | grep ray
 ```
 
-<div class="info" data-title="Note">
+:::info Note
 
-> The KubeRay operator will create Custom Resource Definitions (CRDs) that allow you to manage Ray clusters as Kubernetes resources.
+The KubeRay operator will create Custom Resource Definitions (CRDs) that allow you to manage Ray clusters as Kubernetes resources.
 
-</div>
+:::
 
 **Expected Output:**
 You should see the KubeRay operator pod running and Ray-related CRDs created:
@@ -368,11 +365,11 @@ You should see the KubeRay operator pod running and Ray-related CRDs created:
 
 Let's create a Ray cluster configuration that includes both head and worker nodes with appropriate resource allocations.
 
-<div class="tip" data-title="CPU vs GPU Configuration">
+:::tip CPU vs GPU Configuration
 
-> The configuration below is for **CPU deployment**. If you chose GPU deployment in the previous section, scroll down to see the **GPU variant** after the CPU configuration.
+The configuration below is for **CPU deployment**. If you chose GPU deployment in the previous section, scroll down to see the **GPU variant** after the CPU configuration.
 
-</div>
+:::
 
 ### CPU Configuration (Default)
 
@@ -401,16 +398,16 @@ Key differences for GPU deployment:
 
 The complete GPU configuration is available in [`docs/ai-workloads-on-aks/assets/ray-lab/artifacts/ray-cluster-gpu.yaml`](../../docs/ai-workloads-on-aks/assets/ray-lab/artifacts/ray-cluster-gpu.yaml).
 
-<div class="important" data-title="GPU Configuration Notes">
+:::warning GPU Configuration Notes
 
-> **Key considerations:**
->
-> - Ensure your AKS cluster has GPU-enabled node pools
-> - Verify the NVIDIA device plugin is installed
-> - Adjust node selectors based on your GPU types
-> - Consider GPU memory requirements for your workloads
+**Key considerations:**
 
-</div>
+- Ensure your AKS cluster has GPU-enabled node pools
+- Verify the NVIDIA device plugin is installed
+- Adjust node selectors based on your GPU types
+- Consider GPU memory requirements for your workloads
+
+:::
 
 ## Deploy the Ray Cluster
 
@@ -459,49 +456,48 @@ You should see the Ray cluster overview with all nodes running:
 
 ![Ray Dashboard Access](./assets/ray-lab/ray-access-dashboard-verify.png)
 
-<div class="tip" data-title="Screenshot Opportunity">
+:::tip Screenshot Opportunity
 
-> **📸 Take a Screenshot Here!**
->
-> With the Ray cluster deployed and the dashboard accessible, this is an excellent opportunity to capture a screenshot showing:
->
-> - The Ray cluster overview with head and worker nodes
-> - Resource utilization metrics
-> - Cluster status and health indicators
->
-> This screenshot will demonstrate the successful deployment of your Ray cluster on AKS.
+**📸 Take a Screenshot Here!**
 
-</div>
+With the Ray cluster deployed and the dashboard accessible, this is an excellent opportunity to capture a screenshot showing:
 
-<div class="tip" data-title="Dashboard Features">
+- The Ray cluster overview with head and worker nodes
+- Resource utilization metrics
+- Cluster status and health indicators
+  This screenshot will demonstrate the successful deployment of your Ray cluster on AKS.
 
-> The Ray dashboard shows:
->
-> - **Cluster Overview**: Head and worker nodes status and resource allocation
-> - **Resource Utilization**: Real-time CPU, memory, and network usage across nodes
-> - **Running Jobs**: Active and completed jobs with execution details
-> - **Actor and Task Details**: Task queues, execution times, and failures
-> - **Log Streaming**: Real-time logs from Ray head and worker nodes
-> - **Performance Metrics**: Throughput, latency, and error rates
+:::
 
-</div>
+:::tip Dashboard Features
 
-<div class="info" data-title="Alternative Access Methods">
+The Ray dashboard shows:
 
-> **Via kubectl proxy:**
->
-> ```bash
-> kubectl proxy
-> # Then access: http://localhost:8001/api/v1/namespaces/$RAY_NAMESPACE/services/${RAY_CLUSTER_NAME}-head-svc:8265/proxy/
-> ```
->
-> **Check service name:**
->
-> ```bash
-> kubectl get svc -n $RAY_NAMESPACE | grep head
-> ```
+- **Cluster Overview**: Head and worker nodes status and resource allocation
+- **Resource Utilization**: Real-time CPU, memory, and network usage across nodes
+- **Running Jobs**: Active and completed jobs with execution details
+- **Actor and Task Details**: Task queues, execution times, and failures
+- **Log Streaming**: Real-time logs from Ray head and worker nodes
+- **Performance Metrics**: Throughput, latency, and error rates
 
-</div>
+:::
+
+:::info Alternative Access Methods
+
+**Via kubectl proxy:**
+
+```bash
+kubectl proxy
+# Then access: http://localhost:8001/api/v1/namespaces/$RAY_NAMESPACE/services/${RAY_CLUSTER_NAME}-head-svc:8265/proxy/
+```
+
+**Check service name:**
+
+```bash
+kubectl get svc -n $RAY_NAMESPACE | grep head
+```
+
+:::
 
 ---
 
@@ -528,14 +524,14 @@ Before we start, let's understand what happens when we distribute training:
 
 **Single-Machine Training (Before)**:
 
-```
+```text
 [Data] → [Single GPU/CPU] → [Model] → [Save Model]
          (Limited resources)
 ```
 
 **Distributed Training with Ray Train (After)**:
 
-```
+```text
 [Data] → [Ray Train Coordinator] → [Worker 1: GPU/CPU] → [Gradient Sync] → [Updated Model]
                                  → [Worker 2: GPU/CPU] → [Gradient Sync] ↗
                                  → [Worker N: GPU/CPU] → [Gradient Sync] ↗
@@ -626,20 +622,19 @@ kubectl port-forward -n $RAY_NAMESPACE service/${RAY_CLUSTER_NAME}-head-svc 8265
 - 🔄 **Synchronization**: Workers coordinating gradient updates
 - ⚡ **Speed Improvement**: Faster epoch completion compared to single-node training
 
-<div class="tip" data-title="Second Screenshot Opportunity">
+:::tip Second Screenshot Opportunity
 
-> **📸 Another Great Screenshot Opportunity!**
->
-> With distributed training running, this is an excellent time to capture a screenshot of the Ray dashboard showing:
->
-> - Active training job in the "Jobs" tab
-> - Multiple workers processing training data
-> - Resource utilization across Ray worker nodes
-> - Task distribution and execution metrics
->
-> This demonstrates Ray's distributed training capabilities in action on AKS.
+**📸 Another Great Screenshot Opportunity!**
 
-</div>
+With distributed training running, this is an excellent time to capture a screenshot of the Ray dashboard showing:
+
+- Active training job in the "Jobs" tab
+- Multiple workers processing training data
+- Resource utilization across Ray worker nodes
+- Task distribution and execution metrics
+  This demonstrates Ray's distributed training capabilities in action on AKS.
+
+:::
 
 **Dashboard View During Training:**
 Here's what you should see in the Ray dashboard while distributed training is running:
@@ -650,7 +645,7 @@ Here's what you should see in the Ray dashboard while distributed training is ru
 
 **Training Progress You'll See**:
 
-```
+```text
 Worker 1: Epoch 1/5, Loss: 2.3, Accuracy: 10%
 Worker 2: Epoch 1/5, Loss: 2.2, Accuracy: 12%
 ...
@@ -665,6 +660,7 @@ Epoch 1 Complete: Average Loss: 2.1, Average Accuracy: 15%
 - **4-Node Distributed**: ~8 seconds per epoch
 
 :::tip Troubleshooting Distributed Training
+
 **Common issues and what they mean**:
 
 ```bash
@@ -681,6 +677,7 @@ kubectl logs -n $RAY_NAMESPACE -l job-name=ray-distributed-training
 **Issue**: "No workers available" → **Solution**: Scale up Ray cluster workers
 **Issue**: "Connection timeout" → **Solution**: Check Ray head service connectivity
 **Issue**: "Out of memory" → **Solution**: Reduce batch size or add more worker memory
+
 :::
 
 ---
@@ -716,14 +713,14 @@ In this section, we'll deploy our trained model as a scalable, production-ready 
 
 **Before Ray Serve**: Traditional model serving approaches:
 
-```
+```text
 [Client Request] → [Single Server] → [Model] → [Response]
                    (Limited by single server resources)
 ```
 
 **After Ray Serve**: Distributed serving architecture:
 
-```
+```text
 [Client Requests] → [HTTP Proxy] → [Serve Controller] → [Worker 1: Model Copy] → [Response]
                                                       → [Worker 2: Model Copy] → [Response]
                                                       → [Worker N: Model Copy] → [Response]
@@ -912,7 +909,7 @@ In this section, we'll explore Ray's distributed data processing capabilities us
 
 Ray Data provides a distributed data processing framework that automatically:
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                    Ray Data Pipeline                        │
 │                                                             │
@@ -983,7 +980,7 @@ kubectl logs -n $RAY_NAMESPACE job/ray-data-processing -f
 
 **What you should see in the logs:**
 
-```
+```text
 📊 Starting Ray Data Processing Pipeline
 🔗 Connected to Ray cluster: ray://ray-cluster-head-svc:10001
 📈 Generated 1,000,000 synthetic records
@@ -1045,46 +1042,69 @@ Key monitoring components:
 - **Service Discovery**: Kubernetes-native service discovery for dynamic scaling
 - **Alert Rules**: Built-in alerting for common Ray issues
 
-The complete monitoring stack configuration is available in [`docs/ai-workloads-on-aks/assets/ray-lab/artifacts/ray-monitoring.yaml`](../../docs/ai-workloads-on-aks/assets/ray-lab/artifacts/ray-monitoring.yaml). - job_name: 'ray-workers'
-kubernetes_sd_configs: - role: pod
-namespaces:
-names: - $RAY_NAMESPACE  # Your namespace
+The complete monitoring stack configuration is available in [`docs/ai-workloads-on-aks/assets/ray-lab/artifacts/ray-monitoring.yaml`](../../docs/ai-workloads-on-aks/assets/ray-lab/artifacts/ray-monitoring.yaml).
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ray-monitoring-config
+  namespace: $RAY_NAMESPACE
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+    scrape_configs:
+    - job_name: 'ray-head'
+      static_configs:
+      - targets: ['raycluster-ml-head-svc:8080']
+    - job_name: 'ray-workers'
+      kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+          - $RAY_NAMESPACE
       relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_ray_io_cluster]
+        action: keep
+        regex: raycluster-ml
       - source_labels: [__meta_kubernetes_pod_label_ray_io_node_type]
         action: keep
         regex: worker
-      - source_labels: [__address__]
-        action: replace
-        regex: '([^:]+):.*'
-        target_label: __address__
-        replacement: '${1}:8080'
-
 ---
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-name: ray-prometheus
-namespace: $RAY_NAMESPACE # Will be substituted with your namespace
+  name: ray-prometheus
+  namespace: $RAY_NAMESPACE
 spec:
-replicas: 1
-selector:
-matchLabels:
-app: ray-prometheus
-template:
-metadata:
-labels:
-app: ray-prometheus
-spec:
-containers: - name: prometheus
-image: prom/prometheus:latest
-ports: - containerPort: 9090
-volumeMounts: - name: config
-mountPath: /etc/prometheus
-args: - '--config.file=/etc/prometheus/prometheus.yml' - '--storage.tsdb.path=/prometheus/' - '--web.console.libraries=/etc/prometheus/console_libraries' - '--web.console.templates=/etc/prometheus/consoles'
-volumes: - name: config
-configMap:
-name: ray-prometheus-config
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ray-prometheus
+  template:
+    metadata:
+      labels:
+        app: ray-prometheus
+    spec:
+      containers:
+      - name: prometheus
+        image: prom/prometheus:latest
+        ports:
+        - containerPort: 9090
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/prometheus
+        args:
+        - '--config.file=/etc/prometheus/prometheus.yml'
+        - '--storage.tsdb.path=/prometheus'
+        - '--web.console.libraries=/etc/prometheus/console_libraries'
+        - '--web.console.templates=/etc/prometheus/consoles'
+        - '--web.enable-lifecycle'
+      volumes:
+      - name: config-volume
+        configMap:
+          name: ray-monitoring-config
 ```
 
 Apply the monitoring configuration:
@@ -1098,7 +1118,7 @@ kubectl port-forward -n $RAY_NAMESPACE deployment/ray-prometheus 9090:9090
 
 # Access Grafana dashboard
 kubectl port-forward -n $RAY_NAMESPACE service/ray-grafana-svc 3000:3000
-````
+```
 
 ---
 
@@ -1309,7 +1329,7 @@ This approach avoids storage configuration issues while still providing training
 
 Congratulations! You have successfully completed the Ray on AKS lab. Here's what you accomplished:
 
-## ✅ What You Built
+### ✅ What You Built
 
 1. **AKS Cluster**: Created and configured a 3-node AKS cluster optimized for Ray workloads
 2. **KubeRay Operator**: Installed and configured the Ray operator for Kubernetes
@@ -1320,7 +1340,7 @@ Congratulations! You have successfully completed the Ray on AKS lab. Here's what
 7. **Monitoring**: Set up Prometheus monitoring for Ray cluster metrics
 8. **Autoscaling**: Configured horizontal pod autoscaling for Ray workers
 
-## 🎯 Key Learnings
+### 🎯 Key Learnings
 
 - **Ray Architecture**: Understanding of Ray's distributed computing model
 - **Kubernetes Integration**: How Ray integrates with Kubernetes through KubeRay
@@ -1328,7 +1348,7 @@ Congratulations! You have successfully completed the Ray on AKS lab. Here's what
 - **Resource Management**: Proper resource allocation and scaling for Ray workloads
 - **Monitoring**: Setting up observability for distributed Ray applications
 
-## 📊 Lab Results
+### 📊 Lab Results
 
 ```bash
 # Check your lab completion status
@@ -1368,11 +1388,11 @@ kubectl delete namespace $RAY_NAMESPACE
 az aks delete --resource-group $RESOURCE_GROUP --name $CLUSTER_NAME --yes --no-wait
 ```
 
-<div class="warning" data-title="Cost Management">
+:::warning Cost Management
 
 > Remember to delete your AKS cluster when you're done to avoid ongoing charges. The cluster costs approximately $200-300 per month if left running.
 
-</div>
+:::
 
 ## Learn More
 
