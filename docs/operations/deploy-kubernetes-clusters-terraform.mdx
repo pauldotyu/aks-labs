@@ -127,13 +127,13 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 4.36"
+      version = "~> 4.38.0"
     }
   }
 }
 ```
 
-This code block specifies that you want to use the `azurerm` provider from HashiCorp and sets the version to `~> 4.36`. You can change the version to the latest stable version available in the [Terraform Registry](https://registry.terraform.io/providers/hashicorp/azurerm/latest). You don't necessarily need to specify the exact version, but it is a good practice to constrain to at least to a minor version so that you can allow for patch-level security updates while ensuring compatibility.
+This code block specifies that you want to use the `azurerm` provider from HashiCorp and sets the version to `~> 4.38.0`. You can change the version to the latest stable version available in the [Terraform Registry](https://registry.terraform.io/providers/hashicorp/azurerm/latest). You don't necessarily need to specify the exact version, but it is a good practice to constrain to at least to a minor version so that you can allow for patch-level security updates while ensuring compatibility.
 
 Next add the following code beneath the `terraform` block to configure the provider:
 
