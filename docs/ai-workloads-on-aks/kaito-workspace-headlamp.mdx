@@ -224,7 +224,16 @@ Keep the manifest as-is and click the **Apply** button to create the workspace.
 
 :::danger
 
-You must have sufficient quota available in your Azure subscription to deploy the workspace. If you don't have at least 24 vCPUs of Standard NCads A100 v4 GPU quota, you will need to [request additional quota](https://learn.microsoft.com/azure/quotas/quickstart-increase-quota-portal) from Azure support.
+**GPU Quota Requirements**: This workspace requires sufficient GPU quota in your Azure subscription to deploy successfully.
+
+**Minimum Requirements**:
+- **Preferred**: At least 24 vCPUs of Standard NCads A100 v4 GPU quota
+
+**Alternative Options** (if you don't have NCads A100 v4 quota, you could choose a VM SKU from the following families):
+- [NCasT4_v3 series](https://learn.microsoft.com/azure/virtual-machines/sizes/gpu-accelerated/ncast4v3-series?tabs=sizebasic) GPU VMs
+- [NVadsA10_v5 series](https://learn.microsoft.com/azure/virtual-machines/sizes/gpu-accelerated/nvadsa10v5-series?tabs=sizebasic) GPU VMs
+
+**No GPU quota available?** You'll need to [request additional quota](https://learn.microsoft.com/azure/quotas/quickstart-increase-quota-portal) from Azure support before proceeding.
 
 :::
 
@@ -553,8 +562,8 @@ You may need to refresh the dashboard or expand the time range to see the metric
 The dashboard includes several panels displaying Prometheus metrics exposed by the vLLM server. You may find these particularly useful:
 
 - **E2E Request Latency**: Shows the total time (in seconds) from when an inference request is sent until the response is fully received. A key indicator of overall responsiveness.
-- **Token Throughput**: Indicates how many tokens are processed per second during inference, reflecting the model’s processing speed.
-- **Cache Utilization**: Reports the percentage of the key‐value cache in use, helping you assess memory efficiency.
+- **Token Throughput**: Indicates how many tokens are processed per second during inference, reflecting the model's processing speed.
+- **Cache Utilization**: Reports the percentage of the key-value cache in use, helping you assess memory efficiency.
 - **Time to First Token**: Measures the delay before the first token is generated, highlighting initial response latency.
 - **Finish Reason**: Breaks down why requests end (e.g., completed, max tokens reached, aborted), useful for diagnosing performance constraints.
 
