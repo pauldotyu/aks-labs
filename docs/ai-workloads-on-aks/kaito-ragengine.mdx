@@ -84,7 +84,7 @@ az aks get-credentials \
 
 :::danger
 
-You must have sufficient quota available in your Azure subscription to deploy the workspace. If you don't have at least 24 vCPUs of Standard NCads A100 v4 GPU quota, you will need to [request additional quota](https://learn.microsoft.com/azure/quotas/quickstart-increase-quota-portal) from Azure support.
+The [KAITO Preset Workspace for the **phi-4-mini-instruct** model](https://github.com/kaito-project/kaito/blob/main/examples/inference/kaito_workspace_phi_4_mini.yaml) uses the `Standard_NC24ads_A100_v4` VM SKU. This lab aims for cost-effectiveness over performance, so a `Standard_NC4as_T4_v3` is used instead. You must have sufficient quota available in your Azure subscription to deploy the workspace. If you don't have at least 4 vCPUs of Standard NCASv3_T4 GPU quota, you will need to [request additional quota](https://learn.microsoft.com/azure/quotas/quickstart-increase-quota-portal) from Azure support.
 
 :::
 
@@ -95,7 +95,7 @@ kind: Workspace
 metadata:
   name: workspace-phi-4-mini-instruct
 resource:
-  instanceType: Standard_NC24ads_A100_v4
+  instanceType: Standard_NC4as_T4_v3
   labelSelector:
     matchLabels:
       apps: phi-4-mini-instruct
@@ -175,7 +175,7 @@ Run the following command to deploy a RAGEngine instance named `ragdemo` using t
 
 :::info
 
-You can customize the `instanceType` to use a different Azure VM size based on your requirements and available quota. The `Standard_D8s_v4` instance type is a **cost-effective** starting point for development and testing purposes, but you may want to use a larger instance type for production workloads or more demanding applications.
+You can customize the `instanceType` to use a different Azure VM size based on your requirements and available quota. The `Standard_D8s_v6` instance type is a **cost-effective** starting point for development and testing purposes, but you may want to use a larger instance type for production workloads or more demanding applications.
 
 :::
 
@@ -187,7 +187,7 @@ metadata:
   name: ragdemo
 spec:
   compute:
-    instanceType: Standard_D8s_v4
+    instanceType: Standard_D8s_v6
     labelSelector:
       matchLabels:
         apps: ragdemo
