@@ -42,8 +42,11 @@ The lab environment has been pre-configured for you with the following Azure res
 - [Azure Managed Prometheus](https://learn.microsoft.com/azure/azure-monitor/essentials/prometheus-metrics-overview)
 - [Azure Managed Grafana](https://learn.microsoft.com/azure/managed-grafana/overview)
 
-> [!NOTE]
-> The Bicep template used to deploy the lab environment can be found [here](https://raw.githubusercontent.com/azure-samples/aks-labs/refs/heads/ignite/workshops/operating-aks-automatic/assets/setup/bicep/aks.bicep). Just note that if you deploy this template, you will need to assign yourself the "Azure Kubernetes Service RBAC Cluster Admin" role to the AKS cluster and the "Grafana Admin" role to the Azure Managed Grafana resources.
+:::info
+
+The Bicep template used to deploy the lab environment can be found [here](https://raw.githubusercontent.com/azure-samples/aks-labs/refs/heads/ignite/workshops/operating-aks-automatic/assets/setup/bicep/aks.bicep). Just note that if you deploy this template, you will need to assign yourself the "Azure Kubernetes Service RBAC Cluster Admin" role to the AKS cluster and the "Grafana Admin" role to the Azure Managed Grafana resources.
+
+:::
 
 You will also need the following tools:
 
@@ -53,8 +56,11 @@ You will also need the following tools:
 - [kubelogin](https://learn.microsoft.com/azure/aks/kubelogin-authentication)
 - [Helm](https://helm.sh/docs/intro/install/)
 
-> [!ALERT]
-> All command-line instructions in this lab should be executed in a Bash shell. If you are using Windows, you can use the Windows Subsystem for Linux (WSL) or Azure Cloud Shell.
+:::warning
+
+All command-line instructions in this lab should be executed in a Bash shell. If you are using Windows, you can use the Windows Subsystem for Linux (WSL) or Azure Cloud Shell.
+
+:::
 
 Before you get started, open a Bash shell and log in to your Azure subscription with the following command:
 
@@ -79,7 +85,7 @@ az configure --defaults location=$(az group show -n myresourcegroup --query loca
 
 You are now ready to get started with the lab!
 
-===
+---
 
 ## Security and governance
 
@@ -114,8 +120,11 @@ Since this is the first time you are running a [kubectl](https://kubernetes.io/d
 
 Follow the same login process you went through to login into your Azure subscription. After you've successfully logged in, the command to create the namespace should be successful.
 
-> [!HELP]
-> If you run into an error when trying to log in, you may need to install the [kubelogin](https://github.com/Azure/kubelogin) plugin which is used to authenticate with Microsoft Entra ID. It can be easily installed with the following command: **az aks install-cli**.
+:::tip
+
+If you run into an error when trying to log in, you may need to install the [kubelogin](https://github.com/Azure/kubelogin) plugin which is used to authenticate with Microsoft Entra ID. It can be easily installed with the following command: **az aks install-cli**.
+
+:::
 
 Run the following command to get the AKS cluster's resource ID.
 
@@ -136,8 +145,11 @@ DEV_USER_PRINCIPAL_ID=$(az ad user show \
 --output tsv)
 ```
 
-> [!NOTE]
-> Be sure to replace **dev_user_principal_name** with the actual user principal name of the developer.
+:::warning
+
+Be sure to replace **dev_user_principal_name** with the actual user principal name of the developer.
+
+:::
 
 Run the following command to assign the **Azure Kubernetes Service RBAC Writer** role to the developer and have the permissions scoped only to the **dev** namespace. This ensures that the developer can only access the resources within the namespace and not the entire cluster.
 
@@ -204,8 +216,11 @@ This is exactly what we want to see. If you need to grant the user access to ano
 
 Great job! You now know how to manage user access to the AKS cluster and how to scope permissions to specific namespaces.
 
-> [!ALERT]
-> After testing the permissions, delete the developer user's cached credentials, then move the admin user's cached credentials back to the **~/.kube/cache/kubelogin** directory by running the following commands.
+:::warning
+
+After testing the permissions, delete the developer user's cached credentials, then move the admin user's cached credentials back to the **~/.kube/cache/kubelogin** directory by running the following commands.
+
+:::
 
 ```bash
 rm ~/.kube/cache/kubelogin/*.json
@@ -278,8 +293,11 @@ EOF
 
 This pod manifest is a bit more complex this time but it includes the following best practices that includes resource limits and requests as well as liveness and readiness probes.
 
-> [!HINT]
-> You should now see that we've satisfied all but one best practice, which we'll address later.
+:::info
+
+You should now see that we've satisfied all but one best practice, which we'll address later.
+
+:::
 
 You can also view the compliance state of the cluster resources in the Azure Portal.
 
@@ -326,13 +344,19 @@ Using the Azure Policy extension for Visual Studio Code, you can easily create a
 - Open VS Code and make sure the Azure Policy extension is installed. If not, you can install it from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=AzurePolicy.azurepolicyextension)
 - To activate the extension, press **Ctrl+Shift+P** on your keyboard to open the command palette and type **Azure: Sign in** then use the web browser to authenticate with your admin user account
 
-> [!HINT]
-> If you see multiple sign-in options, choose the one that has **azure-account.login** next to it.
+:::tip
+
+If you see multiple sign-in options, choose the one that has **azure-account.login** next to it.
+
+:::
 
 - Press **Ctrl+Shift+P** again and type **Azure: Select Subscriptions** then select the subscription that contains the AKS cluster
 
-> [!HINT]
-> If you see multiple subscriptions, choose the one that has **azure-account.selectSubscriptions** next to it.
+:::tip
+
+If you see multiple subscriptions, choose the one that has **azure-account.selectSubscriptions** next to it.
+
+:::
 
 - In VS Code sidebar, click the **Azure Policy** icon and you should see the subscription resources and policies panes being loaded
 - Open the VS Code terminal and run the following command download the sample ConstraintTemplate file to your local machine
@@ -347,19 +371,28 @@ curl -o constrainttemplate.yaml https://raw.githubusercontent.com/azure-samples/
 code constrainttemplate.yaml
 ```
 
-> [!KNOWLEDGE]
-> The constraint template includes Rego code on line 17 that enforces that all containers in the AKS cluster are sourced from approved container registries. The approved container registries can are defined in the **registry** parameter and this is where you can specify the container registry URL when implementing the ConstraintTemplate.
+:::info
+
+The constraint template includes Rego code on line 17 that enforces that all containers in the AKS cluster are sourced from approved container registries. The approved container registries can are defined in the **registry** parameter and this is where you can specify the container registry URL when implementing the ConstraintTemplate.
+
+:::
 
 - To convert this template to Azure Policy JSON, press **Ctrl+Shift+P** then type **Azure Policy for Kubernetes: Create Policy Definition from a Constraint Template**
 - Select the **Base64Encoded** option
 
-> [!HELP]
-> The extension activation process can take a few minutes to complete. If you cannot get the extension to generate JSON from the ConstraintTemplate, that's okay, skip to the [Deploy a custom policy definition](#deploy-a-custom-policy-definition) section below where you will use a sample Azure Policy JSON file.
+:::warning
+
+The extension activation process can take a few minutes to complete. If you cannot get the extension to generate JSON from the ConstraintTemplate, that's okay, skip to the [Deploy a custom policy definition](#deploy-a-custom-policy-definition) section below where you will use a sample Azure Policy JSON file.
+
+:::
 
 - This will generate a new Azure Policy definition in the JSON format and encode the ConstraintTemplate in Base64 format
 
-> [!HINT]
-> The template info can also refer to a URL where the ConstraintTemplate is hosted. This is useful when you want to reference a ConstraintTemplate that is hosted in a public repository.
+:::info
+
+The template info can also refer to a URL where the ConstraintTemplate is hosted. This is useful when you want to reference a ConstraintTemplate that is hosted in a public repository.
+
+:::
 
 - Fill in details where you see the text **/_ EDIT HERE _/**
   - For **displayName** field use the value `Approved registries only`
@@ -409,8 +442,11 @@ With the custom policy definition created, you can now assign it to the AKS clus
 - Click **Review + create** to review the policy assignment
 - Click **Create** to assign the policy definition to the AKS cluster
 
-> [!ALERT]
-> This policy assignment uses **Namespace exclusions** to exclude system namespaces from the policy enforcement. This is important because you may deny the deployment of certain pods if the namespaces are not "whitelisted" in the policy assignment. The alternative here is to only apply the policy to a specific namespace by using the **Namespace inclusions** parameter instead and specifying the namespace you want to enforce the policy on.
+:::warning
+
+This policy assignment uses **Namespace exclusions** to exclude system namespaces from the policy enforcement. This is important because you may deny the deployment of certain pods if the namespaces are not "whitelisted" in the policy assignment. The alternative here is to only apply the policy to a specific namespace by using the **Namespace inclusions** parameter instead and specifying the namespace you want to enforce the policy on.
+
+:::
 
 Awesome! You have successfully enforced custom policies in the AKS cluster. Once the policy assignment has taken effect, you can try deploying a pod with an image from an unapproved container registry to see the policy in action. However, this policy assignment can take up to 15 minutes to take effect, so let's move on to the next section.
 
@@ -420,7 +456,7 @@ For more information on how to create a policy definition from a ConstraintTempl
 - [Understand Azure Policy for Kubernetes clusters](https://learn.microsoft.com/azure/governance/policy/concepts/policy-for-kubernetes)
 - [OPA Gatekeeper Library](https://github.com/open-policy-agent/gatekeeper-library/)
 
-===
+---
 
 ## Secrets and config management
 
@@ -517,8 +553,11 @@ az role assignment create \
 --scope $(az keyvault show --name $KV_NAME --query id --output tsv)
 ```
 
-> [!HINT]
-> You might be wondering "what about the role assignment for the Azure App Configuration store?" We'll get to that in the next section.
+:::info
+
+You might be wondering "what about the role assignment for the Azure App Configuration store?" We'll get to that in the next section.
+
+:::
 
 ### Azure App Configuration Provider for Kubernetes
 
@@ -546,13 +585,19 @@ az aks connection create appconfig \
 --workload-identity $AC_ID
 ```
 
-> [!ALERT]
-> This can take up to 5 minutes to complete.
+:::warning
+
+This can take up to 5 minutes to complete.
+
+:::
 
 This command will create a service connector to allow pods in the **dev** namespace to connect to the Azure App Configuration store using the User-Assigned Managed Identity that was created earlier. The service connector will grant the User-Assigned Managed Identity the necessary permissions to access the Azure App Configuration store and configure a federated credential on the managed identity that will allow the ServiceAccount assigned to the pod to authenticate via workload identity.
 
-> [!HINT]
-> The AKS Service Connector is a powerful feature that allows you to connect your application pods to Azure services without having to manage any credentials. For more information, refer to the [service connector documentation](https://learn.microsoft.com/azure/service-connector/overview#what-services-are-supported-by-service-connector).
+:::info
+
+The AKS Service Connector is a powerful feature that allows you to connect your application pods to Azure services without having to manage any credentials. For more information, refer to the [service connector documentation](https://learn.microsoft.com/azure/service-connector/overview#what-services-are-supported-by-service-connector).
+
+:::
 
 ### Config sync to Kubernetes
 
@@ -622,8 +667,11 @@ Also, check to see if the secret in the configuration store has been synced to t
 kubectl get secret -n dev mysecret -o jsonpath='{.data.MySecret1}' | base64 -d
 ```
 
-> [!KNOWLEDGE]
-> While syncing secrets from Azure App Configuration to Kubernetes Secrets is supported, it is not best to keep secrets in Kubernetes Secrets because Kubernetes Secrets are not encrypted but rather base64 encoded. If you need to authenticate with Azure services from your applications, it is best to use AKS Workload Identity and Microsoft Entra ID for passwordless authentication.
+:::info
+
+While syncing secrets from Azure App Configuration to Kubernetes Secrets is supported, it is not best to keep secrets in Kubernetes Secrets because Kubernetes Secrets are not encrypted but rather base64 encoded. If you need to authenticate with Azure services from your applications, it is best to use AKS Workload Identity and Microsoft Entra ID for passwordless authentication.
+
+:::
 
 The app config sync is set to refresh every 10 seconds and you can choose which key to listen for changes. In this case, we are only listening for changes to the Key1 configuration. If you update the value for Key1 in the Azure App Configuration store, you should see the value updated in the Kubernetes ConfigMap after the next refresh.
 
@@ -645,7 +693,7 @@ kubectl get cm -n dev myconfigmap -o jsonpath='{.data}'
 
 Great job! You have successfully synced configurations from Azure App Configuration to Kubernetes ConfigMaps and Secrets.
 
-===
+---
 
 ## Scaling and workload scheduling
 
@@ -655,8 +703,11 @@ One key benefit of Kubernetes is its ability to scale workloads across a pool of
 
 With AKS Automatic, the [Node Autoprovision (NAP)](https://learn.microsoft.com/azure/aks/node-autoprovision?tabs=azure-cli) feature is enabled by default and acts as the cluster autoscaler. AKS Node Autoprovision is the Azure implementation of the [Karpenter project](https://karpenter.sh) which was developed by friends at AWS and [donated to the Cloud Native Computing Foundation (CNCF)](https://aws.amazon.com/blogs/containers/karpenter-graduates-to-beta/). In short, Karpenter is a Kubernetes controller that automates the provisioning, right-sizing, and termination of nodes in a Kubernetes cluster.
 
-> [!NOTE]
-> The term **Node Autoprovision (NAP)** may be used interchangeably with **Karpenter** in this lab.
+:::info
+
+The term **Node Autoprovision (NAP)** may be used interchangeably with **Karpenter** in this lab.
+
+:::
 
 When using an AKS Automatic cluster, a system node pool is automatically deployed to run essential components managed by AKS Automatic. As workloads are added or removed from the cluster, the Node Autoscaling (NAP) feature dynamically scales up or down the number of nodes to meet demand. Initially, only system nodes run in the cluster, but as workloads are deployed, NAP provisions new nodes to support them. Conversely, when workloads are deleted, NAP reduces the number of nodes to minimize costs. However, this process can leave pods in a pending state until a new node is available or cause disruptions during consolidation events. As a result, it’s essential to consider these factors when planning high availability for your workloads.
 
@@ -735,8 +786,11 @@ It is important to know that the nodes in the dev NodePool will have a taint app
 
 Now that the dev team has their own NodePool, you can try scheduling a pod that tolerates the taint that will be applied to the dev nodes. Before we do that, let's import the product-service container image into the Azure Container Registry.
 
-> [!HINT]
-> Remember we created a new policy that only allows images from specified container registries and container images that are not from the approved container registries will be denied.
+:::tip
+
+Remember we created a new policy that only allows images from specified container registries and container images that are not from the approved container registries will be denied.
+
+:::
 
 Run the following command to get the name of the Azure Container Registry.
 
@@ -860,8 +914,11 @@ Watch the pod for a few minutes and you should see the pod being restarted with 
 kubectl get pod -l app=product-service -n dev -w
 ```
 
-> [!ALERT]
-> The VPA will evict pods only if the number of replicas is greater than 1. Otherwise, it will not evict the pod.
+:::warning
+
+The VPA will evict pods only if the number of replicas is greater than 1. Otherwise, it will not evict the pod.
+
+:::
 
 Once you see the pods being restarted, press **Ctrl+C** to exit the watch then run the following command to confirm the resource requests and limits have been set.
 
@@ -871,8 +928,11 @@ kubectl describe po -n dev | grep -i requests -A2
 
 With requests in place, the scheduler can make better decisions about where to place the pod. The VPA will also adjust the resource requests based on the pod's usage. This is also especially important when using pod autoscaling features like the Kubernetes [HorizontalPodAutoscaler](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/) or [KEDA](https://keda.sh).
 
-> [!KNOWLEDGE]
-> KEDA is the Kubernetes-based Event Driven Autoscaler. With KEDA, you can scale your workloads based on the number of events in a queue, the length of a stream, or any other custom metric. It won't be covered in this lab, but the KEDA add-on for AKS is enabled by default in AKS Automatic clusters and you can learn more about it [here](https://learn.microsoft.com/azure/aks/keda-about).
+:::tip
+
+KEDA is the Kubernetes-based Event Driven Autoscaler. With KEDA, you can scale your workloads based on the number of events in a queue, the length of a stream, or any other custom metric. It won't be covered in this lab, but the KEDA add-on for AKS is enabled by default in AKS Automatic clusters and you can learn more about it [here](https://learn.microsoft.com/azure/aks/keda-about).
+
+:::
 
 ### Dealing with disruptions
 
@@ -1074,7 +1134,7 @@ kubectl get po -n dev -l app=product-service -o wide
 
 Excellent! You have now know about some of the best practices for workload scheduling in Kubernetes to ensure that your workloads are scheduled efficiently and effectively.
 
-===
+---
 
 ## Troubleshooting workloads
 
@@ -1102,8 +1162,11 @@ In the Run command page, the kubectl command will be pre-populated in the textbo
 
 Scroll through the output and see if you can spot the issue.
 
-> [!HINT]
-> There is a problem with the ai-service pod.
+:::tip
+
+There is a problem with the ai-service pod.
+
+:::
 
 #### Find the solution
 
@@ -1117,8 +1180,11 @@ The Copilot should provide you with an explanation of what the CrashLoopBackOff 
 
 You were not specific with the pod name so the Copilot gave you a general command to run, so re-prompt the Copilot to restate the commands by giving it the exact pod name `The exact pod name is ai-service-xxxxx. What commands should I run again?` (replace the xxxxx with the actual pod name).
 
-> [!HINT]
-> Some of the commands may include a **Run** button that can enable the Azure Cloud Shell, don't use this as you'd need to re-authenticate from within the Cloud Shell. Instead, copy the **kubectl describe** pod command and run it in the Run command window to get more information about the pod.
+:::tip
+
+Some of the commands may include a **Run** button that can enable the Azure Cloud Shell, don't use this as you'd need to re-authenticate from within the Cloud Shell. Instead, copy the **kubectl describe** pod command and run it in the Run command window to get more information about the pod.
+
+:::
 
 The **kubectl describe** command will provide you with more information about the pod including the events that led to the CrashLoopBackOff status. You might get a little more information about the issue if you look through the pod logs.
 
@@ -1142,8 +1208,11 @@ Ask the Copilot:
 How do I create an Azure OpenAI service with the GPT-3.5 Turbo model?
 ```
 
-> [!ALERT]
-> The Azure Copilot may not always provide you with the exact commands to run but it will provide you with the necessary information to get you started.
+:::warning
+
+The Azure Copilot may not always provide you with the exact commands to run but it will provide you with the necessary information to get you started.
+
+:::
 
 The instructions should be very close to what you need. You can either follow the instructions and/or reference the docs it replies with or you can run the following commands to quickly create an Azure OpenAI service account.
 
@@ -1172,8 +1241,11 @@ az cognitiveservices account deployment create \
 --sku-name "Standard"
 ```
 
-> [!ALERT]
-> The model version above may not be available in your region. You can the model availability [here](https://learn.microsoft.com/azure/ai-services/openai/concepts/models?tabs=python-secure#standard-deployment-model-availability)
+:::warning
+
+The model version above may not be available in your region. You can the model availability [here](https://learn.microsoft.com/azure/ai-services/openai/concepts/models?tabs=python-secure#standard-deployment-model-availability)
+
+:::
 
 The dev team also tells you that the ai-service pod uses a ConfigMap named **ai-service-configs** with the following environment variables to connect to the Azure OpenAI service.
 
@@ -1222,8 +1294,11 @@ You should see the ai-service pod status change from CrashLoopBackOff status to 
 1. Based on what you have learned so far in this lab, can you leverage Azure App Configuration to store the environment variables for the ai-service pod and sync them to the Kubernetes ConfigMap and Secret?
 2. How can you go about updating this to use passwordless authentication with AKS Workload Identity instead?
 
-> [!HINT]
-> A complete walkthrough of the solution can be found [here](https://learn.microsoft.com/azure/aks/open-ai-secure-access-quickstart)
+:::info
+
+A complete walkthrough of the solution can be found [here](https://learn.microsoft.com/azure/aks/open-ai-secure-access-quickstart)
+
+:::
 
 ### Troubleshooting with kubectl
 
@@ -1235,7 +1310,7 @@ Finally, be sure to checkout the [Troubleshooting Applications](https://kubernet
 - [Azure Kubernetes Service (AKS) troubleshooting documentation](https://learn.microsoft.com/troubleshoot/azure/azure-kubernetes/welcome-azure-kubernetes)
 - [Set up Advanced Network Observability for Azure Kubernetes Service (AKS)](https://learn.microsoft.com/azure/aks/advanced-network-observability-cli?tabs=cilium)
 
-===
+---
 
 ## Conclusion
 
