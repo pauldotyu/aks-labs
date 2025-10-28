@@ -388,7 +388,7 @@ At the start of the workshop, you set up the AKS Automatic cluster and integrate
 
 Now, you can also enable the [Azure Monitor Application Insights for AKS](https://learn.microsoft.com/azure/azure-monitor/app/kubernetes-codeless) feature to automatically instrument your applications with [Azure Application Insights](https://learn.microsoft.com/azure/azure-monitor/app/app-insights-overview).
 
-### Application insights
+### App monitoring
 
 [Azure Monitor Application Insights](https://learn.microsoft.com/azure/azure-monitor/app/app-insights-overview) is an Application Performance Management (APM) solution designed for real-time monitoring and observability of your applications. Leveraging [OpenTelemetry (OTel)](https://opentelemetry.io/), it collects telemetry data from your applications and streams it to Azure Monitor. This enables you to evaluate application performance, monitor usage trends, pinpoint bottlenecks, and gain actionable insights into application behavior. With AKS, you can enable the [AutoInstrumentation](https://learn.microsoft.com/azure/azure-monitor/app/kubernetes-codeless) feature which allows you to collect telemetry for your applications without requiring any code changes.
 
@@ -482,7 +482,7 @@ Finally, click on the **Performance** tab to view the performance metrics for th
 
 Feel free to explore the other features of Application Insights and see how you can use it to monitor and observe your applications.
 
-### Container insights
+### Cluster monitoring
 
 AKS Automatic simplifies monitoring your cluster using [Container Insights](https://learn.microsoft.com/azure/azure-monitor/containers/container-insights-overview) which offers a detailed monitoring solution for your containerized applications running on AKS. It gathers and analyzes logs, metrics, and events from your cluster and applications, providing valuable insights into their performance and health.
 
@@ -543,7 +543,7 @@ Some of the queries might not have enough data to return results.
 
 :::
 
-### Visualizing with Grafana
+### Dashboards with Grafana
 
 The Azure Portal provides a great way to view metrics and logs, but if you prefer to visualize the data using Grafana, or execute complex queries using PromQL, you can use an Azure Managed Grafana instance or leverage the new **Dashboards with Grafana** feature for AKS!
 
