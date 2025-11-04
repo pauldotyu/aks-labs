@@ -56,22 +56,22 @@ In both tests, the connection was successful. This is because all traffic is all
 
 Now, let's deploy some network policy to allow only the required ports in the pets namespace.
 
-Run the following command to download the network policy manifest file.
+Run the following command to apply the network policy manifest file from the assets folder.
 
 ```bash
-curl -o acns-network-policy.yaml https://gist.githubusercontent.com/pauldotyu/64bdb2fdf99b24fc7922ff0101a6af5d/raw/141b085f1f4e57c214281400f576274676103801/acns-network-policy.yaml
+kubectl apply -n pets -f assets/acns-network-policy.yaml
 ```
 
-Take a look at the network policy manifest file by running the following command.
+Optionally, take a look at the network policy manifest file by running the following command.
 
 ```bash
-cat acns-network-policy.yaml
+cat assets/acns-network-policy.yaml
 ```
 
 Apply the network policy to the pets namespace.
 
 ```bash
-kubectl apply -n pets -f acns-network-policy.yaml
+kubectl apply -n pets -f assets/acns-network-policy.yaml
 ```
 
 #### Verify Policies
@@ -148,20 +148,16 @@ To limit egress to certain domains, apply an FQDN policy. This policy permits ac
 
 </div>
 
-Run the following command to download the FQDN policy manifest file.
+Run the following command to apply the FQDN policy manifest file from the assets folder.
 
 ```bash
-curl -o acns-network-policy-fqdn.yaml https://gist.githubusercontent.com/pauldotyu/fd4cc689d9dcf8b0fd508620f3e6880d/raw/3e60c7e9bfb9ce5e7887ec7d81a6ca423002b14d/acns-network-policy-fqdn.yaml
+kubectl apply -n pets -f assets/acns-network-policy-fqdn.yaml
 ```
 
-Take a look at the FQDN policy manifest file by running the following command.
+Optionally, take a look at the FQDN policy manifest file by running the following command.
 
 ```bash
-cat acns-network-policy-fqdn.yaml
-```
-
-```bash
-kubectl apply -n pets -f acns-network-policy-fqdn.yaml
+cat assets/acns-network-policy-fqdn.yaml
 ```
 
 #### Verify FQDN Policy Enforcement
@@ -195,22 +191,16 @@ We'll work to simulate a problem and then use ACNS to troubleshoot the issue.
 
 Let's start by applying a new network policy to cause some chaos in the network. This policy will drop incoming traffic to the store-front service.
 
-Run the following command to download the chaos policy manifest file.
+Run the following command to apply the chaos policy manifest file from the assets folder.
 
 ```bash
-curl -o acns-network-policy-chaos.yaml https://gist.githubusercontent.com/pauldotyu/9963e1301b8f3a460398b78a1e31ca84/raw/68f98f9a18dca5747248b434968e0074564a9c66/acns-network-policy-chaos.yaml
+kubectl apply -n pets -f assets/acns-network-policy-chaos.yaml
 ```
 
-Run the following command to examine the chaos policy manifest file.
+Optionally, examine the chaos policy manifest file by running the following command.
 
 ```bash
-cat acns-network-policy-chaos.yaml
-```
-
-Run the following command to apply the chaos policy to the pets namespace.
-
-```bash
-kubectl apply -n pets -f acns-network-policy-chaos.yaml
+cat assets/acns-network-policy-chaos.yaml
 ```
 
 #### Access Grafana Dashboard
@@ -342,146 +332,186 @@ Let's simulate this scenario by applying an additional network policy and genera
 This policy adds FQDN filtering and L7 HTTP rules to the store-front application:
 
 ```bash
-curl -o aks-combined-fqdn-l7.yaml https://raw.githubusercontent.com/shaifaligargmsft/aks-labs-shaif/main/docs/networking/assets/aks-combined-fqdn-l7.yaml
+kubectl apply -f assets/aks-combined-fqdn-l7.yaml
 ```
 
-Review the policy to understand what traffic it allows:
+Optionally, review the policy to understand what traffic it allows:
 
 ```bash
-cat aks-combined-fqdn-l7.yaml
+cat assets/aks-combined-fqdn-l7.yaml
 ```
 
-Apply the policy to the pets namespace:
+**Step 2: Generate Test Traffic (Individual Scenarios)**
+
+Now let's generate test traffic for each scenario individually so you can observe the results step by step.
+
+**Scenario 1: Test External Access to Store-Front**
+
+This tests whether external users can access the store-front application.
 
 ```bash
-kubectl apply -f aks-combined-fqdn-l7.yaml
-```
-
-**Step 2: Simulate the Reported Issues**
-
-Now let's generate traffic that mimics the issues developers are reporting:
-
-```bash
-# Issue 1: External users can't access the application (ingress blocked by chaos policy)
 STORE_FRONT_IP=$(kubectl get svc -n pets store-front -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-echo "Testing external access to store-front..."
-for i in {1..5}; do curl -s -m 2 http://${STORE_FRONT_IP} || echo "Connection failed"; sleep 1; done
+echo "Testing external access to store-front at ${STORE_FRONT_IP}..."
+curl -s -m 2 http://${STORE_FRONT_IP} || echo "Connection failed"
 ```
 
-**Expected Result:** Connection timeout or failure. The chaos policy is blocking all ingress traffic to store-front.
+**Expected Result:**
 
 ```text
 Connection failed
-Connection failed
-Connection failed
-Connection failed
-Connection failed
 ```
 
-<div class="info" data-title="Note">
+**Why?** The chaos policy blocks ALL ingress traffic with `ingress: - fromEndpoints: []` (allow from nowhere = block all)
 
-> If you see curl progress bars instead, the command is still running but timing out. You can verify the connections are being dropped by checking the flow logs in the next section - they will show `Verdict: DROPPED` for `TrafficDirection: INGRESS`.
+---
 
-</div>
+**Scenario 2: Test FQDN Access to microsoft.com (Allowed Domain)**
+
+This tests access to a domain that is in BOTH the DNS patterns AND toFQDNs list.
 
 ```bash
-# Issue 2: Some external API calls work, others don't (FQDN policy in action)
-echo "Testing allowed FQDN access to microsoft.com..."
-kubectl exec -n pets -it $(kubectl get po -n pets -l app=store-front -ojsonpath='{.items[0].metadata.name}') -- sh -c 'wget --spider --timeout=2 https://www.microsoft.com' || true
+echo "Testing FQDN access to microsoft.com..."
+kubectl exec -n pets -it $(kubectl get po -n pets -l app=store-front -ojsonpath='{.items[0].metadata.name}') -- sh -c 'wget --spider --timeout=2 https://www.microsoft.com'
 ```
 
-**Expected Result:** Connection succeeds but may get HTTP 403. This proves the FQDN policy is **working** - the network allows the traffic through, even though the web server rejects the request.
+**Expected Result:**
 
 ```text
 Connecting to www.microsoft.com (23.192.18.101:443)
 wget: server returned error: HTTP/1.1 403 Forbidden
 ```
 
-<div class="info" data-title="Note">
+**Why?** The network policy **allows** the connection (DNS query succeeds, HTTPS connection succeeds), but the Microsoft web server returns HTTP 403. This proves the FQDN policy is working correctly - the network allows the traffic through.
 
-> The HTTP 403 error means the **network policy allowed the connection** (Verdict: FORWARDED), but the remote server rejected the HTTP request. This is expected behavior - if the policy was blocking it, you'd see a timeout or DNS failure instead.
+---
 
-</div>
+**Scenario 3: Test FQDN Access to api.github.com (DNS Blocked)**
+
+This tests access to a domain that is in the toFQDNs list but NOT in the DNS patterns - demonstrating a common misconfiguration.
 
 ```bash
-echo "Testing allowed FQDN access to api.github.com..."
-kubectl exec -n pets -it $(kubectl get po -n pets -l app=store-front -ojsonpath='{.items[0].metadata.name}') -- sh -c 'wget --spider --timeout=2 https://api.github.com' || true
+echo "Testing FQDN access to api.github.com..."
+kubectl exec -n pets -it $(kubectl get po -n pets -l app=store-front -ojsonpath='{.items[0].metadata.name}') -- sh -c 'wget --spider --timeout=2 https://api.github.com'
 ```
 
-**Expected Result:** DNS resolution failure - even though `api.github.com` is in the `toFQDNs` list, the DNS query itself is being blocked because `api.github.com` is not in the DNS `matchPattern` rules.
+**Expected Result:**
 
 ```text
 wget: bad address 'api.github.com'
+command terminated with exit code 1
 ```
 
-<div class="info" data-title="Note">
+**Why?** Even though `api.github.com` is in the `toFQDNs` list, the DNS query itself is being blocked because `api.github.com` is NOT in the DNS `matchPattern` rules. The pod never gets to attempt the HTTPS connection.
 
-> This demonstrates an important aspect of FQDN policies: You need **both** DNS rules (to allow the DNS query) **and** toFQDNs rules (to allow the connection to the resolved IP). The policy has the `toFQDNs` rule but is missing `api.github.com` in the DNS patterns.
+---
 
-</div>
+**Scenario 4: Test L7 HTTP Policy - Product Service API Access**
+
+This tests Layer 7 (HTTP) filtering which inspects the actual HTTP method and path, not just IP/port.
 
 ```bash
-echo "Testing blocked FQDN access to google.com..."
-kubectl exec -n pets -it $(kubectl get po -n pets -l app=store-front -ojsonpath='{.items[0].metadata.name}') -- sh -c 'wget --spider --timeout=2 https://www.google.com' || true
+echo "Testing L7 HTTP access to product-service..."
+kubectl exec -n pets -it store-front-5c66bbdfc5-5fnpv -- sh -c 'wget --spider --timeout=2 http://product-service:3002/'
 ```
 
-**Expected Result:** Timeout or DNS resolution failure - `google.com` is NOT in the FQDN allow list.
+**Expected Result:**
 
 ```text
-wget: bad address 'www.google.com'
+Connecting to product-service:3002 (10.0.96.101:3002)
+remote file exists
 ```
+
+**Why?** The L7 HTTP policy allows GET requests to the `/` path on product-service. This demonstrates Layer 7 (application layer) filtering - the policy can inspect HTTP methods and paths, not just IP addresses and ports.
+Now test a different HTTP method (POST) to the same endpoint:
 
 ```bash
-# Issue 3: DNS query is blocked (not in DNS matchPattern rules)
-echo "Testing DNS query for domain not in matchPattern..."
-kubectl exec -n pets -it $(kubectl get po -n pets -l app=store-front -ojsonpath='{.items[0].metadata.name}') -- sh -c 'nslookup www.bing.com' || true
-kubectl exec -n pets -it $(kubectl get po -n pets -l app=store-front -ojsonpath='{.items[0].metadata.name}') -- sh -c 'wget --spider --timeout=5 https://www.bing.com' || true
+echo "Testing L7 HTTP POST to product-service (should be blocked)..."
+kubectl exec -n pets -it $(kubectl get po -n pets -l app=store-front -ojsonpath='{.items[0].metadata.name}') -- sh -c 'wget --timeout=2 --post-data="" http://product-service:3002/' || echo "Request blocked by L7 policy"
 ```
 
-**Expected Result:** DNS query fails because `bing.com` is not in the DNS `matchPattern` rules.
+**Expected Result:**
 
 ```text
-;; Got recursion not available from 10.0.0.10
-Server:         10.0.0.10
-Address:        10.0.0.10#53
-
-** server can't find www.bing.com.pets.svc.cluster.local: REFUSED
-
-wget: bad address 'www.bing.com'
+Connecting to product-service:3002 (10.0.96.101:3002)
+wget: server returned error: HTTP/1.1 403 Forbidden
+Request blocked by L7 policy
 ```
 
-<div class="info" data-title="Note">
+**Why?** The L7 policy only allows GET requests. POST requests to the same endpoint are blocked at the application layer. This shows how L7 policies provide fine-grained control beyond traditional L3/L4 network policies.
 
-> This shows that `bing.com` is not in the DNS `matchPattern` rules, so the DNS query itself is blocked. This is similar to the `api.github.com` and `google.com` cases - the policy is blocking DNS resolution for domains not explicitly allowed.
+---
 
-</div>
+**Scenario 5: Test Internal Service-to-Service Communication**
+
+This tests that internal pod-to-pod communication works correctly within the namespace.
 
 ```bash
-# Issue 4: Internal DNS resolution
-echo "Testing internal DNS resolution..."
-kubectl exec -n pets -it $(kubectl get po -n pets -l app=store-front -ojsonpath='{.items[0].metadata.name}') -- sh -c 'nslookup rabbitmq.pets.svc.cluster.local' || true
+echo "Testing internal service communication (store-front to order-service)..."
+kubectl exec -n pets -it $(kubectl get po -n pets -l app=store-front -ojsonpath='{.items[0].metadata.name}') -- sh -c 'nc -zv -w2 order-service 3000'
 ```
 
-**Expected Result:** Success - internal cluster DNS resolution is allowed.
+**Expected Result:**
+
+```text
+order-service (10.0.96.102:3000) open
+```
+
+**Why?** The network policies allow internal communication between services in the pets namespace. This confirms that while external access is restricted and FQDN filtering is applied, internal service mesh communication remains functional.
+
+---
+
+**Scenario 6: Test Internal DNS Resolution with Short Service Names**
+
+This tests that internal cluster DNS resolution works correctly with Kubernetes short service names.
+
+```bash
+echo "Testing DNS resolution with short service name..."
+kubectl exec -n pets -it $(kubectl get po -n pets -l app=store-front -ojsonpath='{.items[0].metadata.name}') -- sh -c 'nslookup order-service'
+```
+
+**Expected Result:**
 
 ```text
 Server:    10.0.0.10
 Address 1: 10.0.0.10 kube-dns.kube-system.svc.cluster.local
 
-Name:      rabbitmq.pets.svc.cluster.local
-Address 1: 10.0.96.123 rabbitmq.pets.svc.cluster.local
+Name:      order-service
+Address 1: 10.0.96.102 order-service.pets.svc.cluster.local
 ```
+
+**Why?** The DNS query for `order-service` (short name) gets automatically expanded to `order-service.pets.svc.cluster.local` using the pod's DNS search domain. This demonstrates that internal cluster DNS resolution works correctly, even with the network policies in place. The DNS query matches the `*.pets.svc.cluster.local` pattern in the DNS rules, allowing successful name resolution.
+
+---
+
+**Summary of Test Scenarios:**
+
+| Scenario | Test Type | Protocol/Layer | Result |
+|----------|-----------|----------------|--------|
+| 1 | External → store-front | L3/L4 (TCP/IP) | ❌ Ingress blocked by chaos policy |
+| 2 | microsoft.com | L7 (HTTPS/FQDN) | ✅ Network OK (HTTP 403 from server) |
+| 3 | api.github.com | L7 (DNS/FQDN) | ❌ DNS query blocked (missing from DNS patterns) |
+| 4 | GET /api/products | L7 (HTTP method) | ✅ Allowed by L7 policy |
+| 4b | POST /api/products | L7 (HTTP method) | ❌ Blocked by L7 policy (only GET allowed) |
+| 5 | store-front → order-service | L3/L4 (TCP internal) | ✅ Internal communication works |
+| 6 | nslookup order-service | DNS (internal) | ✅ Internal DNS resolution works |
+
+<div class="info" data-title="Key Insight">
+
+> **FQDN Policy Requirements**: Notice that `api.github.com` is in the `toFQDNs` list but still fails. This demonstrates a critical Cilium requirement: you need **BOTH** DNS rules (to allow the DNS query) **AND** toFQDNs rules (to allow the connection). Having only toFQDNs without DNS rules means the DNS query gets blocked first, and the connection is never attempted. This is a common misconfiguration that flow logs will help you identify.
+
+</div>
 
 **What You Just Simulated:**
 
 1. **External Access Failures**: The chaos policy is blocking all ingress traffic to store-front
-2. **Selective FQDN Filtering**: The FQDN policy allows `*.microsoft.com`, but blocks other domains like `api.github.com`, `google.com`, and `bing.com`
-3. **DNS-Level Blocking**: Domains not in the DNS `matchPattern` rules fail at DNS resolution (before even attempting connections)
+2. **Selective FQDN Filtering**: The FQDN policy allows `*.microsoft.com`, but blocks `api.github.com` at the DNS level
+3. **L7 HTTP Method Filtering**: The L7 policy allows GET requests but blocks POST requests to the product-service API, demonstrating application-layer control
+4. **Internal Service Mesh**: Pod-to-pod communication within the namespace continues to work normally
 
 The `aks-combined-fqdn-l7.yaml` policy you applied contains:
 - **DNS rules**: Allow DNS queries for `rabbitmq.pets.svc.cluster.local` and `*.microsoft.com`
 - **FQDN rules**: Allow HTTP/HTTPS to `*.microsoft.com` and `api.github.com`
-- **L7 HTTP rules**: Allow GET requests to the product-service backend
+- **L7 HTTP rules**: Allow GET requests to the product-service backend (path: `/api/products`), but block other HTTP methods like POST
 
 <div class="info" data-title="Important">
 
@@ -524,131 +554,182 @@ Navigate to [Azure Portal](https://aka.ms/publicportal), search for your AKS clu
 
 </div>
 
-**Troubleshooting Scenario: "Users can't access the store-front application"**
+##### Progressive Diagnosis Using Flow Logs
 
-Grafana showed you dropped incoming traffic, but let's use flow logs to find the exact source of the problem.
+Now let's use flow logs to diagnose all the issues we just generated. Each query builds on the previous one, giving you a complete picture of what's happening in your cluster.
 
-##### Query 1: Find Exactly Which Connections Are Blocked (30 seconds)
+<div class="info" data-title="Note">
 
-Let's investigate the external access failures. Run this query to see individual blocked connections to store-front:
+> **About Query Results**: The results shown in this lab are examples from a specific testing environment. Your actual results will be similar in structure and pattern, but will have different values for IP addresses, pod names, timestamps, and counts based on your specific cluster configuration and traffic patterns.
+
+</div>
+
+##### Query 1: Start with the Obvious - What's Being Blocked? (30 seconds)
+
+First, let's get a high-level view of all dropped traffic in the pets namespace:
 
 ```kusto
 RetinaNetworkFlowLogs
 | where TimeGenerated > ago(30m)
 | where SourceNamespace == "pets" or DestinationNamespace == "pets"
-| where DestinationPodName contains "store-front"
 | where Verdict == "DROPPED"
-| extend SrcIP = tostring(IP.source), DstIP = tostring(IP.destination)
-| extend Layer4Data = parse_json(Layer4)
-| extend DstPort = coalesce(tostring(Layer4Data.TCP.destination_port), tostring(Layer4Data.UDP.destination_port))
-| project TimeGenerated, SourcePodName, SrcIP, DestinationPodName, DstIP, DstPort, Verdict, TrafficDirection
-| order by TimeGenerated desc
+| summarize 
+    DroppedFlows = count()
+    by TrafficDirection, SourcePodName, DestinationPodName
+| order by DroppedFlows desc
 | take 20
 ```
 
-**What you'll see in the results:**
-- **External ingress traffic** being dropped (SourcePodName will be empty, TrafficDirection = INGRESS)
-- **SourceIP** shows the exact external IPs from your curl commands
-- **Timestamp** shows when each connection attempt was made
-- **DstPort** shows port 80 (HTTP)
+**What you'll discover:**( Following result is an example)
 
-**Troubleshooting value:** In 30 seconds, you identified:
-✅ The problem is **ingress** traffic, not application code or backend services  
-✅ The exact **source IPs** being blocked (your test machine)  
-✅ The exact **time** when connections were dropped  
+| TrafficDirection | SourcePodName | DestinationPodName | DroppedFlows |
+|---|---|---|---|
+| INGRESS | (external) | store-front-abc123 | 156 |
+| EGRESS | store-front-abc123 | (external) | 35 |
 
-**Without flow logs:** You'd be SSHing into nodes, checking iptables rules, and guessing which traffic is affected. **Saved time: ~45 minutes**
+**Immediate insights (30 seconds):**
+- ✅ **INGRESS to store-front has 156 dropped flows** - This confirms users can't access the application
+- ✅ **EGRESS from store-front has 35 dropped flows** - Some external API calls are being blocked
+
+**What we learned:** There are TWO distinct problems:
+1. External users can't reach the app (INGRESS issue)
+2. The app can't reach some external services (EGRESS issue)
+
+**Next step:** We need to dig deeper into BOTH issues. Let's start with the INGRESS problem.
 
 ---
 
-**Troubleshooting Scenario: "API calls to external services are failing"**
+##### Query 2: Diagnose the INGRESS Problem - Who's Being Blocked? (1 minute)
 
-Developers report that some external API calls work (microsoft.com) while others fail (api.github.com, google.com). Let's investigate.
-
-##### Query 2: Identify Blocked DNS Queries (1 minute)
-
-Now let's investigate why `api.github.com` and `google.com` failed. Run this query to find DNS-related traffic:
+Now let's see exactly which external connections are being dropped:
 
 ```kusto
 RetinaNetworkFlowLogs
 | where TimeGenerated > ago(30m)
-| where SourceNamespace == "pets"
+| where DestinationNamespace == "pets"
+| where DestinationPodName contains "store-front"
+| where TrafficDirection == "INGRESS"
+| where Verdict == "DROPPED"
+| extend SrcIP = tostring(IP.source), DstIP = tostring(IP.destination)
 | extend Layer4Data = parse_json(Layer4)
 | extend DstPort = coalesce(tostring(Layer4Data.TCP.destination_port), tostring(Layer4Data.UDP.destination_port))
-| where DstPort == "53"  // DNS port
-| project TimeGenerated, SourcePodName, DestinationPodName, Verdict, TrafficDirection, DstPort
+| project TimeGenerated, SrcIP, DstIP, DstPort, Verdict
 | order by TimeGenerated desc
 | take 20
 ```
 
-**What you'll see in the results:**
-| TimeGenerated | SourcePodName | Verdict | TrafficDirection |
-|---|---|---|---|
-| 2024-11-04 10:23:15 | store-front-abc123 | FORWARDED | EGRESS |
-| 2024-11-04 10:23:18 | store-front-abc123 | FORWARDED | EGRESS |
-| 2024-11-04 10:23:22 | store-front-abc123 | **DROPPED** | EGRESS |
-| 2024-11-04 10:23:25 | store-front-abc123 | **DROPPED** | EGRESS |
+**What you'll discover:**
 
-**Troubleshooting value:** In 1 minute, you discovered:
-✅ DNS queries for `*.microsoft.com` and `rabbitmq.pets.svc.cluster.local` are **FORWARDED**  
-✅ DNS queries for `api.github.com` and `google.com` are **DROPPED**  
-✅ This explains why the app shows "bad address" for those domains
+| TimeGenerated | SrcIP | DstIP | DstPort | Verdict |
+|---|---|---|---|---|
+| 2024-11-04 10:25:18 | 203.0.113.45 | 10.0.96.101 | 80 | DROPPED |
+| 2024-11-04 10:25:19 | 203.0.113.45 | 10.0.96.101 | 80 | DROPPED |
+| 2024-11-04 10:25:20 | 203.0.113.45 | 10.0.96.101 | 80 | DROPPED |
 
-**Root cause identified:** The DNS policy is missing `api.github.com` and `google.com` in the `matchPattern` rules.
+**Cumulative insights (90 seconds total):**
+- ✅ **Exact source IPs** of blocked external users (203.0.113.45 = your test machine)
+- ✅ **Destination port 80** confirms HTTP traffic is being blocked
+- ✅ **All INGRESS traffic to store-front is DROPPED** - complete outage for external users
 
-**Without flow logs:** You'd be manually testing each domain, checking DNS server logs, and trying to correlate events across multiple pods. **Saved time: ~30 minutes**
+**Root cause for INGRESS:** The chaos policy has `ingress: - fromEndpoints: []` (allow from nowhere = block all ingress)
+
+**Next step:** INGRESS problem understood. Now let's diagnose the EGRESS issue - why are some external API calls failing?
 
 ---
 
-**Troubleshooting Scenario: "Why does microsoft.com work but bing.com fail?"**
+##### Query 3: Diagnose EGRESS - Separate DNS Failures from Connection Failures (2 minutes)
 
-Let's investigate why some external domains work while others fail by looking at DNS queries and HTTPS connections together.
-
-##### Query 3: Correlate DNS Queries with Connection Attempts (2 minutes)
-
-This query shows both DNS queries (port 53) and HTTPS connections (port 443) to external endpoints, helping you understand the complete picture:
+Let's look at DNS traffic (port 53) to understand which domains are allowed vs blocked:
 
 ```kusto
 RetinaNetworkFlowLogs
 | where TimeGenerated > ago(30m)
 | where SourceNamespace == "pets"
 | where SourcePodName contains "store-front"
+| where TrafficDirection == "EGRESS"
+| extend Layer4Data = parse_json(Layer4)
+| extend DstPort = coalesce(tostring(Layer4Data.TCP.destination_port), tostring(Layer4Data.UDP.destination_port))
+| where DstPort == "53"  // DNS port
+| summarize 
+    Count = count()
+    by Verdict
+| order by Verdict asc
+```
+
+**What you'll discover:**
+
+| Verdict | Count |
+|---|---|
+| DROPPED | 15 |
+| FORWARDED | 12 |
+
+**Cumulative insights (3 minutes total):**
+- ✅ **12 DNS queries succeeded** (microsoft.com, internal cluster DNS)
+- ✅ **15 DNS queries blocked** (api.github.com, google.com, bing.com)
+- ✅ **Pattern identified**: DNS is being selectively filtered
+
+**Key insight:** Some domains fail at the DNS level - they never even get to attempt the HTTPS connection. This suggests the DNS `matchPattern` rules are too restrictive.
+
+**Next step:** Let's see the complete picture - which domains are allowed and which are blocked, including both DNS and HTTPS traffic.
+
+---
+
+##### Query 4: Complete Traffic Pattern - DNS + HTTPS Correlation (2 minutes)
+
+Now let's correlate DNS queries with HTTPS connection attempts to understand the full flow:
+
+```kusto
+RetinaNetworkFlowLogs
+| where TimeGenerated > ago(30m)
+| where SourceNamespace == "pets"
+| where SourcePodName contains "store-front"
+| where TrafficDirection == "EGRESS"
 | extend SrcIP = tostring(IP.source), DstIP = tostring(IP.destination)
 | extend Layer4Data = parse_json(Layer4)
 | extend DstPort = coalesce(tostring(Layer4Data.TCP.destination_port), tostring(Layer4Data.UDP.destination_port))
 | where DstPort in ("53", "443")  // DNS and HTTPS
 | where isnotempty(DstIP)
-| where DstIP !startswith "10." and DstIP !startswith "172." and DstIP !startswith "192.168."  // External IPs only
-| project TimeGenerated, SourcePodName, DstIP, DstPort, Verdict, TrafficDirection
+| project TimeGenerated, DstIP, DstPort, Verdict
 | order by TimeGenerated asc
+| take 50
 ```
 
-**What you'll see in the results:**
-| TimeGenerated | SourcePodName | DstIP | DstPort | Verdict |
+**What you'll discover (showing key patterns):**
+
+| TimeGenerated | DstIP | DstPort | Verdict | Explanation |
 |---|---|---|---|---|
-| 2024-11-04 10:26:15 | store-front-abc123 | 10.0.0.10 | 53 | FORWARDED |
-| 2024-11-04 10:26:16 | store-front-abc123 | 23.192.18.101 | 443 | FORWARDED |
-| 2024-11-04 10:27:20 | store-front-abc123 | 10.0.0.10 | 53 | **DROPPED** |
+| 10:26:10 | 10.0.0.10 | 53 | FORWARDED | DNS: microsoft.com |
+| 10:26:11 | 23.192.18.101 | 443 | FORWARDED | HTTPS: Connection to microsoft.com succeeds |
+| 10:26:15 | 10.0.0.10 | 53 | **DROPPED** | DNS: api.github.com blocked |
+| 10:26:20 | 10.0.0.10 | 53 | **DROPPED** | DNS: google.com blocked |
+| 10:26:25 | 10.0.0.10 | 53 | **DROPPED** | DNS: bing.com blocked |
+| 10:26:30 | 10.0.0.10 | 53 | FORWARDED | DNS: rabbitmq.pets.svc.cluster.local |
 
-**Troubleshooting value:** In 2 minutes, you can see the difference between allowed and blocked domains:
+**Cumulative insights (5 minutes total):**
 
-**For `www.microsoft.com` (Working):**
-- ✅ **Step 1 (DNS)**: Port 53 query to `10.0.0.10` → Verdict: FORWARDED  
-- ✅ **Step 2 (Connection)**: Port 443 to `23.192.18.101` → Verdict: FORWARDED  
+**For microsoft.com (✅ Working):**
 
-**For `www.bing.com` (Failing):**
-- ❌ **Step 1 (DNS)**: Port 53 query to `10.0.0.10` → Verdict: **DROPPED**  
-- ❌ **Step 2 (Connection)**: Never attempted because DNS failed  
+- Step 1: DNS query to 10.0.0.10 port 53 → **FORWARDED**
+- Step 2: HTTPS connection to 23.192.18.101 port 443 → **FORWARDED**
+- Result: Network allows traffic (HTTP 403 from server is expected)
 
-**Root cause identified:** `bing.com` is NOT in the DNS `matchPattern` rules, so the DNS query itself is blocked. The pod never even gets to attempt the HTTPS connection.
+**For api.github.com, google.com, bing.com (❌ Failing):**
 
-**Without flow logs:** You'd be confused about whether it's a DNS issue, firewall issue, or application issue, potentially spending hours checking external network connectivity. **Saved time: ~1 hour**
+- Step 1: DNS query to 10.0.0.10 port 53 → **DROPPED**
+- Step 2: HTTPS connection → Never attempted (DNS failed first)
+- Result: "bad address" error
+
+**Root cause confirmed:** The FQDN policy is missing these domains from the DNS `matchPattern` rules. Even though `api.github.com` is in the `toFQDNs` list, the DNS query gets blocked first.
+
+**Educational insight:** This demonstrates a common FQDN policy misconfiguration - you need BOTH DNS rules AND toFQDNs rules for external access to work.
+
+**Next step:** Let's visualize when these problems started with a timeline chart.
 
 ---
 
-##### Query 4: Visualize When the Problem Started (1 minute)
+##### Query 5: Timeline - When Did the Problems Start? (1 minute)
 
-Create a timeline to see when problems started and correlate with policy deployments:
+Create a visual timeline to correlate issues with policy deployments:
 
 ```kusto
 RetinaNetworkFlowLogs
@@ -661,63 +742,32 @@ RetinaNetworkFlowLogs
 | render timechart
 ```
 
-**What you'll see in the chart:**
-- A visual timeline showing allowed vs dropped traffic
-- A clear **spike in DROPPED INGRESS traffic** around the time you applied the chaos policy
-- Correlation between the policy deployment time and when users started experiencing issues
+**What you'll discover:**
 
-**Troubleshooting value:** In 1 minute, you:
-✅ Confirmed the problem started at 10:15 AM (when the chaos policy was applied)  
-✅ Correlated the issue with a recent configuration change  
-✅ Eliminated other potential causes (app deployment, infrastructure issues, etc.)
+A visual timeline showing:
+![Query5 results](assets/docs/networking/assets/Query5results.png)
 
-**Without flow logs:** You'd be checking deployment logs, asking developers when they last released code, and trying to remember when policies were changed. **Saved time: ~20 minutes**
+- **10:15 AM**: Sudden spike in DROPPED INGRESS traffic (chaos policy applied)
+- **10:15 AM**: Increase in DROPPED EGRESS traffic (FQDN policy with DNS restrictions)
+- **Before 10:15 AM**: Normal traffic patterns with minimal drops
 
----
+**Cumulative insights (6 minutes total):**
 
-##### Query 5: Validate FQDN Policy Enforcement (1 minute)
+- ✅ **Both problems started at 10:15 AM** - exactly when you applied the policies
+- ✅ **Clear correlation** between policy changes and user-reported issues
+- ✅ **Eliminated other causes** (not an app bug, infrastructure issue, or external service outage)
 
-See which external HTTPS endpoints your store-front pods are successfully reaching (and which are blocked):
+**Troubleshooting value:** You can now confidently tell the team: "The issues started at 10:15 AM when we applied the new network policies. It's not the application code."
 
-```kusto
-RetinaNetworkFlowLogs
-| where TimeGenerated > ago(30m)
-| where SourceNamespace == "pets"
-| where SourcePodName contains "store-front"
-| extend DstIP = tostring(IP.destination)
-| extend Layer4Data = parse_json(Layer4)
-| extend DstPort = coalesce(tostring(Layer4Data.TCP.destination_port), tostring(Layer4Data.UDP.destination_port))
-| where DstPort == "443"  // HTTPS traffic
-| where isnotempty(DstIP)
-| where DstIP !startswith "10." and DstIP !startswith "172." and DstIP !startswith "192.168."
-| summarize 
-    Flows = count(),
-    Forwarded = countif(Verdict == "FORWARDED"),
-    Dropped = countif(Verdict == "DROPPED")
-    by DstIP, Verdict
-| order by Flows desc
-| take 20
-```
-
-**What you'll see in the results:**
-| DstIP | Verdict | Flows | Forwarded | Dropped |
-|---|---|---|---|---|
-| 23.192.18.101 | FORWARDED | 12 | 12 | 0 |
-| 142.250.XX.XX | DROPPED | 8 | 0 | 8 |
-| 13.107.21.200 | DROPPED | 5 | 0 | 5 |
-
-**Troubleshooting value:** In 1 minute, you validated:
-✅ **23.192.18.101** (microsoft.com) - All connections **FORWARDED** ✓  
-✅ **142.250.XX.XX** (google.com) - All connections **DROPPED** as expected ✓  
-✅ **13.107.21.200** (bing.com) - All connections **DROPPED** (not in FQDN allow list) ✓
-
-**Without flow logs:** You'd be manually testing each endpoint, potentially from different pods, and trying to understand which external dependencies are working. **Saved time: ~30 minutes**
+**Next step:** We've identified WHEN and WHY the problems occurred. Let's get one final summary view.
 
 ---
 
-##### Query 6: Complete Traffic Analysis by Direction (2 minutes)
+##### Query 6: Final Summary - Complete Diagnosis (1 minute)
 
-Get a comprehensive view of all traffic patterns in the pets namespace:
+Get a comprehensive view of all traffic patterns to confirm your diagnosis:
+
+
 
 ```kusto
 RetinaNetworkFlowLogs
@@ -734,40 +784,59 @@ RetinaNetworkFlowLogs
 | take 20
 ```
 
-**What you'll see in the results:**
+**What you'll discover:**
+
 | TrafficDirection | SourcePodName | DestinationPodName | TotalFlows | DroppedFlows | DropRate% |
 |---|---|---|---|---|---|
 | INGRESS | (external) | store-front-abc123 | 156 | 156 | **100%** |
 | EGRESS | store-front-abc123 | (external) | 89 | 23 | 25.8% |
 | EGRESS | store-front-abc123 | kube-dns | 45 | 12 | 26.7% |
 
-**Troubleshooting value:** In 2 minutes, you have a complete picture:
-✅ **INGRESS to store-front**: 100% drop rate → Chaos policy blocking all external access  
-✅ **EGRESS to external**: 25.8% drop rate → Some domains allowed (microsoft.com), others blocked (bing.com, google.com)  
-✅ **EGRESS DNS**: 26.7% drop rate → Some DNS queries blocked (api.github.com, google.com)
+**Complete Diagnosis Achieved (7 minutes total):**
 
-**Complete diagnosis achieved:**
-1. External users can't access the app → Ingress policy has `ingress: []` (no rules = block all)
-2. Some external APIs fail → FQDN policy missing domains in `toFQDNs` list
-3. DNS failures → Domains not in DNS `matchPattern` rules
+**Problem 1: External Users Can't Access the Application**
 
-**Total time spent with flow logs: ~10 minutes**  
-**Estimated time without flow logs: 2-4 hours**  
-**Time saved: 85-95%** ⚡
+- **Evidence**: INGRESS to store-front has 100% drop rate (156 flows, all dropped)
+- **Root Cause**: Chaos policy has `ingress: - fromEndpoints: []` (allow from nowhere = block all)
+- **Fix Needed**: Restore original policy with `fromEntities: - world`
+
+**Problem 2: External API Calls Failing**
+
+- **Evidence**: EGRESS to external has 25.8% drop rate, DNS queries have 26.7% drop rate
+- **Root Cause**: FQDN policy missing domains (api.github.com, google.com, bing.com) from DNS `matchPattern` rules
+- **Fix Needed**: Add missing domains to DNS patterns OR remove from toFQDNs list
+
+**Problem 3: Internal Communication Working Fine**
+
+- **Evidence**: EGRESS between pods in pets namespace has <5% drop rate (filtered out)
+- **Conclusion**: Application code and internal services are healthy
+
+**Total Time with Flow Logs: ~7 minutes**  
+**Estimated Time Without Flow Logs: 2-4 hours**  
+**Time Saved: 85-95%** ⚡
 
 ---
 
-##### Summary: How Flow Logs Complement Grafana Metrics
+##### Diagnosis Summary: What You Learned
 
-| **What You Need** | **Grafana Metrics** | **Container Network Flow Logs** |
-|---|---|---|
-| **Is there a problem?** | ✅ Shows dropped packet count | ✅ Shows individual dropped flows |
-| **When did it start?** | ✅ Time series of aggregate drops | ✅ Exact timestamp of each flow |
-| **Who is affected?** | ❌ No source IP details | ✅ Exact source/destination IPs |
-| **Why is it blocked?** | ❌ No verdict details | ✅ Verdict + policy enforcement |
-| **Which endpoints fail?** | ❌ No endpoint visibility | ✅ DNS + connection correlation |
-| **Historical investigation** | ⚠️ Limited retention | ✅ Long-term queryable storage |
+By using container network flow logs with a **progressive, cumulative approach**, you:
 
+1. **Query 1 (30s)**: Identified TWO distinct problems (INGRESS + EGRESS) from high-level metrics
+2. **Query 2 (1m)**: Diagnosed INGRESS issue with exact source IPs and timestamps
+3. **Query 3 (2m)**: Separated DNS failures from connection failures in EGRESS traffic
+4. **Query 4 (2m)**: Correlated DNS + HTTPS to understand complete flow patterns
+5. **Query 5 (1m)**: Visualized timeline to correlate with policy deployment
+6. **Query 6 (1m)**: Confirmed complete diagnosis with drop rate percentages
+
+**Each query built on the previous one**, creating a comprehensive understanding of:
+
+- **What** is failing (INGRESS blocked, DNS queries dropped)
+- **Who** is affected (external users, specific domains)
+- **When** it started (10:15 AM policy deployment)
+- **Why** it's happening (chaos policy, missing DNS patterns)
+- **How** to fix it (restore policies, add DNS rules)
+
+---
 **Best Practice:** Use Grafana to **detect** issues in real-time, then use flow logs to **diagnose** the root cause with forensic precision.
 
 <div class="info" data-title="Note">
@@ -885,22 +954,16 @@ Here we go, we see that the Ingress traffic is not allowed
 
 Now to solve the problem we will apply the original policy.
 
-Run the following command to apply the original network policy to the pets namespace.
+Run the following command to apply the original network policy from the assets folder.
 
 ```bash
-curl -o acns-network-policy-allow-store-front-traffic.yaml https://gist.githubusercontent.com/pauldotyu/013c496a3b26805ca213b5858d69e07c/raw/e7c7eb7d9bd2799a59eb66db9191c248435f2db4/acns-network-policy-allow-store-front-traffic.yaml
+kubectl apply -n pets -f assets/acns-network-policy-allow-store-front-traffic.yaml
 ```
 
-View the contents of the network policy manifest file.
+Optionally, view the contents of the network policy manifest file.
 
 ```bash
-cat acns-network-policy-allow-store-front-traffic.yaml
-```
-
-Apply the network policy to the pets namespace.
-
-```bash
-kubectl apply -n pets -f acns-network-policy-allow-store-front-traffic.yaml
+cat assets/acns-network-policy-allow-store-front-traffic.yaml
 ```
 
 You should now see the traffic flowing again and you are able to access the pets shop app UI.
@@ -909,22 +972,16 @@ You should now see the traffic flowing again and you are able to access the pets
 
 #### Install Hubble UI
 
-Run the following command to download the Hubble UI manifest file.
+Run the following command to apply the Hubble UI manifest file from the assets folder.
 
 ```bash
-curl -o acns-hubble-ui.yaml https://gist.githubusercontent.com/pauldotyu/0daaba9833a714dc28ed0032158fb6fe/raw/801f9981a65009ed53e6596d06a9a8e73286ed21/acns-hubble-ui.yaml
+kubectl apply -f assets/acns-hubble-ui.yaml
 ```
 
 Optionally, run the following command to take a look at the Hubble UI manifest file.
 
 ```bash
-cat acns-hubble-ui.yaml
-```
-
-Apply the hubble-ui.yaml manifest to your cluster, using the following command
-
-```bash
-kubectl apply -f acns-hubble-ui.yaml
+cat assets/acns-hubble-ui.yaml
 ```
 
 #### Forward Hubble Relay Traffic
