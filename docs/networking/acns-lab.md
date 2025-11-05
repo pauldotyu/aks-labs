@@ -375,7 +375,7 @@ This tests Layer 7 (HTTP) filtering which inspects the actual HTTP method and pa
 
 ```bash
 echo "Testing L7 HTTP access to product-service..."
-kubectl exec -n pets -it store-front-5c66bbdfc5-5fnpv -- sh -c 'wget --spider --timeout=2 http://product-service:3002/'
+kubectl exec -n pets -it $(kubectl get po -n pets -l app=store-front -ojsonpath='{.items[0].metadata.name}') -- sh -c 'wget --spider --timeout=2 http://product-service:3002/'
 ```
 
 **Expected Result:**
@@ -704,7 +704,8 @@ RetinaNetworkFlowLogs
 **What you'll discover:**
 
 A visual timeline showing:
-![Query5 results](./assets/Query5results.png)
+![Query5 results](assets/Query5results.png)
+
 
 - **10:15 AM**: Sudden spike in DROPPED INGRESS traffic (chaos policy applied)
 - **10:15 AM**: Increase in DROPPED EGRESS traffic (FQDN policy with DNS restrictions)
