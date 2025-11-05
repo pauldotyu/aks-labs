@@ -745,7 +745,7 @@ RetinaNetworkFlowLogs
 **What you'll discover:**
 
 A visual timeline showing:
-![Query5 results](assets/docs/networking/assets/Query5results.png)
+![Query5 results](assets/Query5results.png)
 
 - **10:15 AM**: Sudden spike in DROPPED INGRESS traffic (chaos policy applied)
 - **10:15 AM**: Increase in DROPPED EGRESS traffic (FQDN policy with DNS restrictions)
