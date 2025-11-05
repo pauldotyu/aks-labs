@@ -59,7 +59,7 @@ spec:
         app: product-service
     toPorts:
     - ports:
-      - port: "8080"
+      - port: "3002"
         protocol: TCP
       rules:
         http:

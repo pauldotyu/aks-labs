@@ -82,9 +82,9 @@ Review the created policies using the following command
 kubectl get cnp -n pets
 ```
 
-Ensure that only allowed connections succeed and others are blocked. For example, order-service should not be able to access www.bing.com or the product-service.
+Ensure that only allowed connections succeed and others are blocked. For example, order-service should not be able to access <www.bing.com> or the product-service.
 
-Run the following command to test the connection to www.bing.com from the order-service pod.
+Run the following command to test the connection to <www.bing.com> from the order-service pod.
 
 ```bash
 kubectl exec -n pets -it $(kubectl get po -n pets -l app=order-service -ojsonpath='{.items[0].metadata.name}') -c order-service -- sh -c 'wget --spider --timeout=1 --tries=1 www.bing.com'
@@ -118,11 +118,7 @@ Using network policies, you can control traffic flow to and from your AKS cluste
 
 This is where FQDN filtering comes in.
 
-<div class="info" data-title="Note">
-
-> FQDN filtering is only available for clusters using Azure CNI Powered by Cilium.
-
-</div>
+> **Note:** FQDN filtering is only available for clusters using Azure CNI Powered by Cilium.
 
 Let's explore how we can apply FQDN-based network policies to control outbound access to specific domains.
 
@@ -144,11 +140,9 @@ To limit egress to certain domains, apply an FQDN policy. This policy permits ac
 
 <div class="info" data-title="Note">
 
-> FQDN filtering requires ACNS to be enabled
+> **Note:** FQDN filtering requires ACNS to be enabled
 
 </div>
-
-Run the following command to apply the FQDN policy manifest file from the assets folder.
 
 ```bash
 kubectl apply -n pets -f assets/acns-network-policy-fqdn.yaml
@@ -203,36 +197,8 @@ Optionally, examine the chaos policy manifest file by running the following comm
 cat assets/acns-network-policy-chaos.yaml
 ```
 
-#### Access Grafana Dashboard
-
-When you enabled Advanced Container Networking Services (ACNS) on your AKS cluster, you also enabled metrics collection. These metrics provide insights into traffic volume, dropped packets, number of connections, etc. The metrics are stored in Prometheus format and, as such, you can view them in Grafana.
-
-Using your browser, navigate to [Azure Portal](https://aka.ms/publicportal), search for **grafana** resource, then click on the **Azure Managed Grafana** link under the **Services** section. Locate the Azure Managed Grafana resource that was created earlier in the workshop and click on it, then click on the URL next to **Endpoint** to open the Grafana dashboard.
-
-![Azure Managed Grafana overview](assets/acns-grafana-overview.png)
-
-Part of ACNS we provide pre-defined networking dashboards. Review the available dashboards
-
-![ACNS dashboards in Grafana](assets/acns-grafana-dashboards.png)
-
-You can start with the **Kubernetes / Networking / Clusters** dashboard to get an over view of whats is happening in the cluster.
-
-![ACNS networking clusters dashboard](assets/acns-network-clusters-dashboard.png)
-
-Lets' change the view to the **Kubernetes / Networking / Drops**, select the **pets** namespace, and **store-front** workload
-
-![ACNS networking drops dashboard](assets/acns-drops-incoming-traffic.png)
-
-Now you can see increase in the dropped incoming traffic and the reason is "policy_denied" so now we now the reason that something was wrong with the network policy. let's dive dipper and understand why this is happening
-
-[Optional] Familiarize yourself with the other dashboards for DNS, and pod flows
-
-| ![DNS Dashboard](assets/acns-dns-dashboard.png) | ![Pod Flows Dashboard](assets/acns-pod-flows-dashboard.png) |
-| ----------------------------------------------- | ----------------------------------------------------------- |
-
 #### Leverage Container Network Flow Logs for Faster Troubleshooting
 
-The Grafana metrics showed you **that** there's a problem - dropped incoming traffic to store-front. But they don't tell you:
 - **Who** is being blocked (which specific source IPs or clients)
 - **Why** DNS queries fail for specific domains
 - **When** exactly the problem started affecting individual flows
@@ -241,6 +207,7 @@ The Grafana metrics showed you **that** there's a problem - dropped incoming tra
 This is where **Container Network Flow Logs** accelerate your troubleshooting. Think of metrics as the "smoke alarm" and flow logs as the "security camera footage" - metrics alert you to the problem, while flow logs show you exactly what happened.
 
 **The Traditional Troubleshooting Approach (Without Flow Logs):**
+
 1. SSH into individual nodes to check iptables rules (risky in production)
 2. Enable debug logging on pods (requires restarts, loses existing state)
 3. Manually test connections one-by-one to isolate the issue
@@ -248,6 +215,7 @@ This is where **Container Network Flow Logs** accelerate your troubleshooting. T
 5. **Estimated time: 2-4 hours** for a complex network policy issue
 
 **With Container Network Flow Logs (What You'll Do Next):**
+
 1. Run a single KQL query to see exact blocked connections with source IPs
 2. Query DNS traffic to identify which domains are allowed vs blocked
 3. Correlate DNS success with connection failures in one view
@@ -310,7 +278,7 @@ kubectl apply -f pets-flow-logs.yaml
 Verify the custom resource was created successfully:
 
 ```bash
-kubectl describe containernetworklog pets-namespace-flow-logs
+kubectl describe containernetworklog testcnl
 ```
 
 You should see a `Status` field showing `State: CONFIGURED`. This means flow logs are now being collected for the pets namespace and sent to your Log Analytics workspace.
@@ -323,11 +291,7 @@ You should see a `Status` field showing `State: CONFIGURED`. This means flow log
 
 ##### Generate Traffic to Observe Flow Logs
 
-Now let's create a realistic troubleshooting scenario. Imagine you're a platform engineer and developers report that the store-front application is experiencing intermittent connectivity issues. Some external API calls work while others fail, and users occasionally can't access the application.
-
-Let's simulate this scenario by applying an additional network policy and generating various types of traffic:
-
-**Step 1: Apply the Combined FQDN and L7 Policy**
+> **Note:** Flow logs are stored locally on the nodes at `/var/log/acns/hubble/events.log` and then collected by the Azure Monitor Agent and sent to Log Analytics. It may take 2-3 minutes for logs to appear in Log Analytics after network events occur.
 
 This policy adds FQDN filtering and L7 HTTP rules to the store-front application:
 
@@ -508,36 +472,31 @@ Address 1: 10.0.96.102 order-service.pets.svc.cluster.local
 3. **L7 HTTP Method Filtering**: The L7 policy allows GET requests but blocks POST requests to the product-service API, demonstrating application-layer control
 4. **Internal Service Mesh**: Pod-to-pod communication within the namespace continues to work normally
 
-The `aks-combined-fqdn-l7.yaml` policy you applied contains:
-- **DNS rules**: Allow DNS queries for `rabbitmq.pets.svc.cluster.local` and `*.microsoft.com`
-- **FQDN rules**: Allow HTTP/HTTPS to `*.microsoft.com` and `api.github.com`
-- **L7 HTTP rules**: Allow GET requests to the product-service backend (path: `/api/products`), but block other HTTP methods like POST
+> **Key Insight - FQDN Policy Requirements:** Notice that `api.github.com` is in the `toFQDNs` list but still fails. This demonstrates a critical Cilium requirement: you need **BOTH** DNS rules (to allow the DNS query) **AND** toFQDNs rules (to allow the connection). Having only toFQDNs without DNS rules means the DNS query gets blocked first, and the connection is never attempted. This is a common misconfiguration that flow logs will help you identify.
 
 <div class="info" data-title="Important">
 
 > **Understanding FQDN Policy Requirements**: For FQDN filtering to work in Cilium, you need **both** components:
-> 
+>
 > 1. **DNS rules** (port 53) - Allow the DNS query to resolve the domain name
 > 2. **toFQDNs rules** - Allow the connection to the resolved IP address
-> 
+>
 > In this policy, `*.microsoft.com` works because it's in **both** the DNS patterns and toFQDNs rules. However, domains like `api.github.com`, `bing.com`, and `google.com` fail because they're missing from the DNS `matchPattern` rules - the DNS query gets blocked first, so the pod never gets to attempt the actual connection. This is a common misconfiguration that container network flow logs help you identify quickly.
 
 </div>
 
 Without container network flow logs, you would need to:
+
 - SSH into nodes to check iptables rules
 - Manually correlate pod events with network policies
 - Spend hours trying different combinations to find the root cause
 
-**With flow logs, you can instantly see**:
-- Which exact connections are being dropped and why
-- What external endpoints pods are trying to reach
-- When the problem started (correlate with deployment times)
-- Traffic patterns across your entire namespace
-
-Let's use Log Analytics to investigate these issues in the next section.
-
-##### Query Flow Logs in Log Analytics
+> **Important - Understanding FQDN Policy Requirements:** For FQDN filtering to work in Cilium, you need **both** components:
+>
+> 1. **DNS rules** (port 53) - Allow the DNS query to resolve the domain name
+> 2. **toFQDNs rules** - Allow the connection to the resolved IP address
+>
+> In this policy, `*.microsoft.com` works because it's in **both** the DNS patterns and toFQDNs rules. However, domains like `api.github.com`, `bing.com`, and `google.com` fail because they're missing from the DNS `matchPattern` rules - the DNS query gets blocked first, so the pod never gets to attempt the actual connection. This is a common misconfiguration that container network flow logs help you identify quickly.
 
 Now that flow logs are being collected and we've generated traffic, let's investigate the issues in minutes instead of hours.
 
@@ -546,10 +505,12 @@ Navigate to [Azure Portal](https://aka.ms/publicportal), search for your AKS clu
 <div class="info" data-title="Note">
 
 > First, run this query to see what fields are available in your flow logs:
+>
 > ```kusto
 > RetinaNetworkFlowLogs
 > | take 1
 > ```
+>
 > This will show you all available fields including dynamic properties that may not appear in the schema.
 
 </div>
@@ -578,11 +539,7 @@ RetinaNetworkFlowLogs
     by TrafficDirection, SourcePodName, DestinationPodName
 | order by DroppedFlows desc
 | take 20
-```
-
-**What you'll discover:**( Following result is an example)
-
-| TrafficDirection | SourcePodName | DestinationPodName | DroppedFlows |
+> **Note - About Query Results:** The results shown in this lab are examples from a specific testing environment. Your actual results will be similar in structure and pattern, but will have different values for IP addresses, pod names, timestamps, and counts based on your specific cluster configuration and traffic patterns.
 |---|---|---|---|
 | INGRESS | (external) | store-front-abc123 | 156 |
 | EGRESS | store-front-abc123 | (external) | 35 |
@@ -627,6 +584,7 @@ RetinaNetworkFlowLogs
 | 2024-11-04 10:25:20 | 203.0.113.45 | 10.0.96.101 | 80 | DROPPED |
 
 **Cumulative insights (90 seconds total):**
+
 - ✅ **Exact source IPs** of blocked external users (203.0.113.45 = your test machine)
 - ✅ **Destination port 80** confirms HTTP traffic is being blocked
 - ✅ **All INGRESS traffic to store-front is DROPPED** - complete outage for external users
@@ -664,6 +622,7 @@ RetinaNetworkFlowLogs
 | FORWARDED | 12 |
 
 **Cumulative insights (3 minutes total):**
+
 - ✅ **12 DNS queries succeeded** (microsoft.com, internal cluster DNS)
 - ✅ **15 DNS queries blocked** (api.github.com, google.com, bing.com)
 - ✅ **Pattern identified**: DNS is being selectively filtered
@@ -705,7 +664,7 @@ RetinaNetworkFlowLogs
 | 10:26:25 | 10.0.0.10 | 53 | **DROPPED** | DNS: bing.com blocked |
 | 10:26:30 | 10.0.0.10 | 53 | FORWARDED | DNS: rabbitmq.pets.svc.cluster.local |
 
-**Cumulative insights (5 minutes total):**
+**Cumulative insights:**
 
 **For microsoft.com (✅ Working):**
 
@@ -727,7 +686,7 @@ RetinaNetworkFlowLogs
 
 ---
 
-##### Query 5: Timeline - When Did the Problems Start? (1 minute)
+##### Query 5: Timeline - When Did the Problems Start?
 
 Create a visual timeline to correlate issues with policy deployments:
 
@@ -745,13 +704,13 @@ RetinaNetworkFlowLogs
 **What you'll discover:**
 
 A visual timeline showing:
-![Query5 results](assets/docs/networking/assets/Query5results.png)
+![Query5 results](./assets/Query5results.png)
 
 - **10:15 AM**: Sudden spike in DROPPED INGRESS traffic (chaos policy applied)
 - **10:15 AM**: Increase in DROPPED EGRESS traffic (FQDN policy with DNS restrictions)
 - **Before 10:15 AM**: Normal traffic patterns with minimal drops
 
-**Cumulative insights (6 minutes total):**
+**Cumulative insights:**
 
 - ✅ **Both problems started at 10:15 AM** - exactly when you applied the policies
 - ✅ **Clear correlation** between policy changes and user-reported issues
@@ -766,8 +725,6 @@ A visual timeline showing:
 ##### Query 6: Final Summary - Complete Diagnosis (1 minute)
 
 Get a comprehensive view of all traffic patterns to confirm your diagnosis:
-
-
 
 ```kusto
 RetinaNetworkFlowLogs
@@ -792,7 +749,7 @@ RetinaNetworkFlowLogs
 | EGRESS | store-front-abc123 | (external) | 89 | 23 | 25.8% |
 | EGRESS | store-front-abc123 | kube-dns | 45 | 12 | 26.7% |
 
-**Complete Diagnosis Achieved (7 minutes total):**
+**Complete Diagnosis Achieved:**
 
 **Problem 1: External Users Can't Access the Application**
 
@@ -808,12 +765,8 @@ RetinaNetworkFlowLogs
 
 **Problem 3: Internal Communication Working Fine**
 
-- **Evidence**: EGRESS between pods in pets namespace has <5% drop rate (filtered out)
+- **Evidence**: EGRESS between pods in pets namespace has greater than 5% drop rate (filtered out)
 - **Conclusion**: Application code and internal services are healthy
-
-**Total Time with Flow Logs: ~7 minutes**  
-**Estimated Time Without Flow Logs: 2-4 hours**  
-**Time Saved: 85-95%** ⚡
 
 ---
 
@@ -836,12 +789,9 @@ By using container network flow logs with a **progressive, cumulative approach**
 - **Why** it's happening (chaos policy, missing DNS patterns)
 - **How** to fix it (restore policies, add DNS rules)
 
----
-**Best Practice:** Use Grafana to **detect** issues in real-time, then use flow logs to **diagnose** the root cause with forensic precision.
-
 <div class="info" data-title="Note">
 
-> Flow logs may take 2-3 minutes to appear in Log Analytics after network events occur. For real-time troubleshooting, use Hubble CLI (covered in the next section).
+> **Log Analytics vs Hubble**: Flow logs in Log Analytics have 2-3 minute delays and storage costs but enable historical analysis over days/weeks. For real-time monitoring without storage costs, use Hubble CLI/UI (next section) for instant visibility into current network flows.
 
 </div>
 
@@ -854,23 +804,89 @@ Flow logs accelerate troubleshooting by providing:
 - **Forensic details** that metrics alone cannot provide
 - **Correlation capabilities** to connect issues with deployments and policy changes
 
-Now that we've identified the issue using flow logs, let's use Hubble to get real-time visibility into the network flows.
+#### Visualize Network Data with Grafana Dashboards
 
-#### Observe network flows with hubble
+Now that you've used KQL queries to diagnose the root cause, let's explore how Azure Managed Grafana provides visual dashboards for both metrics and flow logs.
 
-ACNS integrates with Hubble to provide flow logs and deep visibility into your cluster's network activity. All communications to and from pods are logged allowing you to investigate connectivity issues over time.
+##### Access Your Grafana Instance
 
-But first we need to install Hubble CLI
+1. Open the [Azure Portal](https://aka.ms/publicportal) and navigate to your AKS cluster
 
-Install Hubble CLI
+> **Note - Log Analytics vs Hubble:** Flow logs in Log Analytics have 2-3 minute delays and storage costs but enable historical analysis over days/weeks. For real-time monitoring without storage costs, use Hubble CLI/UI (next section) for instant visibility into current network flows.
+
+##### Explore ACNS Dashboards
+
+ACNS provides pre-built dashboards for network observability:
+
+![ACNS dashboards in Grafana](assets/acns-grafana-dashboards.png)
+
+**Metrics Dashboards** (Real-time aggregated data):
+
+Access these from your AKS cluster → **Dashboards with Grafana**:
+
+- **Kubernetes / Networking / Clusters** - Cluster-wide traffic overview
+- **Kubernetes / Networking / Drops** - Dropped packet analysis
+  - Filter by **Namespace**: pets
+  - Filter by **Workload**: store-front
+  - Observe dropped incoming traffic with reason "policy_denied"
+
+![ACNS networking drops dashboard](assets/acns-drops-incoming-traffic.png)
+
+- **Kubernetes / Networking / DNS** - DNS query statistics
+- **Kubernetes / Networking / Pod Flows** - Service mesh traffic patterns
+
+![DNS Dashboard](assets/acns-dns-dashboard.png)
+![Pod Flows Dashboard](assets/acns-pod-flows-dashboard.png)
+
+**Flow Logs Dashboards** (Detailed per-flow visualization):
+
+ACNS also provides specialized dashboards for container network flow logs with forensic-level details:
+
+1. Open the [Azure Portal](https://aka.ms/publicportal) and search for **Monitor**
+2. Select the **Monitor** resource
+3. In the left navigation pane, click on **Dashboards with Grafana**
+4. Search for dashboards under **Azure | Insights | Containers | Networking | `<dashboard name>`**
+
+Available dashboards:
+
+- **Flow Logs (Internal Traffic)**: Service-to-service communication analysis
+- **Flow Logs (External Traffic)**: External API calls, FQDN filtering, ingress traffic
+
+    :::image type="content" source="./assets/flow-logs-dashboard.png" alt-text="Screenshot of flow log dashboard in Azure Monitor." lightbox="./assets/flow-logs-dashboard.png":::
+
+These dashboards show:
+
+- Service dependency graphs
+- Individual flow details (source/destination IPs, protocols, verdicts)
+- Protocol breakdowns (DNS, HTTP, TCP/UDP)
+- Filterable error logs with timestamps
+
+<div class="info" data-title="Note">
+
+> **Prerequisites**: Flow logs dashboards require container network flow logs to be enabled and Log Analytics workspace configured with Analytics table plan. For setup instructions, see [Container Network Observability Logs - Grafana Visualization](https://learn.microsoft.com/en-us/azure/aks/container-network-observability-logs#logs-visualization-in-grafana-dashboards).
+
+</div>
+
+**When to Use Each Tool:**
+
+| Tool | Best For |
+|------|----------|
+| **Grafana Metrics Dashboards** | Real-time monitoring, detecting anomalies, cluster health overview |
+| **Grafana Flow Logs Dashboards** | Visual service dependencies, quick filtering, sharing insights with teams |
+| **Log Analytics (KQL Queries)** | Complex forensic analysis, custom queries, correlating multiple data sources |
+
+**Best Practice**: Use Grafana dashboards for **detection** and visual analysis, then use KQL queries for **deep forensic investigation** when needed.
+
+---
+
+#### Observe network flows with Hubble for real-time visibility
+
+For instant, on-demand network flow observation without waiting for Log Analytics ingestion, use Hubble CLI. This is ideal for live troubleshooting and immediate verification of network policies.
+
+**Install Hubble CLI:**
 
 ```bash
-# Set environment variables
-export HUBBLE_VERSION="v0.11.0"
-export HUBBLE_OS="$(uname | tr '[:upper:]' '[:lower:]')"
-export HUBBLE_ARCH="$(uname -m)"
-
-#Install Hubble CLI
+# Install Hubble CLI
 if [ "$(uname -m)" = "aarch64" ]; then HUBBLE_ARCH="arm64"; fi
 curl -L --fail --remote-name-all https://github.com/cilium/hubble/releases/download/${HUBBLE_VERSION}/hubble-${HUBBLE_OS}-${HUBBLE_ARCH}.tar.gz{,.sha256sum}
 sha256sum --check hubble-${HUBBLE_OS}-${HUBBLE_ARCH}.tar.gz.sha256sum
@@ -878,7 +894,7 @@ sudo tar xzvfC hubble-${HUBBLE_OS}-${HUBBLE_ARCH}.tar.gz /usr/local/bin
 rm hubble-${HUBBLE_OS}-${HUBBLE_ARCH}.tar.gz{,.sha256sum}
 ```
 
-Port forward Hubble Relay using the kubectl port-forward command.
+**Port forward Hubble Relay:**
 
 ```bash
 kubectl port-forward -n kube-system svc/hubble-relay --address 127.0.0.1 4245:443
@@ -886,7 +902,7 @@ kubectl port-forward -n kube-system svc/hubble-relay --address 127.0.0.1 4245:44
 
 Move the port forward to the background by pressing **Ctrl + z** and then type **bg**.
 
-Configure the client with hubble certificate
+**Configure the client with Hubble certificate:**
 
 ```bash
 #!/usr/bin/env bash
@@ -994,7 +1010,6 @@ kubectl -n kube-system port-forward svc/hubble-ui 12000:80
 
 #### Access Hubble UI
 
-Access Hubble UI by entering http://localhost:12000/ into your web browser.
+Access Hubble UI by entering `http://localhost:12000/` into your web browser.
 
 ![Accessing the Hubble UI](assets/acns-hubble-ui.png)
-
