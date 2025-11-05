@@ -56,22 +56,22 @@ In both tests, the connection was successful. This is because all traffic is all
 
 Now, let's deploy some network policy to allow only the required ports in the pets namespace.
 
-Run the following command to apply the network policy manifest file from the assets folder.
+Run the following command to download the network policy manifest file.
 
 ```bash
-kubectl apply -n pets -f assets/acns-network-policy.yaml
+curl -o acns-network-policy.yaml https://raw.githubusercontent.com/Azure-Samples/aks-labs/refs/heads/main/docs/networking/assets/acns-network-policy.yaml
 ```
 
 Optionally, take a look at the network policy manifest file by running the following command.
 
 ```bash
-cat assets/acns-network-policy.yaml
+cat acns-network-policy.yaml
 ```
 
 Apply the network policy to the pets namespace.
 
 ```bash
-kubectl apply -n pets -f assets/acns-network-policy.yaml
+kubectl apply -n pets -f acns-network-policy.yaml
 ```
 
 #### Verify Policies
@@ -144,17 +144,30 @@ To limit egress to certain domains, apply an FQDN policy. This policy permits ac
 
 </div>
 
+Run the following command to download the FQDN policy manifest file.
+
 ```bash
-kubectl apply -n pets -f assets/acns-network-policy-fqdn.yaml
+curl -o acns-network-policy-fqdn.yaml https://raw.githubusercontent.com/Azure-Samples/aks-labs/refs/heads/main/docs/networking/assets/acns-network-policy-fqdn.yaml
 ```
 
 Optionally, take a look at the FQDN policy manifest file by running the following command.
 
 ```bash
-cat assets/acns-network-policy-fqdn.yaml
+cat acns-network-policy-fqdn.yaml
+```
+Apply the FQDN policy to the pets namespace.
+```bash
+kubectl apply -n pets -f acns-network-policy-fqdn.yaml
 ```
 
 #### Verify FQDN Policy Enforcement
+```bash
+kubectl exec -n pets -it $(kubectl get po -n pets -l app=order-service -ojsonpath='{.items[0].metadata.name}') -c order-service  -- sh -c 'wget --spider --timeout=1 --tries=1 https://graph.microsoft.com'
+```
+
+You should see output similar to the following:
+
+```text
 
 Now if we try to access Microsoft Graph API from order-service app, that should be allowed.
 
@@ -185,16 +198,21 @@ We'll work to simulate a problem and then use ACNS to troubleshoot the issue.
 
 Let's start by applying a new network policy to cause some chaos in the network. This policy will drop incoming traffic to the store-front service.
 
-Run the following command to apply the chaos policy manifest file from the assets folder.
+Run the following command to download the chaos policy manifest file.
 
 ```bash
-kubectl apply -n pets -f assets/acns-network-policy-chaos.yaml
+curl -o acns-network-policy-chaos.yaml https://raw.githubusercontent.com/Azure-Samples/aks-labs/refs/heads/main/docs/networking/assets/acns-network-policy-chaos.yaml
 ```
 
 Optionally, examine the chaos policy manifest file by running the following command.
 
 ```bash
-cat assets/acns-network-policy-chaos.yaml
+cat acns-network-policy-chaos.yaml
+```
+Run the following command to apply the chaos policy to the pets namespace.
+
+```bash
+kubectl apply -n pets -f acns-network-policy-chaos.yaml
 ```
 
 #### Leverage Container Network Flow Logs for Faster Troubleshooting
@@ -231,7 +249,6 @@ To enable container network flow logs, you need to apply a `ContainerNetworkLog`
 Create a file named `pets-flow-logs.yaml` with the following content:
 
 ```bash
-cat <<EOF > pets-flow-logs.yaml
 apiVersion: acn.azure.com/v1alpha1
 kind: ContainerNetworkLog
 metadata:
@@ -266,7 +283,6 @@ spec:
       verdict:
         - forwarded
         - dropped
-EOF
 ```
 
 Apply the custom resource to enable flow log collection:
@@ -295,14 +311,22 @@ You should see a `Status` field showing `State: CONFIGURED`. This means flow log
 
 This policy adds FQDN filtering and L7 HTTP rules to the store-front application:
 
+Run the following command to download the combined FQDN and L7 policy manifest file.
+
 ```bash
-kubectl apply -f assets/aks-combined-fqdn-l7.yaml
+curl -o aks-combined-fqdn-l7.yaml https://raw.githubusercontent.com/Azure-Samples/aks-labs/refs/heads/main/docs/networking/assets/aks-combined-fqdn-l7.yaml
 ```
 
 Optionally, review the policy to understand what traffic it allows:
 
 ```bash
-cat assets/aks-combined-fqdn-l7.yaml
+cat aks-combined-fqdn-l7.yaml
+```
+
+Run the following command to apply the chaos policy to the pets namespace.
+
+```bash
+kubectl apply -n pets -f aks-combined-fqdn-l7.yaml
 ```
 
 **Step 2: Generate Test Traffic (Individual Scenarios)**
