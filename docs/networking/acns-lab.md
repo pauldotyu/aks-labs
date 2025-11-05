@@ -321,9 +321,9 @@ curl -s -m 2 http://${STORE_FRONT_IP} || echo "Connection failed"
 
 **Expected Result:**
 
-```text
-Connection failed
-```
+> ```text
+> Connection failed
+> ```
 
 **Why?** The chaos policy blocks ALL ingress traffic with `ingress: - fromEndpoints: []` (allow from nowhere = block all)
 
@@ -340,10 +340,10 @@ kubectl exec -n pets -it $(kubectl get po -n pets -l app=store-front -ojsonpath=
 
 **Expected Result:**
 
-```text
-Connecting to www.microsoft.com (23.192.18.101:443)
-wget: server returned error: HTTP/1.1 403 Forbidden
-```
+> ```text
+> Connecting to www.microsoft.com (23.192.18.101:443)
+> wget: server returned error: HTTP/1.1 403 Forbidden
+> ```
 
 **Why?** The network policy **allows** the connection (DNS query succeeds, HTTPS connection succeeds), but the Microsoft web server returns HTTP 403. This proves the FQDN policy is working correctly - the network allows the traffic through.
 
@@ -360,10 +360,10 @@ kubectl exec -n pets -it $(kubectl get po -n pets -l app=store-front -ojsonpath=
 
 **Expected Result:**
 
-```text
-wget: bad address 'api.github.com'
-command terminated with exit code 1
-```
+> ```text
+> wget: bad address 'api.github.com'
+> command terminated with exit code 1
+> ```
 
 **Why?** Even though `api.github.com` is in the `toFQDNs` list, the DNS query itself is being blocked because `api.github.com` is NOT in the DNS `matchPattern` rules. The pod never gets to attempt the HTTPS connection.
 
@@ -380,12 +380,13 @@ kubectl exec -n pets -it $(kubectl get po -n pets -l app=store-front -ojsonpath=
 
 **Expected Result:**
 
-```text
-Connecting to product-service:3002 (10.0.96.101:3002)
-remote file exists
-```
+> ```text
+> Connecting to product-service:3002 (10.0.96.101:3002)
+> remote file exists
+> ```
 
 **Why?** The L7 HTTP policy allows GET requests to the `/` path on product-service. This demonstrates Layer 7 (application layer) filtering - the policy can inspect HTTP methods and paths, not just IP addresses and ports.
+
 Now test a different HTTP method (POST) to the same endpoint:
 
 ```bash
@@ -395,11 +396,11 @@ kubectl exec -n pets -it $(kubectl get po -n pets -l app=store-front -ojsonpath=
 
 **Expected Result:**
 
-```text
-Connecting to product-service:3002 (10.0.96.101:3002)
-wget: server returned error: HTTP/1.1 403 Forbidden
-Request blocked by L7 policy
-```
+> ```text
+> Connecting to product-service:3002 (10.0.96.101:3002)
+> wget: server returned error: HTTP/1.1 403 Forbidden
+> Request blocked by L7 policy
+> ```
 
 **Why?** The L7 policy only allows GET requests. POST requests to the same endpoint are blocked at the application layer. This shows how L7 policies provide fine-grained control beyond traditional L3/L4 network policies.
 
@@ -416,9 +417,9 @@ kubectl exec -n pets -it $(kubectl get po -n pets -l app=store-front -ojsonpath=
 
 **Expected Result:**
 
-```text
-order-service (10.0.96.102:3000) open
-```
+> ```text
+> order-service (10.0.96.102:3000) open
+> ```
 
 **Why?** The network policies allow internal communication between services in the pets namespace. This confirms that while external access is restricted and FQDN filtering is applied, internal service mesh communication remains functional.
 
@@ -435,13 +436,13 @@ kubectl exec -n pets -it $(kubectl get po -n pets -l app=store-front -ojsonpath=
 
 **Expected Result:**
 
-```text
-Server:    10.0.0.10
-Address 1: 10.0.0.10 kube-dns.kube-system.svc.cluster.local
-
-Name:      order-service
-Address 1: 10.0.96.102 order-service.pets.svc.cluster.local
-```
+> ```text
+> Server:    10.0.0.10
+> Address 1: 10.0.0.10 kube-dns.kube-system.svc.cluster.local
+> 
+> Name:      order-service
+> Address 1: 10.0.96.102 order-service.pets.svc.cluster.local
+> ```
 
 **Why?** The DNS query for `order-service` (short name) gets automatically expanded to `order-service.pets.svc.cluster.local` using the pod's DNS search domain. This demonstrates that internal cluster DNS resolution works correctly, even with the network policies in place. The DNS query matches the `*.pets.svc.cluster.local` pattern in the DNS rules, allowing successful name resolution.
 
@@ -539,16 +540,24 @@ RetinaNetworkFlowLogs
     by TrafficDirection, SourcePodName, DestinationPodName
 | order by DroppedFlows desc
 | take 20
+```
+
 > **Note - About Query Results:** The results shown in this lab are examples from a specific testing environment. Your actual results will be similar in structure and pattern, but will have different values for IP addresses, pod names, timestamps, and counts based on your specific cluster configuration and traffic patterns.
-|---|---|---|---|
-| INGRESS | (external) | store-front-abc123 | 156 |
-| EGRESS | store-front-abc123 | (external) | 35 |
+
+**What you'll discover:**
+
+> | TrafficDirection | SourcePodName | DestinationPodName | DroppedFlows |
+> |---|---|---|---|
+> | INGRESS | (external) | store-front-abc123 | 156 |
+> | EGRESS | store-front-abc123 | (external) | 35 |
 
 **Immediate insights (30 seconds):**
+
 - ✅ **INGRESS to store-front has 156 dropped flows** - This confirms users can't access the application
 - ✅ **EGRESS from store-front has 35 dropped flows** - Some external API calls are being blocked
 
 **What we learned:** There are TWO distinct problems:
+
 1. External users can't reach the app (INGRESS issue)
 2. The app can't reach some external services (EGRESS issue)
 
@@ -577,11 +586,13 @@ RetinaNetworkFlowLogs
 
 **What you'll discover:**
 
-| TimeGenerated | SrcIP | DstIP | DstPort | Verdict |
-|---|---|---|---|---|
-| 2024-11-04 10:25:18 | 203.0.113.45 | 10.0.96.101 | 80 | DROPPED |
-| 2024-11-04 10:25:19 | 203.0.113.45 | 10.0.96.101 | 80 | DROPPED |
-| 2024-11-04 10:25:20 | 203.0.113.45 | 10.0.96.101 | 80 | DROPPED |
+> ```text
+> | TimeGenerated | SrcIP | DstIP | DstPort | Verdict |
+> |---|---|---|---|---|
+> | 2024-11-04 10:25:18 | 203.0.113.45 | 10.0.96.101 | 80 | DROPPED |
+> | 2024-11-04 10:25:19 | 203.0.113.45 | 10.0.96.101 | 80 | DROPPED |
+> | 2024-11-04 10:25:20 | 203.0.113.45 | 10.0.96.101 | 80 | DROPPED |
+> ```
 
 **Cumulative insights (90 seconds total):**
 
@@ -616,10 +627,12 @@ RetinaNetworkFlowLogs
 
 **What you'll discover:**
 
-| Verdict | Count |
-|---|---|
-| DROPPED | 15 |
-| FORWARDED | 12 |
+> ```text
+> | Verdict | Count |
+> |---|---|
+> | DROPPED | 15 |
+> | FORWARDED | 12 |
+> ```
 
 **Cumulative insights (3 minutes total):**
 
@@ -655,14 +668,16 @@ RetinaNetworkFlowLogs
 
 **What you'll discover (showing key patterns):**
 
-| TimeGenerated | DstIP | DstPort | Verdict | Explanation |
-|---|---|---|---|---|
-| 10:26:10 | 10.0.0.10 | 53 | FORWARDED | DNS: microsoft.com |
-| 10:26:11 | 23.192.18.101 | 443 | FORWARDED | HTTPS: Connection to microsoft.com succeeds |
-| 10:26:15 | 10.0.0.10 | 53 | **DROPPED** | DNS: api.github.com blocked |
-| 10:26:20 | 10.0.0.10 | 53 | **DROPPED** | DNS: google.com blocked |
-| 10:26:25 | 10.0.0.10 | 53 | **DROPPED** | DNS: bing.com blocked |
-| 10:26:30 | 10.0.0.10 | 53 | FORWARDED | DNS: rabbitmq.pets.svc.cluster.local |
+> ```text
+> | TimeGenerated | DstIP | DstPort | Verdict | Explanation |
+> |---|---|---|---|---|
+> | 10:26:10 | 10.0.0.10 | 53 | FORWARDED | DNS: microsoft.com |
+> | 10:26:11 | 23.192.18.101 | 443 | FORWARDED | HTTPS: Connection to microsoft.com succeeds |
+> | 10:26:15 | 10.0.0.10 | 53 | **DROPPED** | DNS: api.github.com blocked |
+> | 10:26:20 | 10.0.0.10 | 53 | **DROPPED** | DNS: google.com blocked |
+> | 10:26:25 | 10.0.0.10 | 53 | **DROPPED** | DNS: bing.com blocked |
+> | 10:26:30 | 10.0.0.10 | 53 | FORWARDED | DNS: rabbitmq.pets.svc.cluster.local |
+> ```
 
 **Cumulative insights:**
 
@@ -703,9 +718,8 @@ RetinaNetworkFlowLogs
 
 **What you'll discover:**
 
-A visual timeline showing:
-![Query5 results](assets/Query5results.png)
-
+> A visual timeline showing:
+> ![Query5 results](assets/Query5results.png)
 
 - **10:15 AM**: Sudden spike in DROPPED INGRESS traffic (chaos policy applied)
 - **10:15 AM**: Increase in DROPPED EGRESS traffic (FQDN policy with DNS restrictions)
@@ -744,11 +758,13 @@ RetinaNetworkFlowLogs
 
 **What you'll discover:**
 
-| TrafficDirection | SourcePodName | DestinationPodName | TotalFlows | DroppedFlows | DropRate% |
-|---|---|---|---|---|---|
-| INGRESS | (external) | store-front-abc123 | 156 | 156 | **100%** |
-| EGRESS | store-front-abc123 | (external) | 89 | 23 | 25.8% |
-| EGRESS | store-front-abc123 | kube-dns | 45 | 12 | 26.7% |
+> ```text
+> | TrafficDirection | SourcePodName | DestinationPodName | TotalFlows | DroppedFlows | DropRate% |
+> |---|---|---|---|---|---|
+> | INGRESS | (external) | store-front-abc123 | 156 | 156 | **100%** |
+> | EGRESS | store-front-abc123 | (external) | 89 | 23 | 25.8% |
+> | EGRESS | store-front-abc123 | kube-dns | 45 | 12 | 26.7% |
+> ```
 
 **Complete Diagnosis Achieved:**
 
@@ -853,7 +869,7 @@ Available dashboards:
 - **Flow Logs (Internal Traffic)**: Service-to-service communication analysis
 - **Flow Logs (External Traffic)**: External API calls, FQDN filtering, ingress traffic
 
-    :::image type="content" source="./assets/flow-logs-dashboard.png" alt-text="Screenshot of flow log dashboard in Azure Monitor." lightbox="./assets/flow-logs-dashboard.png":::
+![Flow Logs Dashboard](assets/flow-logs-dashboard.png)
 
 These dashboards show:
 
@@ -1014,3 +1030,6 @@ kubectl -n kube-system port-forward svc/hubble-ui 12000:80
 Access Hubble UI by entering `http://localhost:12000/` into your web browser.
 
 ![Accessing the Hubble UI](assets/acns-hubble-ui.png)
+
+
+[def]: assets/flow-logs-dashboard.png
