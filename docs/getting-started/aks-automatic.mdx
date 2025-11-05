@@ -54,7 +54,7 @@ Also, to support the deployment of AKS Automatic in private virtual networks, AK
 <ProvisionResourceGroup />
 <ProvisionResources />
 
-After you have provisioned the required resources, the last thing you need to do is create an [Azure CosmosDB database with a MongoDB API](https://learn.microsoft.com/azure/cosmos-db/mongodb/introduction) ([version 7.0](https://learn.microsoft.com/azure/cosmos-db/mongodb/feature-support-70)) and a database named `test` which is not included in the ARM template you just deployed.
+After you have provisioned the required resources, the last thing you need to do is create an [Azure OpenAI account](https://learn.microsoft.com/azure/ai-foundry/openai/overview) and `gpt-4.1-mini` model which is not included in the ARM template you just deployed.
 
 You can do that by running the following commands.
 
@@ -275,7 +275,7 @@ The application needs to be configured to a backend LLM (e.g., Azure OpenAI), bu
 
 ## Integrating apps with Azure services
 
-[AKS Service Connector](https://learn.microsoft.com/azure/service-connector/overview) streamlines connecting applications to Azure resources like Azure CosmosDB by automating the configuration of [Workload Identity](https://learn.microsoft.com/azure/aks/workload-identity-overview?tabs=javascript). This feature allows you to assign identities to pods, enabling them to authenticate with Microsoft Entra ID and access Azure services securely without passwords. For a deeper understanding, check out the [Workload Identity overview](https://learn.microsoft.com/entra/workload-id/workload-identities-overview).
+[AKS Service Connector](https://learn.microsoft.com/azure/service-connector/overview) streamlines connecting applications to Azure resources like Azure OpenAI by automating the configuration of [Workload Identity](https://learn.microsoft.com/azure/aks/workload-identity-overview?tabs=javascript). This feature allows you to assign identities to pods, enabling them to authenticate with Microsoft Entra ID and access Azure services securely without passwords. For a deeper understanding, check out the [Workload Identity overview](https://learn.microsoft.com/entra/workload-id/workload-identities-overview).
 
 :::tip
 
@@ -362,7 +362,7 @@ In the **YAML snippet** window, select **Kubernetes Workload** for **Resource ty
 
 ![AKS service connector yaml snippet for contoso-air](./assets/aks-automatic/service-connector-yaml-deploy.png)
 
-You will see the YAML manifest for the contoso-air application with the highlighted edits required to connect to CosmosDB via Workload Identity.
+You will see the YAML manifest for the contoso-air application with the highlighted edits required to connect to Azure OpenAI via Workload Identity.
 
 ![AKS service connector yaml snippet highlights](./assets/aks-automatic/service-connector-yaml-highlights.png)
 
@@ -466,7 +466,7 @@ Click on the **Application map** under **Investigate** in the left-hand menu to 
 
 :::tip
 
-If the Azure OpenAI endpoint does not appear in the application map, return to the Contoso Air website and chat with the AI assistant a bit more to generate some data. Then, in the Application Map, click the **Refresh** button. The map will update in real time and should now display the application connected to the Azure OpenAI endpoint, along with the request latency to the database.
+If the Azure OpenAI endpoint does not appear in the application map, return to the Contoso Air website and chat with the AI assistant a bit more to generate some data. Then, in the Application Map, click the **Refresh** button. The map will update in real time and should now display the application connected to the Azure OpenAI endpoint, along with the request latency to the model endpoint.
 
 :::
 
