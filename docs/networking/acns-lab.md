@@ -82,9 +82,9 @@ Review the created policies using the following command
 kubectl get cnp -n pets
 ```
 
-Ensure that only allowed connections succeed and others are blocked. For example, order-service should not be able to access <www.bing.com> or the product-service.
+Ensure that only allowed connections succeed and others are blocked. For example, order-service should not be able to access www.bing.com or the product-service.
 
-Run the following command to test the connection to <www.bing.com> from the order-service pod.
+Run the following command to test the connection to www.bing.com from the order-service pod.
 
 ```bash
 kubectl exec -n pets -it $(kubectl get po -n pets -l app=order-service -ojsonpath='{.items[0].metadata.name}') -c order-service -- sh -c 'wget --spider --timeout=1 --tries=1 www.bing.com'
@@ -886,7 +886,7 @@ ACNS also provides specialized dashboards for container network flow logs with f
 1. Open the [Azure Portal](https://aka.ms/publicportal) and search for **Monitor**
 2. Select the **Monitor** resource
 3. In the left navigation pane, click on **Dashboards with Grafana**
-4. Search for dashboards under **Azure | Insights | Containers | Networking | `<dashboard name>`**
+4. Search for dashboards under **Azure | Insights | Containers | Networking | `dashboard name`**
 
 Available dashboards:
 
@@ -986,7 +986,7 @@ Your output should look similar to the following example output:
 
 ```text
 NAME                            READY   STATUS    RESTARTS   AGE    IP            NODE                                 NOMINATED NODE   READINESS GATES
-hubble-relay-7ff97868ff-tvwcf   1/1     Running   0          101m   10.244.2.57   aks-systempool-10200747-vmss000000   <none>           <none>
+hubble-relay-7ff97868ff-tvwcf   1/1     Running   0          101m   10.244.2.57   aks-systempool-10200747-vmss000000   none           none
 ```
 
 Using hubble we will look for what is dropped.
