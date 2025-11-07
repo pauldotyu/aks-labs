@@ -49,7 +49,6 @@ Run the following command to register preview features.
 ```bash
 az extension add --name aks-preview
 ```
-<ProvisionResourceGroup />
 <ProvisionResources />
 This workshop will need some Azure preview features enabled and resources to be pre-provisioned. You can use the Azure CLI commands below to register the preview features.
 
