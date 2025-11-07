@@ -26,20 +26,44 @@ In this lab, you will learn how to secure and troubleshoot network traffic in Az
 - Use Hubble CLI and UI for real-time network flow observation and troubleshooting.
 - Compare traditional troubleshooting approaches with ACNS-enabled workflows to reduce diagnosis time from hours to minutes.
 
+## Prerequisites
 
-<Prerequisites />
+Before starting this lab, make sure your environment is set up correctly. Follow the guide here:
+
+- [Azure Subscription](https://azure.microsoft.com/)
+- [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/) version 2.75.0 or later with the [aks-preview(19.0.07 or latest)](https://github.com/Azure/azure-cli-extensions/tree/main/src/aks-preview) [Azure CLI extension](https://learn.microsoft.com/cli/azure/azure-cli-extensions-overview?view=azure-cli-latest) installed
+- [kubectl](https://kubernetes.io/docs/tasks/tools/) version 1.33.0 or later
+- A terminal with `bash` (e.g.: [Windows Terminal](https://www.microsoft.com/p/windows-terminal/9n0dx20hk701) with [WSL](https://docs.microsoft.com/windows/wsl/install-win10) or [Azure Cloud Shell](https://shell.azure.com/))
+
+### Setup Azure CLI
+
+Start by logging into Azure by run the following command and follow the prompts:
+
+```bash
+az login --use-device-code
+```
+:::tip
+
+You can log into a different tenant by passing in the **--tenant** flag to specify your tenant domain or tenant ID.
+
+:::
+
+Run the following command to register preview features.
+
+```bash
+az extension add --name aks-preview
+```
 <ProvisionResourceGroup />
 <ProvisionResources />
-
 This workshop will need some Azure preview features enabled and resources to be pre-provisioned. You can use the Azure CLI commands below to register the preview features.
 
-#### Register preview features.
+### Register preview features.
 ```bash
 az feature register --namespace "Microsoft.ContainerService" --name "AdvancedNetworkingFlowLogsPreview"
 az feature register --namespace "Microsoft.ContainerService" --name "AdvancedNetworkingL7PolicyPreview"
 ```
 
-#### Setup AKS Cluster
+### Setup AKS Cluster
 
 Set the AKS cluster name.
 
@@ -65,7 +89,7 @@ az aks create \
   --enable-high-log-scale-mode
 ```
 
-## Deploy a Sample Application
+### Deploy a Sample Application
 
 We'll deploy the [AKS Store Demo](https://learn.microsoft.com/en-us/samples/azure-samples/aks-store-demo/aks-store-demo/) application. The store also includes an 'All-in-One' deployment option, which makes installation simple. 
 
@@ -92,16 +116,16 @@ kubectl get pods -n pets
 Expected output
 
 ```bash
-NAME                                    READY   STATUS    RESTARTS   AGE
-pod/makeline-service-6c8ffb5857-gnrv7   1/1     Running   0          76s
-pod/mongodb-0                           1/1     Running   0          77s
-pod/order-service-595b65df56-xjtrr      1/1     Running   0          76s
-pod/product-service-5b8794b597-trbvn    1/1     Running   0          75s
-pod/rabbitmq-0                          1/1     Running   0          76s
-pod/store-admin-5588c957-hc4qw          1/1     Running   0          74s
-pod/store-front-6ff78d4f79-6mwx9        1/1     Running   0          75s
-pod/virtual-customer-f5d4cd9f7-2sb7w    1/1     Running   0          74s
-pod/virtual-worker-865bcdf78f-jp9vk     1/1     Running   0          74s
+NAME                                READY   STATUS    RESTARTS   AGE
+makeline-service-6c8ffb5857-gnrv7   1/1     Running   0          76s
+mongodb-0                           1/1     Running   0          77s
+order-service-595b65df56-xjtrr      1/1     Running   0          76s
+product-service-5b8794b597-trbvn    1/1     Running   0          75s
+rabbitmq-0                          1/1     Running   0          76s
+store-admin-5588c957-hc4qw          1/1     Running   0          74s
+store-front-6ff78d4f79-6mwx9        1/1     Running   0          75s
+virtual-customer-f5d4cd9f7-2sb7w    1/1     Running   0          74s
+virtual-worker-865bcdf78f-jp9vk     1/1     Running   0          74s
 ```
 
 ## Enforcing Network Policy
@@ -109,11 +133,9 @@ pod/virtual-worker-865bcdf78f-jp9vk     1/1     Running   0          74s
 In this section, we’ll apply network policies to control traffic flow to and from the Pet Shop application. We will start with standard network policy that doesn't require ACNS, then we enforce more advanced FQDN policies.
 
 #### Test Connectivity
-
 Do the following test to make sure that all traffic is allowed by default
 
 Run the following command to test a connection to an external website from the order-service pod.
-
 ```bash
 kubectl exec -n pets -it $(kubectl get po -n pets -l app=order-service -ojsonpath='{.items[0].metadata.name}') -c order-service -- sh -c 'wget --spider www.bing.com'
 ```
@@ -271,15 +293,11 @@ Connecting to developer.microsoft.com (23.45.149.11:443)
 remote file exists
 ```
 
-#### Monitoring Advanced Network Metrics and Flows
+## Monitoring Advanced Network Metrics and Flows
 
-Advanced Container Networking Services (ACNS) provides deep visibility into your cluster's network activity. This includes flow logs and deep visibility into your cluster's network activity. All communications to and from pods are logged, allowing you to investigate connectivity issues over time
+ACNS provides comprehensive network visibility by logging all pod communications, enabling you to investigate connectivity issues over time. Using Azure Managed Grafana, you can visualize real-time traffic patterns, performance metrics, and policy effectiveness.
 
-Using Azure Managed Grafana, you can visualize real-time data and gain insights into network traffic patterns, performance, and policy effectiveness.
-
-What if a customer reports a problem in accessing the pets shop? How can you troubleshoot the issue?
-
-We'll work to simulate a problem and then use ACNS to troubleshoot the issue.
+Let's simulate a network problem and demonstrate how ACNS accelerates troubleshooting.
 
 #### Introducing Chaos to Test container networking
 
@@ -306,14 +324,14 @@ kubectl apply -n pets -f acns-network-policy-chaos.yaml
 
 Before we dive into detailed troubleshooting with flow logs, let's explore how Azure Managed Grafana provides real-time visibility into network metrics. These dashboards serve as your "early warning system" to detect anomalies and understand cluster-wide traffic patterns.
 
-#### Access Your Grafana Instance
+### Access Your Grafana Instance
 
 1. Open the [Azure Portal](https://aka.ms/publicportal) and navigate to your AKS cluster
 2. In the left navigation pane, click on **Dashboards with Grafana**
 3. Select your Azure Managed Grafana instance
 4. Navigate to **Dashboards** → **Browse** → **Azure / Kubernetes / Networking**
 
-#### Explore ACNS Metrics Dashboards
+### Explore ACNS Metrics Dashboards
 
 ACNS provides pre-built dashboards for real-time network observability:
 
@@ -385,22 +403,12 @@ This is where **Container Network Flow Logs** accelerate your troubleshooting. T
 
 Let's see this in action by investigating the issues developers reported.
 
-#### Enable Flow Logs for the Pets Namespace
+### Enable Flow Logs for the Pets Namespace
 
 To enable container network flow logs, you need to apply a `ContainerNetworkLog` custom resource that defines which network flows to capture. Let's create a filter to capture all traffic in the pets namespace.
 
 Create a file named `pets-flow-logs.yaml` with the following content:
 
-```yaml
-apiVersion: acn.azure.com/v1alpha1
-kind: ContainerNetworkLog
-metadata:
-  name: testcnl # Cluster scoped
-spec:
-  includefilters: # List of filters
-    - name: egress-filter # Capture egress traffic from pets namespace
-      from:
-        namespacedPod: # List of source namespace/pods. Prepend namespace with /
 ```bash
 apiVersion: acn.azure.com/v1alpha1
 kind: ContainerNetworkLog
@@ -415,6 +423,7 @@ spec:
           - pets/product-service-
           - pets/rabbitmq
           - pets/store-front-
+          - kube-system/core-dns-
       protocol: # List of protocols; can be tcp, udp, dns
         - tcp
         - udp
@@ -430,6 +439,7 @@ spec:
           - pets/order-service-
           - pets/product-service-
           - pets/rabbitmq
+          - kube-system/core-dns-
       protocol:
         - tcp
         - udp
@@ -458,36 +468,82 @@ You should see a `Status` field showing `State: CONFIGURED`. This means flow log
 
 </div>
 
-#### Generate Traffic to Observe Flow Logs
+### Generate Traffic to Observe Flow Logs
 
 > **Note:** Flow logs are stored locally on the nodes at `/var/log/acns/hubble/events.log` and then collected by the Azure Monitor Agent and sent to Log Analytics. It may take 2-3 minutes for logs to appear in Log Analytics after network events occur.
 
 This policy adds FQDN filtering and L7 HTTP rules to the store-front application:
 
-```yaml
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
+```bash
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
 metadata:
-  name: store-front-fqdn
+  name: combined-fqdn-l7-policy
   namespace: pets
 spec:
-  podSelector:
+  endpointSelector:
     matchLabels:
       app: store-front
-  policyTypes:
-  - Ingress
-  ingress:
-  - from:
-    - podSelector:
-        matchLabels:
-          app: store-front
-    - ipBlock:
-        cidr: 0.0.0.0/0
-    ports:
-    - protocol: TCP
-      port: 80
-    - protocol: TCP
-      port: 443
+  
+  # BLOCK ALL INGRESS TRAFFIC
+  ingress: []  # Empty ingress = block all incoming traffic
+  
+  egress:
+  # 1. Allow DNS to kube-dns (only for specific domains)
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: kube-system
+        k8s:k8s-app: kube-dns
+    toPorts:
+    - ports:
+      - port: "53"
+        protocol: ANY
+      rules:
+        dns:
+          - matchPattern: "rabbitmq.pets.svc.cluster.local"
+          - matchPattern: "*.microsoft.com"
+          - matchPattern: "*.microsoft.com.cluster.local"
+          - matchPattern: "*.microsoft.com.pets.svc.cluster.local"
+          - matchPattern: "*.microsoft.com.*.*.internal.cloudapp.net"
+          - matchPattern: "*.microsoft.com.svc.cluster.local"
+          - matchPattern: "*.pets.svc.cluster.local"
+          - matchPattern: "*.svc.cluster.local"
+          # NOTE: api.github.com, google.com, and bing.com are NOT in DNS rules
+          # This will cause DNS queries to fail for these domains
+
+  # 2. Allow both HTTP and HTTPS to *.microsoft.com (FQDN filtering)
+  - toFQDNs:
+    - matchPattern: "*.microsoft.com"
+    toPorts:
+    - ports:
+      - port: "80"
+        protocol: TCP
+      - port: "443"
+        protocol: TCP
+
+  # 3. Allow HTTPS to api.github.com (but DNS will fail - see note above)
+  # This demonstrates a common misconfiguration: toFQDNs without DNS rules
+  - toFQDNs:
+    - matchName: api.github.com
+    toPorts:
+    - ports:
+      - port: "443"
+        protocol: TCP
+
+  # 4. Allow internal backend communication with L7 HTTP rules
+  - toEndpoints:
+    - matchLabels:
+        app: product-service
+    toPorts:
+    - ports:
+      - port: "3002"
+        protocol: TCP
+      rules:
+        http:
+        - method: "GET"
+          path: "/"
+```
+
 Run the following command to download the combined FQDN and L7 policy manifest file.
 
 ```bash
@@ -661,12 +717,6 @@ kubectl exec -n pets -it $(kubectl get po -n pets -l app=store-front -ojsonpath=
 | 5 | store-front → order-service | L3/L4 (TCP internal) | ✅ Internal communication works |
 | 6 | nslookup order-service | DNS (internal) | ✅ Internal DNS resolution works |
 
-<div class="info" data-title="Key Insight">
-
-> **FQDN Policy Requirements**: Notice that `api.github.com` is in the `toFQDNs` list but still fails. This demonstrates a critical Cilium requirement: you need **BOTH** DNS rules (to allow the DNS query) **AND** toFQDNs rules (to allow the connection). Having only toFQDNs without DNS rules means the DNS query gets blocked first, and the connection is never attempted. This is a common misconfiguration that flow logs will help you identify.
-
-</div>
-
 **What You Just Simulated:**
 
 1. **External Access Failures**: The chaos policy is blocking all ingress traffic to store-front
@@ -674,31 +724,24 @@ kubectl exec -n pets -it $(kubectl get po -n pets -l app=store-front -ojsonpath=
 3. **L7 HTTP Method Filtering**: The L7 policy allows GET requests but blocks POST requests to the product-service API, demonstrating application-layer control
 4. **Internal Service Mesh**: Pod-to-pod communication within the namespace continues to work normally
 
-> **Key Insight - FQDN Policy Requirements:** Notice that `api.github.com` is in the `toFQDNs` list but still fails. This demonstrates a critical Cilium requirement: you need **BOTH** DNS rules (to allow the DNS query) **AND** toFQDNs rules (to allow the connection). Having only toFQDNs without DNS rules means the DNS query gets blocked first, and the connection is never attempted. This is a common misconfiguration that flow logs will help you identify.
+<div class="info" data-title="Key Insight - FQDN Policy Requirements">
 
-<div class="info" data-title="Important">
-
-> **Understanding FQDN Policy Requirements**: For FQDN filtering to work in Cilium, you need **both** components:
+> For FQDN filtering to work in Cilium, you need **both** components working together:
 >
-> 1. **DNS rules** (port 53) - Allow the DNS query to resolve the domain name
+> 1. **DNS rules** (port 53) with `matchPattern` - Allow the DNS query to resolve the domain name
 > 2. **toFQDNs rules** - Allow the connection to the resolved IP address
 >
-> In this policy, `*.microsoft.com` works because it's in **both** the DNS patterns and toFQDNs rules. However, domains like `api.github.com`, `bing.com`, and `google.com` fail because they're missing from the DNS `matchPattern` rules - the DNS query gets blocked first, so the pod never gets to attempt the actual connection. This is a common misconfiguration that container network flow logs help you identify quickly.
+> Notice that `api.github.com` is in the `toFQDNs` list but still fails because it's missing from the DNS `matchPattern` rules. The DNS query gets blocked first, so the pod never attempts the actual connection. In contrast, `*.microsoft.com` works because it's in **both** sections. This is a common misconfiguration that container network flow logs help you identify quickly.
 
 </div>
 
-Without container network flow logs, you would need to:
+**Traditional Troubleshooting vs. ACNS:**
 
-- SSH into nodes to check iptables rules
-- Manually correlate pod events with network policies
-- Spend hours trying different combinations to find the root cause
+Without container network flow logs, you would need to SSH into nodes to check iptables rules, manually correlate pod events with network policies, and spend hours trying different combinations to find the root cause.
 
-> **Important - Understanding FQDN Policy Requirements:** For FQDN filtering to work in Cilium, you need **both** components:
->
-> 1. **DNS rules** (port 53) - Allow the DNS query to resolve the domain name
-> 2. **toFQDNs rules** - Allow the connection to the resolved IP address
->
-> In this policy, `*.microsoft.com` works because it's in **both** the DNS patterns and toFQDNs rules. However, domains like `api.github.com`, `bing.com`, and `google.com` fail because they're missing from the DNS `matchPattern` rules - the DNS query gets blocked first, so the pod never gets to attempt the actual connection. This is a common misconfiguration that container network flow logs help you identify quickly.
+**Container Network Flow Logs with Log Analytics:**
+
+Since Container Network Flow Logs are enabled with Log Analytics workspace, we have access to historical logs that allow us to analyze network traffic patterns over time. We can query these logs using the `ContainerNetworkLog` table to perform detailed forensic analysis and troubleshooting.
 
 Now that flow logs are being collected and we've generated traffic, let's investigate the issues in minutes instead of hours.
 
@@ -709,7 +752,7 @@ Navigate to [Azure Portal](https://aka.ms/publicportal), search for your AKS clu
 > First, run this query to see what fields are available in your flow logs:
 >
 > ```kusto
-> RetinaNetworkFlowLogs
+> ContainerNetworkLog
 > | take 1
 > ```
 >
@@ -717,7 +760,7 @@ Navigate to [Azure Portal](https://aka.ms/publicportal), search for your AKS clu
 
 </div>
 
-#### Progressive Diagnosis Using Flow Logs
+### Progressive Diagnosis Using Flow Logs
 
 Now let's use flow logs to diagnose all the issues we just generated. Each query builds on the previous one, giving you a complete picture of what's happening in your cluster.
 
@@ -732,7 +775,7 @@ Now let's use flow logs to diagnose all the issues we just generated. Each query
 First, let's get a high-level view of all dropped traffic in the pets namespace:
 
 ```kusto
-RetinaNetworkFlowLogs
+ContainerNetworkLog
 | where TimeGenerated > ago(30m)
 | where SourceNamespace == "pets" or DestinationNamespace == "pets"
 | where Verdict == "DROPPED"
@@ -771,7 +814,7 @@ RetinaNetworkFlowLogs
 Now let's see exactly which external connections are being dropped:
 
 ```kusto
-RetinaNetworkFlowLogs
+ContainerNetworkLog
 | where TimeGenerated > ago(30m)
 | where DestinationNamespace == "pets"
 | where DestinationPodName contains "store-front"
@@ -812,7 +855,7 @@ RetinaNetworkFlowLogs
 Let's look at DNS traffic (port 53) to understand which domains are allowed vs blocked:
 
 ```kusto
-RetinaNetworkFlowLogs
+ContainerNetworkLog
 | where TimeGenerated > ago(30m)
 | where SourceNamespace == "pets"
 | where SourcePodName contains "store-front"
@@ -852,7 +895,7 @@ RetinaNetworkFlowLogs
 Now let's correlate DNS queries with HTTPS connection attempts to understand the full flow:
 
 ```kusto
-RetinaNetworkFlowLogs
+ContainerNetworkLog
 | where TimeGenerated > ago(30m)
 | where SourceNamespace == "pets"
 | where SourcePodName contains "store-front"
@@ -907,7 +950,7 @@ RetinaNetworkFlowLogs
 Create a visual timeline to correlate issues with policy deployments:
 
 ```kusto
-RetinaNetworkFlowLogs
+ContainerNetworkLog
 | where TimeGenerated > ago(1h)
 | where SourceNamespace == "pets" or DestinationNamespace == "pets"
 | summarize 
@@ -943,7 +986,7 @@ RetinaNetworkFlowLogs
 Get a comprehensive view of all traffic patterns to confirm your diagnosis:
 
 ```kusto
-RetinaNetworkFlowLogs
+ContainerNetworkLog
 | where TimeGenerated > ago(30m)
 | where SourceNamespace == "pets" or DestinationNamespace == "pets"
 | summarize 
@@ -988,7 +1031,7 @@ RetinaNetworkFlowLogs
 
 ---
 
-#### Diagnosis Summary: What You Learned
+### Diagnosis Summary: What You Learned
 
 By using container network flow logs with a **progressive, cumulative approach**, you:
 
@@ -1013,7 +1056,7 @@ By using container network flow logs with a **progressive, cumulative approach**
 
 </div>
 
-#### Key Takeaways
+### Key Takeaways
 
 Flow logs accelerate troubleshooting by providing:
 
@@ -1026,7 +1069,7 @@ Flow logs accelerate troubleshooting by providing:
 
 Now that you've used KQL queries to diagnose the root cause with detailed forensic analysis, let's explore how Grafana dashboards can visualize container network flow logs for easier sharing and visual investigation.
 
-#### Access Flow Logs Dashboards
+### Access Flow Logs Dashboards
 
 ACNS provides specialized dashboards for container network flow logs with forensic-level details:
 
@@ -1057,7 +1100,7 @@ These dashboards show:
 
 </div>
 
-**When to Use Each Tool:**
+### When to Use Each Tool:
 
 | Tool | Best For |
 |------|----------|
