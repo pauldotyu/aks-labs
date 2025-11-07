@@ -52,7 +52,6 @@ az extension add --name aks-preview
 <ProvisionResources />
 This workshop will need some Azure preview features enabled and resources to be pre-provisioned. You can use the Azure CLI commands below to register the preview features.
 
-### Register preview features.
 ```bash
 az feature register --namespace "Microsoft.ContainerService" --name "AdvancedNetworkingFlowLogsPreview"
 az feature register --namespace "Microsoft.ContainerService" --name "AdvancedNetworkingL7PolicyPreview"
