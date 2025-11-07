@@ -468,7 +468,11 @@ Flow logs are stored locally on the nodes at `/var/log/acns/hubble/events.log` a
 
 ### Generate Traffic to Observe Flow Logs
 
-> **Note:** Flow logs are stored locally on the nodes at `/var/log/acns/hubble/events.log` and then collected by the Azure Monitor Agent and sent to Log Analytics. It may take 2-3 minutes for logs to appear in Log Analytics after network events occur.
+:::info
+
+Flow logs are stored locally on the nodes at `/var/log/acns/hubble/events.log` and then collected by the Azure Monitor Agent and sent to Log Analytics. It may take 2-3 minutes for logs to appear in Log Analytics after network events occur.
+
+:::
 
 This policy adds FQDN filtering and L7 HTTP rules to the store-front application:
 
