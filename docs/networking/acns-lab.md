@@ -6,8 +6,6 @@ import Prerequisites from "../../src/components/SharedMarkdown/_prerequisites.md
 import ProvisionResourceGroup from "../../src/components/SharedMarkdown/_provision_resource_group.mdx"; 
 import ProvisionResources from "../../src/components/SharedMarkdown/_provision_resources.mdx";
 
-## Advanced Networking Concepts
-When you created the AKS cluster, you used Azure CNI in overlay mode with [Cilium](https://cilium.io/) for advanced networking and security. This provides the most flexibility for IP assignment and network policy enforcement.
 
 ### Advanced Container Networking Services
 
