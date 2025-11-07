@@ -215,10 +215,6 @@ AKS_NAME=$(az aks create \
 --enable-workload-identity \
 --enable-oidc-issuer \
 --enable-acns \
---enable-retina-flow-logs \
---acns-advanced-networkpolicies L7 \
---enable-addons monitoring \
---enable-high-log-scale-mode \
 --generate-ssh-keys \
 --query name -o tsv)
 ```
