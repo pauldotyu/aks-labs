@@ -57,7 +57,7 @@ This workshop will need some Azure preview features enabled and resources to be 
 az feature register --namespace "Microsoft.ContainerService" --name "AdvancedNetworkingFlowLogsPreview"
 az feature register --namespace "Microsoft.ContainerService" --name "AdvancedNetworkingL7PolicyPreview"
 ```
-
+<ProvisionResourceGroup />
 ### Setup AKS Cluster
 
 Set the AKS cluster name.
