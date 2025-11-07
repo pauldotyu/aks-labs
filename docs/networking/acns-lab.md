@@ -69,7 +69,7 @@ export AKS_NAME=myakscluster$RAND
 Run the following command to create an AKS cluster with some best practices in place.
 ```bash
 az aks create \
-  --name "$CLUSTER_NAME" \
+  --name ${AKS_NAME} \
   --resource-group ${RESOURCE_GROUP} \
   --location ${LOCATION} \
   --pod-cidr 192.168.0.0/16 \
