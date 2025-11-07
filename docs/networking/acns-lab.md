@@ -227,7 +227,11 @@ Using network policies, you can control traffic flow to and from your AKS cluste
 
 This is where FQDN filtering comes in.
 
-> **Note:** FQDN filtering is only available for clusters using Azure CNI Powered by Cilium.
+:::info
+
+FQDN filtering is only available for clusters using Azure CNI Powered by Cilium.
+
+:::
 
 Let's explore how we can apply FQDN-based network policies to control outbound access to specific domains.
 
