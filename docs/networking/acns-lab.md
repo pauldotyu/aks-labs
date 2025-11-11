@@ -69,7 +69,7 @@ Run the following command to create an AKS cluster with some best practices in p
 ```bash
 az aks create \
   --name ${AKS_NAME} \
-  --resource-group ${RESOURCE_GROUP} \
+  --resource-group ${RG_NAME} \
   --location ${LOCATION} \
   --pod-cidr 192.168.0.0/16 \
   --network-plugin azure \
@@ -1320,6 +1320,6 @@ If you no longer need the resources from this lab, you can delete your **AKS clu
 ```bash
 az aks delete \
   --resource-group ${RG_NAME} \
-  --name ${AKS_CLUSTER_NAME} \
+  --name ${AKS_NAME} \
   --no-wait
 ```
