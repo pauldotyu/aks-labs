@@ -78,7 +78,7 @@ az aks create \
   --network-plugin-mode overlay \
   --network-dataplane cilium \
   --generate-ssh-keys \
-  --enable-retina-flow-logs \
+  --enable-container-network-logs \
   --enable-acns \
   --acns-advanced-networkpolicies L7 \
   --enable-addons monitoring \
