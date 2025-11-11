@@ -462,10 +462,6 @@ kubectl describe containernetworklog testcnl
 
 You should see a `Status` field showing `State: CONFIGURED`. This means flow logs are now being collected for the pets namespace and sent to your Log Analytics workspace.
 
-:::note
-Flow logs are stored locally on the nodes at `/var/log/acns/hubble/events.log` and then collected by the Azure Monitor Agent and sent to Log Analytics. It may take 2-3 minutes for logs to appear in Log Analytics after network events occur.
-:::
-
 ### Generate Traffic to Observe Flow Logs
 
 :::info
