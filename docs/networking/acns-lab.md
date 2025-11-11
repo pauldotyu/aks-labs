@@ -739,7 +739,13 @@ Without container network flow logs, you would need to SSH into nodes to check i
 
 **Container Network Flow Logs with Log Analytics:**
 
-Since Container Network Flow Logs are enabled with Log Analytics workspace, we have access to historical logs that allow us to analyze network traffic patterns over time. We can query these logs using the `ContainerNetworkLog` table to perform detailed forensic analysis and troubleshooting.
+Since Container Network Flow Logs are enabled with Log Analytics workspace, we have access to historical logs that allow us to analyze network traffic patterns over time. We can query these logs using the `RetinaNetworkFlowLogs` table to perform detailed forensic analysis and troubleshooting.
+
+:::info Table Name Update
+
+**Note:** The table name will soon change from `RetinaNetworkFlowLogs` to `ContainerNetworkLog` to maintain consistency with other ACNS features. Customers would be notified via email. Update your queries accordingly when the change is implemented.
+
+:::
 
 Now that flow logs are being collected and we've generated traffic, let's investigate the issues in minutes instead of hours.
 
@@ -750,7 +756,7 @@ Navigate to [Azure Portal](https://aka.ms/publicportal), search for your AKS clu
 First, run this query to see what fields are available in your flow logs:
 
 ```kusto
-ContainerNetworkLog
+RetinaNetworkFlowLogs
 | take 1
 ```
 
@@ -773,7 +779,7 @@ Now let's use flow logs to diagnose all the issues we just generated. Each query
 First, let's get a high-level view of all dropped traffic in the pets namespace:
 
 ```kusto
-ContainerNetworkLog
+RetinaNetworkFlowLogs
 | where TimeGenerated > ago(30m)
 | where SourceNamespace == "pets" or DestinationNamespace == "pets"
 | where Verdict == "DROPPED"
@@ -810,7 +816,7 @@ ContainerNetworkLog
 Now let's see exactly which external connections are being dropped:
 
 ```kusto
-ContainerNetworkLog
+RetinaNetworkFlowLogs
 | where TimeGenerated > ago(30m)
 | where DestinationNamespace == "pets"
 | where DestinationPodName contains "store-front"
@@ -851,7 +857,7 @@ ContainerNetworkLog
 Let's look at DNS traffic (port 53) to understand which domains are allowed vs blocked:
 
 ```kusto
-ContainerNetworkLog
+RetinaNetworkFlowLogs
 | where TimeGenerated > ago(30m)
 | where SourceNamespace == "pets"
 | where SourcePodName contains "store-front"
@@ -891,7 +897,7 @@ ContainerNetworkLog
 Now let's correlate DNS queries with HTTPS connection attempts to understand the full flow:
 
 ```kusto
-ContainerNetworkLog
+RetinaNetworkFlowLogs
 | where TimeGenerated > ago(30m)
 | where SourceNamespace == "pets"
 | where SourcePodName contains "store-front"
@@ -946,7 +952,7 @@ ContainerNetworkLog
 Create a visual timeline to correlate issues with policy deployments:
 
 ```kusto
-ContainerNetworkLog
+RetinaNetworkFlowLogs
 | where TimeGenerated > ago(1h)
 | where SourceNamespace == "pets" or DestinationNamespace == "pets"
 | summarize 
@@ -982,7 +988,7 @@ A visual timeline showing:
 Get a comprehensive view of all traffic patterns to confirm your diagnosis:
 
 ```kusto
-ContainerNetworkLog
+RetinaNetworkFlowLogs
 | where TimeGenerated > ago(30m)
 | where SourceNamespace == "pets" or DestinationNamespace == "pets"
 | summarize 
@@ -1048,7 +1054,11 @@ By using container network flow logs with a **progressive, cumulative approach**
 
 :::note
 
-**Log Analytics vs Hubble**: Flow logs in Log Analytics have 2-3 minute delays and storage costs but enable historical analysis over days/weeks. For real-time monitoring without storage costs, use Hubble CLI/UI (next section) for instant visibility into current network flows.
+**Choosing the Right Network Monitoring Tool:**
+
+- **Log Analytics Flow Logs**: Best for historical analysis and forensic investigation. Data has incurs storage costs, but allows you to query traffic patterns from hours, days, or weeks ago to understand trends and investigate past incidents.
+
+- **Hubble CLI/UI**: Best for real-time troubleshooting and live monitoring. Provides instant visibility into current network flows without storage costs, making it ideal for active debugging and immediate issue resolution.
 
 :::
 
