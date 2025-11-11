@@ -784,8 +784,6 @@ ContainerNetworkLog
 | take 20
 ```
 
-> **Note - About Query Results:** The results shown in this lab are examples from a specific testing environment. Your actual results will be similar in structure and pattern, but will have different values for IP addresses, pod names, timestamps, and counts based on your specific cluster configuration and traffic patterns.
-
 **What you'll discover:**
 
 > | TrafficDirection | SourcePodName | DestinationPodName | DroppedFlows |
