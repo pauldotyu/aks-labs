@@ -743,7 +743,7 @@ Since Container Network Flow Logs are enabled with Log Analytics workspace, we h
 
 :::info Table Name Update
 
-**Note:** The table name will soon change from `RetinaNetworkFlowLogs` to `ContainerNetworkLog` to maintain consistency with other ACNS features. Update your queries accordingly when the change is implemented.
+**Note:** The table name will soon change from `RetinaNetworkFlowLogs` to `ContainerNetworkLog` to maintain consistency with other ACNS features. Customers would be notified via email. Update your queries accordingly when the change is implemented.
 
 :::
 
@@ -1056,7 +1056,7 @@ By using container network flow logs with a **progressive, cumulative approach**
 
 **Choosing the Right Network Monitoring Tool:**
 
-- **Log Analytics Flow Logs**: Best for historical analysis and forensic investigation. Data has a 1-2 minute delay and incurs storage costs, but allows you to query traffic patterns from hours, days, or weeks ago to understand trends and investigate past incidents.
+- **Log Analytics Flow Logs**: Best for historical analysis and forensic investigation. Data has incurs storage costs, but allows you to query traffic patterns from hours, days, or weeks ago to understand trends and investigate past incidents.
 
 - **Hubble CLI/UI**: Best for real-time troubleshooting and live monitoring. Provides instant visibility into current network flows without storage costs, making it ideal for active debugging and immediate issue resolution.
 
