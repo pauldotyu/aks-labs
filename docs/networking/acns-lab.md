@@ -69,14 +69,14 @@ Run the following command to create an AKS cluster with some best practices in p
 ```bash
 az aks create \
   --name ${AKS_NAME} \
-  --resource-group ${RESOURCE_GROUP} \
+  --resource-group ${RG_NAME} \
   --location ${LOCATION} \
   --pod-cidr 192.168.0.0/16 \
   --network-plugin azure \
   --network-plugin-mode overlay \
   --network-dataplane cilium \
   --generate-ssh-keys \
-  --enable-retina-flow-logs \
+  --enable-container-network-logs \
   --enable-acns \
   --acns-advanced-networkpolicies L7 \
   --enable-addons monitoring \
@@ -462,10 +462,6 @@ kubectl describe containernetworklog testcnl
 
 You should see a `Status` field showing `State: CONFIGURED`. This means flow logs are now being collected for the pets namespace and sent to your Log Analytics workspace.
 
-:::note
-Flow logs are stored locally on the nodes at `/var/log/acns/hubble/events.log` and then collected by the Azure Monitor Agent and sent to Log Analytics. It may take 2-3 minutes for logs to appear in Log Analytics after network events occur.
-:::
-
 ### Generate Traffic to Observe Flow Logs
 
 :::info
@@ -787,8 +783,6 @@ ContainerNetworkLog
 | order by DroppedFlows desc
 | take 20
 ```
-
-> **Note - About Query Results:** The results shown in this lab are examples from a specific testing environment. Your actual results will be similar in structure and pattern, but will have different values for IP addresses, pod names, timestamps, and counts based on your specific cluster configuration and traffic patterns.
 
 **What you'll discover:**
 
@@ -1320,6 +1314,6 @@ If you no longer need the resources from this lab, you can delete your **AKS clu
 ```bash
 az aks delete \
   --resource-group ${RG_NAME} \
-  --name ${AKS_CLUSTER_NAME} \
+  --name ${AKS_NAME} \
   --no-wait
 ```
