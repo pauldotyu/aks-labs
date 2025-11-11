@@ -49,16 +49,14 @@ Run the following command to register preview features.
 ```bash
 az extension add --name aks-preview
 ```
-<ProvisionResourceGroup />
 <ProvisionResources />
 This workshop will need some Azure preview features enabled and resources to be pre-provisioned. You can use the Azure CLI commands below to register the preview features.
 
-### Register preview features.
 ```bash
 az feature register --namespace "Microsoft.ContainerService" --name "AdvancedNetworkingFlowLogsPreview"
 az feature register --namespace "Microsoft.ContainerService" --name "AdvancedNetworkingL7PolicyPreview"
 ```
-
+<ProvisionResourceGroup />
 ### Setup AKS Cluster
 
 Set the AKS cluster name.
@@ -70,7 +68,7 @@ export AKS_NAME=myakscluster$RAND
 Run the following command to create an AKS cluster with some best practices in place.
 ```bash
 az aks create \
-  --name "$CLUSTER_NAME" \
+  --name ${AKS_NAME} \
   --resource-group ${RESOURCE_GROUP} \
   --location ${LOCATION} \
   --pod-cidr 192.168.0.0/16 \
@@ -229,7 +227,11 @@ Using network policies, you can control traffic flow to and from your AKS cluste
 
 This is where FQDN filtering comes in.
 
-> **Note:** FQDN filtering is only available for clusters using Azure CNI Powered by Cilium.
+:::info
+
+FQDN filtering is only available for clusters using Azure CNI Powered by Cilium.
+
+:::
 
 Let's explore how we can apply FQDN-based network policies to control outbound access to specific domains.
 
@@ -466,7 +468,11 @@ Flow logs are stored locally on the nodes at `/var/log/acns/hubble/events.log` a
 
 ### Generate Traffic to Observe Flow Logs
 
-> **Note:** Flow logs are stored locally on the nodes at `/var/log/acns/hubble/events.log` and then collected by the Azure Monitor Agent and sent to Log Analytics. It may take 2-3 minutes for logs to appear in Log Analytics after network events occur.
+:::info
+
+Flow logs are stored locally on the nodes at `/var/log/acns/hubble/events.log` and then collected by the Azure Monitor Agent and sent to Log Analytics. It may take 2-3 minutes for logs to appear in Log Analytics after network events occur.
+
+:::
 
 This policy adds FQDN filtering and L7 HTTP rules to the store-front application:
 
