@@ -22,11 +22,38 @@ In this module, we will explore `kro` (Kube Resource Orchestrator), an open-sour
 
 This module is part of a series. Before doing this lab you should've completed the [Platform Engineering lab using AKS, GitOps, CAPZ, and ASOv2](./aks-capz-aso.md).
 
-Before you continue, load the environment variables as defined in [Step 1: Create the AKS cluster](./aks-capz-aso.md#step-1-create-the-aks-cluster). 
+1. Create a directory to store the artifacts for this lab:
 
 ```bash
-source .envrc
+mkdir -p ~/aks-labs/platform-engineering/using-kro
+cd ~/aks-labs/platform-engineering/using-kro
 ```
+
+2. Load the environment variables as defined in [Step 1: Create the AKS cluster](./aks-capz-aso.md#step-1-create-the-aks-cluster). 
+
+```bash
+source ~/aks-labs/platform-engineering/aks-capz-aso/.envrc
+```
+
+:::note
+Your `.envrc` file should look similar to the following example, with your own Azure and AKS details filled in:
+
+```bash
+# Environment variables
+export AZURE_SUBSCRIPTION_ID=<your-azure-subscription-id>
+export AZURE_TENANT_ID=<your-azure-tenant-id>
+
+# AKS
+export AKS_CLUSTER_NAME="<your-aks-cluster-name>"
+export RESOURCE_GROUP="<your-resource-group-name>"
+export LOCATION="<your-azure-region>"
+export MANAGED_IDENTITY_NAME="<your-managed-identity-name>"
+export KUBECONFIG=${HOME}/<path-to-your-kubeconfig>
+export AKS_OIDC_ISSUER_URL=<your-aks-oidc-issuer-url>
+export AZURE_CLIENT_ID=<your-azure-client-id>
+export PRINCIPAL_ID=<your-principal-id>
+```
+:::
 
 ---
 ### What is kro?
@@ -43,7 +70,7 @@ Combined with tools we already used here, like CAPZ and ASO, kro becomes a power
 
 ### Core concepts
 
-Here is a brief overview of `kro`'s core concepts. Of immediate interested is the `ResourceGraphDefinition` (RDG) as it is our main building block.
+Here is a brief overview of `kro`'s core concepts. Of immediate interest is the `ResourceGraphDefinition` (RDG) as it is our main building block.
 
 
 | Concept                 | Description                                                                 |
@@ -65,7 +92,7 @@ export KRO_VERSION=$(curl -sL \
   jq -r '.tag_name | ltrimstr("v")'
   )
 
-helm install kro oci://ghcr.io/kro-run/kro/kro \
+helm install kro oci://registry.k8s.io/kro/charts/kro \
   --namespace kro \
   --create-namespace \
   --version=${KRO_VERSION}
@@ -76,16 +103,19 @@ helm install kro oci://ghcr.io/kro-run/kro/kro \
 kubectl wait --for=condition=Ready pod --all -n kro --timeout=300s
 ```
 
-Once kro is up and running, we should now be able to create out first Azure Resource.
+Once kro is up and running, we should now be able to create our first Azure Resource.
 
 ### Step 2: Prepare the cluster
 
 For this first example, we will simply create a new Azure Resource Group. For this, we have to do the following:
 
-a) Create a namespace in AKS for the resource group.
-b) Create an ASO identity on this new namespace - As before with the ASO example, this will be used by ASOv2 to perform actions against our Subscription in Azure.
-c) Create a new `ResourceGraphDefinition` with the `serviceoperator.azure.com/credential-from: aso-credentials` annotation.
-d) Deploy a new instance of our resource group (defined in the `ResourceGraphDefinition` on step c)
+  a) Create a namespace in AKS for the resource group.
+
+  b) Create an ASO identity on this new namespace - As before with the ASO example, this will be used by ASOv2 to perform actions against our Subscription in Azure.
+
+  c) Create a new `ResourceGraphDefinition` with the `serviceoperator.azure.com/credential-from: aso-credentials` annotation.
+
+  d) Deploy a new instance of our resource group (defined in the `ResourceGraphDefinition` on step c)
 
 ### Quick 'Hello World' example using `kro`
 
@@ -159,7 +189,7 @@ Note that this `ResourceGraphDefinition` includes an annotation for the aso-cred
 kubectl apply -f rgd.yaml
 ```
 
-You can check if the new `ResourceGraphDefinition` was deployed successfully and that is is now `Active` by running this command:
+You can check if the new `ResourceGraphDefinition` was deployed successfully and that it is now `Active` by running this command:
 
 ```bash
 kubectl get resourcegraphdefinition.kro.run/azurecontainer.kro.run
@@ -173,7 +203,7 @@ azurecontainer.kro.run   v1alpha1     AzureContainerDeployment   Active   3m
 ```
 
 :::info
-`ResourceGraphDefinition` will create resources based on the CRDs presented in the AKS clusters. These CRDs were previously defined when we installed the capi-operator. For this lab, we have defined the following under the `--crd-pattern` flag: "resources.azure.com/*;containerservice.azure.com/*;keyvault.azure.com/*;managedidentity.azure.com/*;eventhub.azure.com/*;storage.azure.com/*"). If the `ResourceGraphDefinition` state is Not Active, make sure you have defined the CRDs that it expects when the capi-operator/ASO was installed. You can also add more CRDs by modify the `azureserviceoperator-controller-manager` deployment on the `azure-infrastructure-system` namespace.
+`ResourceGraphDefinition` will create resources based on the CRDs presented in the AKS clusters. These CRDs were previously defined when we installed the capi-operator. For this lab, we have defined the following under the `--crd-pattern` flag: "resources.azure.com/*;containerservice.azure.com/*;keyvault.azure.com/*;managedidentity.azure.com/*;eventhub.azure.com/*;storage.azure.com/*". If the `ResourceGraphDefinition` state is Not Active, make sure you have defined the CRDs that it expects when the capi-operator/ASO was installed. You can also add more CRDs by modifying the `azureserviceoperator-controller-manager` deployment on the `azure-infrastructure-system` namespace.
 :::
 
 6. Create an instance of the Azure Resource Group as specified by the `ResourceGroupDefinition`
@@ -355,7 +385,9 @@ Apply it:
 kubectl apply -f aks-store-instance.yaml
 ```
 
-Check is the cluster is now running:
+This will trigger the creation of a new AKS cluster called `store-demo`. You can follow the cluster creation by using (a) the Azure Portal, (b) `azure cli` or (c) by using `kubectl` 
+
+Check if the cluster is now running using `kubectl`:
 
 ```bash
 kubectl get managedclusters
@@ -369,7 +401,7 @@ store-demo-aks   True               Succeeded
 ```
 
 :::info
-While the resources are being created in Azure, you would see the following mesage when running `kubectl get managedclusters`:
+While the resources are being created in Azure, you would see the following message when running `kubectl get managedclusters`:
 
 ```bash
 NAME             READY   SEVERITY   REASON        MESSAGE
@@ -377,7 +409,7 @@ store-demo-aks   False   Info       Reconciling   The resource is in the process
 ```
 :::
 
-With the cluster now up and running, we can then 1) add Argo CD to the cluster, which once operational, will b) pull the AKS Store Demo and install it on the cluster.
+With the cluster now up and running, we can then (1) add Argo CD to the cluster, which once operational, will (2) pull the AKS Store Demo and install it on the cluster.
 
 Here are the consolidated steps:
 
@@ -385,14 +417,20 @@ Here are the consolidated steps:
 2. Install Argo CD
 
 ```bash
-az aks get-credentials -n store-demo-aks  -g store-demo-rg
+az aks get-credentials -n store-demo-aks -g store-demo-rg --file store-demo.config
+export KUBECONFIG=store-demo.config
 kubectl create namespace argocd
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 ```
 
+:::note
+If you have been following the other 2 labs in this series, you should have a file already in place in `aks-labs/platform-engineering/aks-capz-aso/app-project-env/argocd-apps/aks-store/aks-store-argocd-app.yaml`. You can use that file, which was generated for the main Platform Engineering cluster or proceed with the creation of this new file that is tailored for the developer cluster. The reason we are using this new file here is to showcase that you can fully customize an argocd application into your developer level cluster.
+:::
+
 Once Argo CD is installed, we will create an Argo CD Application:
 
 ```bash
+cat <<EOF> argoapps-aks-store-demo.yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -415,6 +453,13 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+EOF
+```
+
+Apply it:
+
+```bash
+kubectl apply -f argoapps-aks-store-demo.yaml
 ```
 
 You should now be able to see your deployment:
@@ -448,7 +493,7 @@ service/store-admin        LoadBalancer   10.0.240.33    4.149.69.122   80:30725
 service/store-front        LoadBalancer   10.0.199.251   4.149.88.160   80:32556/TCP         3m
 ```
 
-The AKS Store Demo should now be accessible through its public IP
+The AKS Store Demo should now be accessible through its public IP:
 
 ![AKS Store Demo](assets/aks-store-demo-frontend.png)
 
@@ -459,3 +504,18 @@ The AKS Store Demo should now be accessible through its public IP
 In this lab, we accomplished the following:
 
 - Using kro (Kube Resource Orchestrator), you have created a new AKS cluster, added Argo CD to this cluster and deployed the AKS Store Demo as an Argo CD Application.
+
+### Key Takeaways
+
+- **kro simplifies full-stack deployments** by providing a Kubernetes-native abstraction layer for managing both infrastructure and applications through **ResourceGraphDefinitions**.
+- **ResourceGraphDefinitions enable declarative infrastructure** - Define complex resource compositions once and instantiate them multiple times with different parameters.
+- **GitOps integration** - By combining kro with Argo CD, you can manage your entire infrastructure and application lifecycle from Git repositories.
+- **Namespace-scoped credentials** - Using ASO credentials scoped to specific namespaces improves security and reduces blast radius.
+- **Dependency management** - kro's directed acyclic graph (DAG) ensures resources are created and destroyed in the correct order based on their dependencies.
+
+### Next Steps
+
+- Explore more advanced ResourceGraphDefinitions that include networking, storage, and monitoring components
+- Integrate kro ResourceGraphDefinitions into your GitOps workflows using Argo CD ApplicationSets for multi-environment deployments
+- Implement custom ResourceGraphDefinitions for your organization's specific infrastructure patterns
+- Review the [kro documentation](https://kro.run/docs) for additional capabilities and best practices
