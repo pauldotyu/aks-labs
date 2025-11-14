@@ -213,7 +213,7 @@ In a terminal, run the following command to install the service-connector:
 ```bash
 az extension add --name serviceconnector-passwordless --upgrade
 
-nohub bash -c 'az aks connection create postgres-flexible \
+nohup bash -c 'az aks connection create postgres-flexible \
 --source-id ${AKS_CLUSTER_ID} \
 --target-id ${POSTGRES_DATABASE_ID} \
 --workload-identity ${USER_ASSIGNED_IDENTITY_ID} \
@@ -631,7 +631,7 @@ In the GitHub Copilot App Mod extension, click on **Containerize Task -> Contain
 
 ![Conteinerzation Task](assets/migrate-to-aks/containerization-task.png)
 
-The Containerization Assist MCP Server will scan your project and conteineriza your application. It will elaborate on a strategy on how to do this which will involve:
+The Containerization Assist MCP Server will scan your project and conteinerize your application. It will elaborate on a strategy on how to do this which will involve:
 
 - **Dockerfile**: Multi-stage build with optimized base image
 - **Kubernetes Deployment**: With Azure workload identity, PostgreSQL secrets, health checks, and resource limits
@@ -644,14 +644,14 @@ You are almost there. Before deploying it to your cluster, double check the imag
 :::
 
 :::tip
-If needed, you can refer to this [sample](./assets/migration-to-aks/sample.yaml) deployment file. 
+If needed, you can refer to this [sample](./assets/migrate-to-aks/sample.yaml) deployment file. 
 
  Key areas to pay close attention to are:
   - azure.workload.identity/use: "true" 
   - serviceAccountName: `sc-account-XXXX` this needs to reflect the service account created earlier during the PostgreSQL Service Connector 
   - image: `<acr-login-server>/petclinic:0.0.1` this should point to your ACR and image created earlier.
 
-If needed, you can retriev the Service Connector account name from your `k8s/sc.json` file.
+If needed, you can retrieve the Service Connector account name from your `k8s/sc.json` file.
 Example format `sc-account-d4157fc8-73b5-4a68-acf4-39c8f22db792`
 :::
 
