@@ -1,11 +1,11 @@
 ---
-title: Migrate to AKS Automatic with GitHub Copilot for App Modernization
+title: Migrate to AKS with GitHub Copilot for App Modernization
 ---
 
 import Prerequisites from "../../src/components/SharedMarkdown/_prerequisites.mdx";
 import Cleanup from "../../src/components/SharedMarkdown/_cleanup.mdx";
 
-This workshop demonstrates how to migrate and modernize the iconic **Spring Boot PetClinic** application from local execution to **Azure AKS Automatic**. You'll experience the complete modernization journey using AI-powered tools such as **GitHub Copilot app modernization** and **Containerization Assist MCP Server**.
+This workshop demonstrates how to migrate and modernize the iconic **Spring Boot PetClinic** application from local execution to **Azure Kubernetes Service (AKS)**. You'll experience the complete modernization journey using AI-powered tools such as **GitHub Copilot app modernization** and **Containerization Assist MCP Server**.
 
 ## Objectives
 
@@ -15,7 +15,7 @@ By the end of this workshop, you will be able to:
 - Modernize the codebase using [GitHub Copilot app modernization](https://marketplace.visualstudio.com/items?itemName=vscjava.migrate-java-to-azure).
 - Migrate the database to [Azure PostgreSQL Flexible Server](https://learn.microsoft.com/azure/postgresql/flexible-server/) integrated with [Microsoft Entra ID](https://learn.microsoft.com/en-us/azure/active-directory/).
 - Containerize the app using [Containerization Assist MCP Server](https://www.npmjs.com/package/containerization-assist-mcp?activeTab=readme).
-- Deploy to [AKS Automatic](https://learn.microsoft.com/azure/aks/automatic/) using [Workload Identity](https://learn.microsoft.com/en-us/azure/aks/workload-identity-overview) and [Service Connector](https://learn.microsoft.com/en-us/azure/service-connector/).
+- Deploy to [AKS](https://learn.microsoft.com/azure/aks/) using [Workload Identity](https://learn.microsoft.com/en-us/azure/aks/workload-identity-overview) and [Service Connector](https://learn.microsoft.com/en-us/azure/service-connector/).
 
 <Prerequisites
   tools={[
@@ -50,44 +50,11 @@ By the end of this workshop, you will be able to:
   ]}
 />
 
-This workshop will need some Azure preview features enabled and resources to be pre-provisioned. You can use the Azure CLI commands below to register the preview features.
-
-Register preview features.
-
-```bash
-az feature register --namespace Microsoft.ContainerService --name AutomaticSKUPreview
-az feature register --namespace Microsoft.ContainerService --name AzureMonitorAppMonitoringPreview
-```
-
-Register resource providers.
-
-```bash
-az provider register --namespace Microsoft.DevHub
-az provider register --namespace Microsoft.Insights
-az provider register --namespace Microsoft.ServiceLinker
-```
-
-Check the status of the feature registration.
-
-```bash
-az feature show --namespace Microsoft.ContainerService --name AutomaticSKUPreview --query properties.state
-```
-
-Once the feature is registered, run the following command to re-register the Microsoft.ContainerService provider.
-
-```bash
-az provider register --namespace Microsoft.ContainerService
-```
-
-:::warning
-As noted in the AKS Automatic [documentation](https://learn.microsoft.com/azure/aks/automatic/quick-automatic-managed-network?pivots=azure-portal), AKS Automatic tries to dynamically select a virtual machine size for the system node pool based on the capacity available in the subscription. Make sure your subscription has quota for 16 vCPUs of any of the following sizes in the region you're deploying the cluster to: [Standard_D4pds_v5](https://learn.microsoft.com/azure/virtual-machines/sizes/general-purpose/dpsv5-series), [Standard_D4lds_v5](https://learn.microsoft.com/azure/virtual-machines/sizes/general-purpose/dldsv5-series), [Standard_D4ads_v5](https://learn.microsoft.com/azure/virtual-machines/sizes/general-purpose/dadsv5-series), [Standard_D4ds_v5](https://learn.microsoft.com/azure/virtual-machines/sizes/general-purpose/ddsv5-series), [Standard_D4d_v5](https://learn.microsoft.com/azure/virtual-machines/sizes/general-purpose/ddv5-series), [Standard_D4d_v4](https://learn.microsoft.com/azure/virtual-machines/sizes/general-purpose/ddv4-series), [Standard_DS3_v2](https://learn.microsoft.com/azure/virtual-machines/sizes/general-purpose/dsv3-series), [Standard_DS12_v2](https://learn.microsoft.com/azure/virtual-machines/sizes/memory-optimized/dv2-dsv2-series-memory). You can [view quotas for specific VM-families and submit quota increase requests](https://learn.microsoft.com/azure/quotas/per-vm-quota-requests) through the Azure portal.
-:::
-
 Before we begin lets create a new directory that can be a placeholder for all of our files created during this lab:
 
 ```bash
-mkdir aks-labs
-cd aks-labs
+mkdir -p ~/aks-labs/migration/migrate-to-aks
+cd ~/aks-labs/migration/migrate-to-aks
 ```
 
 Next, proceed by declaring the following environment variables:
@@ -119,12 +86,6 @@ Now that we have saved the environment variables, you can always reload these va
 :::
 
 ### Create the resources for the workshop
-
-Create the Resource Group
-
-```bash
-az group create --name ${RESOURCE_GROUP_NAME} --location ${LOCATION}
-```
 
 Create the User Assigned Managed Identity
 
@@ -200,14 +161,13 @@ ACR_LOGIN_SERVER=$(az acr show \
   --output tsv)
 ```
 
-Create the AKS Automatic Cluster
+Create the AKS Cluster
 
 ```bash
 az aks create \
   --name ${AKS_CLUSTER_NAME} \
   --resource-group ${RESOURCE_GROUP_NAME} \
   --location ${LOCATION} \
-  --sku automatic \
   --attach-acr ${ACR_NAME}
 
 # Capture AKS cluster ID
@@ -233,13 +193,13 @@ az aks get-credentials \
   --file "${AKS_CLUSTER_NAME}-kubeconfig"
 ```
 
-Use the `${AKS_CLUSTER_NAME}-kubeconfig` file this as your KUBECONFIG
+Use the `${AKS_CLUSTER_NAME}-kubeconfig` file this as your **KUBECONFIG**
 
 ```bash
 export KUBECONFIG=$PWD/${AKS_CLUSTER_NAME}-kubeconfig
 ```
 
-You can now test your access to the AKS Automatic cluster
+You can now test your access to the AKS cluster
 
 ```
 kubectl get pods
@@ -247,22 +207,33 @@ kubectl get pods
 
 ### Install the Service Connector
 
-Next, we need to install the Service Connector. This will allow the AKS Automatic cluster and the Postgres Flexible Server to communicate securely. 
+Next, we need to install the Service Connector. This will allow the AKS cluster and the Postgres Flexible Server to communicate securely. 
 In a terminal, run the following command to install the service-connector:
 
 ```bash
 az extension add --name serviceconnector-passwordless --upgrade
 
-az aks connection create postgres-flexible \
+nohub bash -c 'az aks connection create postgres-flexible \
 --source-id ${AKS_CLUSTER_ID} \
 --target-id ${POSTGRES_DATABASE_ID} \
 --workload-identity ${USER_ASSIGNED_IDENTITY_ID} \
 --client-type none \
---kube-namespace default
+--kube-namespace default | tee ~/spring-petclinic/k8s/sc.json' > ~/spring-petclinic/k8s/sc.log 2>&1 &' 
+```
 
 :::note
-This command will take about 8 minutes to run. To make the most of your time on this lab, you can leave it running on this terminal until it finishes.
+This script will log its output into the ~/spring-petclinic/k8s/sc.log file. You can check for its progress opening that file.
 :::
+
+### Install the GitHub Copilot app modernization extension
+
+In VS Code, go to **Extensions** and install the **GitHub Copilot app modernization**
+
+![Install GitHub Copilot app modernization](assets/migrate-to-aks/install-ghcp-ext.png)
+
+1. Click on the **Extensions** icon.
+1. In the search box, look for the **GitHub Copilot app modernization** extension.
+1. Install the extension.
 
 ### Sign In to VS Code with GitHub
 
@@ -270,31 +241,31 @@ To use GitHub Copilot, sign in with the GitHub account. After signing in to GitH
 
 1. Open VS Code and click on the **Extensions** icon in the left sidebar. Search for **GitHub Copilot Chat** and install the extension.
 
-   ![VS Code Extensions](assets/migrate-to-aks-automatic/vscode-extensions.png)
+  ![VS Code Extensions](assets/migrate-to-aks/vscode-extensions.png)
 
 2. Click the **account icon** (bottom right) → **Sign in to use Copilot.**
 
-   ![VS Code Sign Out State](assets/migrate-to-aks-automatic/vscode-signed-out.png)
+  ![VS Code Sign Out State](assets/migrate-to-aks/vscode-signed-out.png)
 
 3. Select **Continue with GitHub**.
 
-   ![VS Code Continue with GitHub](assets/migrate-to-aks-automatic/vscode-continue-with-github.png)
+  ![VS Code Continue with GitHub](assets/migrate-to-aks/vscode-continue-with-github.png)
 
 4. Authorize VS Code to access your GitHub account.
 
-   ![GitHub Authorization](assets/migrate-to-aks-automatic/github-authorize-vscode.png)
+  ![GitHub Authorization](assets/migrate-to-aks/github-authorize-vscode.png)
 
 5. Click **Connect**, then **Authorize Visual-Studio-Code**.
 
-   ![GitHub Authorization Complete](assets/migrate-to-aks-automatic/github-authorization-complete.png)
+  ![GitHub Authorization Complete](assets/migrate-to-aks/github-authorization-complete.png)
 
 6. When prompted, choose to always allow **vscode.dev** to open links.
 
-   ![Allow VS Code Links](assets/migrate-to-aks-automatic/vscode-allow-links.png)
+  ![Allow VS Code Links](assets/migrate-to-aks/vscode-allow-links.png)
 
 7. Back in VS Code, open the **GitHub Copilot Chat** window and switch the model to **Claude Sonnet 4.5**.
 
-   ![GitHub Copilot Claude Model](assets/migrate-to-aks-automatic/github-copilot-claude-model.png)
+  ![GitHub Copilot Claude Model](assets/migrate-to-aks/github-copilot-claude-model.png)
 
 
 ## Set Up Local PetClinic Environment
@@ -344,7 +315,7 @@ mvn clean compile && mvn spring-boot:run \
 
 Open your browser and go to http://localhost:8080 to confirm the PetClinic application is running.
 
-   ![PetClinic Application Running](assets/migrate-to-aks-automatic/petclinic-app-running.png)
+   ![PetClinic Application Running](assets/migrate-to-aks/petclinic-app-running.png)
 
 ### Explore the PetClinic Application
 
@@ -362,13 +333,13 @@ After exploring the PetClinic application, you can stop it by pressing `CTRL+C`.
 
 ## Application Modernization
 
-In this section, you'll use GitHub Copilot app modernization to assess, remediate, and modernize the Spring Boot application in preparation to migrate the workload to AKS Automatic.
+In this section, you'll use GitHub Copilot app modernization to assess, remediate, and modernize the Spring Boot application in preparation to migrate the workload to AKS.
 
 Next let's begin our modernization work.
 
 1. Select `GitHub Copilot app modernization` extension.
 
-   ![GitHub Copilot App Modernization Extension](assets/migrate-to-aks-automatic/copilot-appmod-extension.png)
+   ![GitHub Copilot App Modernization Extension](assets/migrate-to-aks/copilot-appmod-extension.png)
 
 ### Execute the Assessment
 
@@ -376,33 +347,33 @@ Now that you have GitHub Copilot setup, you can use the assessment tool to analy
 
 1. Navigate the Extension Interface and click **Migrate to Azure** to begin the modernization process.
 
-   ![App Modernization Extension Interface](assets/migrate-to-aks-automatic/appmod-extension-interface.png)
+   ![App Modernization Extension Interface](assets/migrate-to-aks/appmod-extension-interface.png)
 
 2. Allow the GitHub Copilot app modernization to sign in to GitHub.
 
-   ![Allow GitHub Sign In](assets/migrate-to-aks-automatic/copilot-allow-github-signin.png)
+   ![Allow GitHub Sign In](assets/migrate-to-aks/copilot-allow-github-signin.png)
 
 3. Authorize your user to sign in.
 
-   ![GitHub User Authorization](assets/migrate-to-aks-automatic/github-user-authorization.png)
+   ![GitHub User Authorization](assets/migrate-to-aks/github-user-authorization.png)
 
 4. And finally, authorize it again on this screen.
 
-   ![GitHub Authorization Screen](assets/migrate-to-aks-automatic/github-authorization-screen.png)
+   ![GitHub Authorization Screen](assets/migrate-to-aks/github-authorization-screen.png)
 
 5. The assessment will start now. Notice that GitHub will install the AppCAT CLI for Java. This might take a few minutes.
 
-   ![AppCAT CLI Installation](assets/migrate-to-aks-automatic/appcat-cli-installation.png)
+   ![AppCAT CLI Installation](assets/migrate-to-aks/appcat-cli-installation.png)
 
 :::info
 
 You can follow the progress of the upgrade by looking at the Terminal in VS Code.
 
-![Assessment Rules Terminal](assets/migrate-to-aks-automatic/assessment-rules-terminal.png)
+![Assessment Rules Terminal](assets/migrate-to-aks/assessment-rules-terminal.png)
 
 Also note that you might be prompted to allow access to the language models provided by GitHub Copilot Chat. Click on **Allow**.
 
-![Allow Copilot LLM Access](assets/migrate-to-aks-automatic/copilot-allow-llm-access.png)
+![Allow Copilot LLM Access](assets/migrate-to-aks/copilot-allow-llm-access.png)
 
 :::
 
@@ -459,7 +430,7 @@ If you want a broader scan (including dependency checks) change `mode` to `full`
 
 After the assessment completes, you'll see a success message in the GitHub Copilot chat summarizing what was accomplished:
 
-![Assessment Report Overview](assets/migrate-to-aks-automatic/assessment-report-overview.png)
+![Assessment Report Overview](assets/migrate-to-aks/assessment-report-overview.png)
 
 The assessment analyzed the Spring Boot Petclinic application for cloud migration readiness and identified the following:
 
@@ -504,15 +475,15 @@ Based on the assessment findings, GitHub Copilot app modernization provides two 
 
 2. Using the **unguided migrations** ("Ask Copilot" button), which provide AI assistance with context aware guidance and code suggestions for more complex or custom scenarios.
 
-![Guided vs Unguided Migration Options](assets/migrate-to-aks-automatic/migration-options-guided-vs-unguided.png)
+![Guided vs Unguided Migration Options](assets/migrate-to-aks/migration-options-guided-vs-unguided.png)
 
-For this workshop, we'll focus on one modernization area that demonstrates how to externalize dependencies in the workload to Azure PaaS before deploying to AKS Automatic. We'll migrate from self-hosted PostgreSQL with basic authentication to Azure PostgreSQL Flexible Server using Entra ID authentication with AKS Workload Identity.
+For this workshop, we'll focus on one modernization area that demonstrates how to externalize dependencies in the workload to Azure PaaS before deploying to AKS. We'll migrate from self-hosted PostgreSQL with basic authentication to Azure PostgreSQL Flexible Server using Entra ID authentication with AKS Workload Identity.
 
 ### Select PostgreSQL Migration Task
 
 Begin the modernization by selecting the desired migration task. For our Spring Boot application, we will migrate to Azure PostgreSQL Flexible Server using the Spring option. The other options shown are for generic JDBC usage.
 
-![Select PostgreSQL Migration Task](assets/migrate-to-aks-automatic/select-postgres-migration-task.png)
+![Select PostgreSQL Migration Task](assets/migrate-to-aks/select-postgres-migration-task.png)
 
 :::note
 
@@ -524,7 +495,7 @@ Choose the "Spring" option for Spring Boot applications, as it provides Spring-s
 
 Click the **Run Task** button described in the previous section to kick off the modernization changes needed in the PetClinic app. This will update the Java code to work with PostgreSQL Flexible Server using Entra ID authentication.
 
-![Run PostgreSQL Migration Task](assets/migrate-to-aks-automatic/run-postgres-migration-task.png)
+![Run PostgreSQL Migration Task](assets/migrate-to-aks/run-postgres-migration-task.png)
 
 The tool will execute the `appmod-run-task` command for `managed-identity-spring/mi-postgresql-spring`, which will examine the workspace structure and initiate the migration task to modernize your Spring Boot application for Azure PostgreSQL with managed identity authentication. If prompted to run shell commands, please review and allow each command as the Agent may require additional context before execution.
 
@@ -532,7 +503,7 @@ The tool will execute the `appmod-run-task` command for `managed-identity-spring
 
 The App Modernization tool has analyzed your Spring Boot application and generated a comprehensive migration plan in its chat window and in the `plan.md` file. This plan outlines the specific changes needed to implement Azure Managed Identity authentication for PostgreSQL connectivity.
 
-![Migration Plan Review](assets/migrate-to-aks-automatic/migration-plan-review.png)
+![Migration Plan Review](assets/migrate-to-aks/migration-plan-review.png)
 
 To Begin Migration type **"Continue"** in the GitHub Agent Chat to start the code refactoring.
 
@@ -582,7 +553,7 @@ The `progress.md` file provides real-time visibility into the migration process:
 
 Upon successful completion of the validation process, the App Modernization tool presents a comprehensive migration summary report confirming the successful implementation of Azure Managed Identity authentication for PostgreSQL in your Spring Boot application.
 
-![Migration Success Summary](assets/migrate-to-aks-automatic/migration-success-summary.png)
+![Migration Success Summary](assets/migrate-to-aks/migration-success-summary.png)
 
 The migration has successfully transformed your application from **password-based** Postgres authentication to **Azure Managed Identity** for PostgreSQL, removing the need for credentials in code while maintaining application functionality. The process integrated Spring Cloud Azure dependencies, updated configuration properties for managed identity authentication, and ensured all validation stages passed including: **CVE scanning, build validation, consistency checks, and test execution**.
 
@@ -606,7 +577,7 @@ The migration process updated the following configuration files:
 
 Throughout this lab, the GitHub Copilot App Modernization extension will create, edit and change various files. The Agent will give you an option to _Keep_ or _Undo_ these changes which will be saved into a new Branch, preserving your original files in case you need to rollback any changes.
 
-![Keep or Undo Changes](assets/migrate-to-aks-automatic/keep-or-undo-changes.png)
+![Keep or Undo Changes](assets/migrate-to-aks/keep-or-undo-changes.png)
 
 :::
 
@@ -614,7 +585,7 @@ Throughout this lab, the GitHub Copilot App Modernization extension will create,
 
 After implementing the migration changes, the App Modernization tool automatically validates the results through a comprehensive testing process to ensure the migration changes are secure, functional, and consistent.
 
-![Validation Iteration Loop](assets/migrate-to-aks-automatic/validation-iteration-loop.png)
+![Validation Iteration Loop](assets/migrate-to-aks/validation-iteration-loop.png)
 
 **Validation Stages:**
 
@@ -628,7 +599,7 @@ After implementing the migration changes, the App Modernization tool automatical
 :::note
 During these stages, you might be prompted to allow the **GitHub Copilot app modernization** extension to access GitHub. Allow it and select your user account when asked.
 
-![Allow GitHub Access for CVE Check](assets/migrate-to-aks-automatic/allow-github-cve-access.png)
+![Allow GitHub Access for CVE Check](assets/migrate-to-aks/allow-github-cve-access.png)
 :::
 
 **Automated Error Detection and Resolution:**
@@ -654,88 +625,34 @@ This systematic approach ensures your Spring Boot application is successfully mo
 
 In this section, you'll use AI-powered tools to generate Docker and Kubernetes manifests for your modernized Spring Boot application.
 
-### Retrieve PostgreSQL Configuration from AKS Service Connector
-
-Before you can use **Containerization Assist**, you must first retrieve the PostgreSQL Service Connector configuration from your AKS cluster.
-
-This information ensures that your generated Kubernetes manifests are correctly wired to the database using managed identity and secret references.
-
-### Access AKS Service Connector and Retrieve PostgreSQL Configuration
-
-1. Open a new tab in the Edge browser and navigate to the Azure Portal.
-
-1. In the top search bar, type **aks-petclinic** and select the AKS Automatic cluster.
-
-   ![Select AKS Cluster](assets/migrate-to-aks-automatic/select-aks-cluster.png)
-
-1. In the left-hand menu under **Settings**, select **Service Connector**.
-
-   ![Select Service Connector](assets/migrate-to-aks-automatic/select-service-connector.png)
-
-1. You'll see the service connection that was automatically created **PostgreSQL connection** with a name that starts with **postgresflexible_** connecting to your PostgreSQL flexible server.
-
-1. Select the **DB for PostgreSQL flexible server** and click the **YAML snippet** button in the action bar.
-
-   ![YAML Snippet Button](assets/migrate-to-aks-automatic/service-connector-yaml-snippet.png)
-
-1. Expand this connection to see the variables that were created by the secret in the cluster.
-
-   ![Service Connector Variables](assets/migrate-to-aks-automatic/service-connector-variables.png)
-
-### Retrieve PostgreSQL YAML Configuration
-
-The Azure Portal will display a YAML snippet showing how to use the Service Connector secrets for PostgreSQL connectivity.
-
-![PostgreSQL YAML Configuration Sample](assets/migrate-to-aks-automatic/postgres-yaml-config-sample.png)
-
-:::note
-
-1. The portal shows a sample deployment with workload identity configuration.
-2. Key Elements:
-   - Service account: Example format `sc-account-d4157fc8-73b5-4a68-acf4-39c8f22db792`
-   - Secret reference: Example format `sc-postgresflexiblebft3u-secret`
-   - Workload identity label: `azure.workload.identity/use: "true"`
-
-The Service Connector secret contains the following variables:
-
-- AZURE_POSTGRESQL_HOST
-- AZURE_POSTGRESQL_PORT
-- AZURE_POSTGRESQL_DATABASE
-- AZURE_POSTGRESQL_CLIENTID (map to both AZURE_CLIENT_ID and AZURE_MANAGED_IDENTITY_NAME)
-- AZURE_POSTGRESQL_USERNAME
-
-:::
-
 ### Using Containerization Assist
 
-In the GitHub Copilot agent chat, use the following prompt to generate production-ready Docker and Kubernetes manifests:
+In the GitHub Copilot App Mod extension, click on **Containerize Task -> Containerize Application**
 
-```
-Help me containerize the application at ./src and generate Kubernetes deployment artifacts using Containerization Assist. Put all of the kubernetes files in a directory called k8s. Save the deployment and service into a single file called petclinic.yaml. Do not create any deployment scripts for this. The AKS Automatic cluster will connect to PostgreSQL via Azure Service Connector without using a password.
-```
+![Conteinerzation Task](assets/migrate-to-aks/containerization-task.png)
 
-:::note
-
-To expedite your lab experience, you can allow the Containerization Assist MCP server to run on this Workspace. Select **Allow in this Workspace** or **Always Allow**.
-
-![Allow Containerization Assist MCP](assets/migrate-to-aks-automatic/containerization-assist-mcp-allow.png)
-
-You will also need to allow the MCP server to make LLM requests. Select **Always**.
-
-![Allow MCP LLM Requests](assets/migrate-to-aks-automatic/containerization-assist-mcp-llm.png)
-
-:::
-
-The Containerization Assist MCP Server will analyze your repository and generate:
+The Containerization Assist MCP Server will scan your project and conteineriza your application. It will elaborate on a strategy on how to do this which will involve:
 
 - **Dockerfile**: Multi-stage build with optimized base image
 - **Kubernetes Deployment**: With Azure workload identity, PostgreSQL secrets, health checks, and resource limits
 - **Kubernetes Service**: LoadBalancer configuration for external access
 
-**Expected Result**: Kubernetes manifests in the `k8s/` directory.
+The expected result are Kubernetes manifests in the `k8s/` directory.
 
 :::note 
-You are almost there. You will deploy the AI generated files, but they might need some tuning later. Before deploying it to your cluster, double check the image location, the use of workload identity and if the service connector secret reference in the deployment file are correct to your environment.
+You are almost there. Before deploying it to your cluster, double check the image location, the use of workload identity and if the service connector secret reference in the deployment file are correct to your environment. 
+:::
+
+:::tip
+If needed, you can refer to this [sample](./assets/migration-to-aks/sample.yaml) deployment file. 
+
+ Key areas to pay close attention to are:
+  - azure.workload.identity/use: "true" 
+  - serviceAccountName: `sc-account-XXXX` this needs to reflect the service account created earlier during the PostgreSQL Service Connector 
+  - image: `<acr-login-server>/petclinic:0.0.1` this should point to your ACR and image created earlier.
+
+If needed, you can retriev the Service Connector account name from your `k8s/sc.json` file.
+Example format `sc-account-d4157fc8-73b5-4a68-acf4-39c8f22db792`
 :::
 
 ### Build and Push Container Image to ACR
@@ -754,17 +671,11 @@ Build the Docker image in Azure Container Registry:
 az acr build -t petclinic:0.0.1 . -r ${ACR_NAME}
 ```
 
-## Deploy to AKS
+## Deploying the modernized application
 
-In this section, you'll deploy the modernized application to AKS Automatic using Service Connector secrets for passwordless authentication with PostgreSQL.
+In this section, you'll deploy the modernized application to AKS using Service Connector secrets for passwordless authentication with PostgreSQL.
 
-:::info
-
-**About AKS Automatic:** AKS Automatic is a new mode for Azure Kubernetes Service that provides an optimized and simplified Kubernetes experience. It offers automated cluster management, built-in security best practices, intelligent scaling, and pre-configured monitoring - making it ideal for teams who want to focus on applications rather than infrastructure management.
-
-:::
-
-### Deploy the Application to AKS Automatic
+### Deploying to AKS
 
 Apply the Kubernetes manifests to deploy the application.
 
@@ -786,17 +697,12 @@ Monitor deployment status:
 kubectl get pods,services,deployments
 ```
 
-:::note
-
-It might take a minute for the AKS Automatic cluster to provision new nodes for the workload so it is normal to see your pods in a `Pending` state until the new nodes are available. You can verify if there are nodes available with the `kubectl get nodes` command.
+Expect:
 
 ```bash
 NAME                                    READY   STATUS              RESTARTS   AGE
 petclinic-deployment-5f9db48c65-qpb8l   0/1     Pending             0          2m2s
-petclinic-deployment-5f9db48c65-vqb8x   0/1     Pending             0          2m2s
 ```
-
-:::
 
 ### Verify Deployment and Connectivity
 
@@ -828,34 +734,62 @@ curl http://localhost:8080/actuator/health
 
 ### Validate Entra ID Authentication
 
-Verify that the application is using passwordless authentication.
+Verify that the application is using passwordless authentication:
 
-Check environment variables in the pod (get first pod with label):
+1. Check environment variables in the pod (get first pod with label)
+	```bash
+	POD_NAME=$(kubectl get pods -l app=spring-petclinic -o jsonpath='{.items[0].metadata.name}')
+	kubectl exec $POD_NAME -- env | grep POSTGRES
+	```
 
-```bash
-POD_NAME=$(kubectl get pods -l app=petclinic -o jsonpath='{.items[0].metadata.name}')
-kubectl exec ${POD_NAME} -- env | grep POSTGRES
-```
+	Expected output:
 
-Verify no password environment variables are present:
+	```bash
+	AZURE_POSTGRESQL_PORT=5432
+	AZURE_POSTGRESQL_DATABASE=petclinic
+	AZURE_POSTGRESQL_USERNAME=aad_pg
+	AZURE_POSTGRESQL_CLIENTID=1094a914-1837-406a-ad58-b9dcc499177a
+	AZURE_POSTGRESQL_HOST=db-petclinic55954159.postgres.database.azure.com
+	AZURE_POSTGRESQL_SSL=true
+	POSTGRES_USER=aad_pg
+	```
 
-```bash
-kubectl exec ${POD_NAME} -- env | grep -i pass
-```
+1. Verify no password environment variables are present
 
-Check application logs for successful authentication:
+	```bash
+	kubectl exec $POD_NAME -- env | grep -i pass
+	```
 
-```bash
-kubectl logs -l app=petclinic --tail=100 | grep -i "connected\|authenticated"
-```
+	Expected output:
+  
+	```bash
+	SPRING_DATASOURCE_AZURE_PASSWORDLESS_ENABLED=true
+	```
 
-**Expected Outcome:** The application is successfully deployed to AKS with passwordless authentication to PostgreSQL using Entra ID and workload identity.
+1. Check application logs for successful authentication
+
+	```bash
+	kubectl logs -l app=spring-petclinic --tail=100 | grep -i "hibernate"
+	```
+
+	Expected outcome:
+
+	```bash
+	[...]
+	Hibernate: drop table if exists pets cascade
+	Hibernate: drop table if exists specialties cascade
+	Hibernate: drop table if exists types cascade
+	Hibernate: drop table if exists vet_specialties cascade
+	[...]
+	```
+
+The application is successfully deployed to AKS with passwordless authentication to PostgreSQL using Entra ID and workload identity.
 
 ## Workshop Recap & What's Next
 
 **Congratulations!** You've successfully completed a comprehensive application modernization journey, transforming a legacy Spring Boot application into a cloud-native, secure, and scalable solution on Azure.
 
-![PetClinic on Azure](assets/migrate-to-aks-automatic/petclinic-deployed-on-azure.png)
+![PetClinic on Azure](assets/migrate-to-aks/petclinic-deployed-on-azure.png)
 
 ### What You Accomplished
 
@@ -879,7 +813,7 @@ kubectl logs -l app=petclinic --tail=100 | grep -i "connected\|authenticated"
 
 **Cloud Deployment**
 
-- Deployed to AKS Automatic with enterprise-grade security
+- Deployed to Azure Kubernetes Service (AKS)
 - Configured passwordless authentication using workload identity
 - Integrated Azure Service Connector for seamless database connectivity
 - Validated production deployment with secure authentication
