@@ -60,7 +60,7 @@ cd ~/aks-labs/migration/migrate-to-aks
 Next, proceed by declaring the following environment variables:
 
 ```bash
-cat <<EOF> .envrc
+cat <<EOF > .envrc
 # Environment variables
 RESOURCE_GROUP_NAME="rg-petclinic"
 LOCATION="westus3"
@@ -68,7 +68,7 @@ NAME_SUFFIX=$(openssl rand -hex 4)  # Generates 8-character random suffix
 
 # Resource names
 AKS_CLUSTER_NAME="aks-petclinic"
-POSTGRES_SERVER_NAME="db-petclinic${NAME_SUFFIX:0:4}"
+POSTGRES_SERVER_NAME="db-petclinic${NAME_SUFFIX:0:6}"
 POSTGRES_DATABASE_NAME="petclinic"
 USER_ASSIGNED_IDENTITY_NAME="mi-petclinic"
 ACR_NAME="acrpetclinic${NAME_SUFFIX:0:6}"
@@ -86,6 +86,12 @@ Now that we have saved the environment variables, you can always reload these va
 :::
 
 ### Create the resources for the workshop
+
+Create the resource group
+
+```bash
+az group create --name ${RESOURCE_GROUP_NAME} --location ${LOCATION}
+```
 
 Create the User Assigned Managed Identity
 
@@ -144,6 +150,10 @@ POSTGRES_DATABASE_ID=$(az postgres flexible-server db show \
   --output tsv)
 ```
 
+:::important
+You will be asked to enable access to your IP address. Make sure to allow it so you can connect to the database and run the commands needed later in this lab.
+:::
+
 Create the Azure Container Registry
 
 ```bash
@@ -168,7 +178,8 @@ az aks create \
   --name ${AKS_CLUSTER_NAME} \
   --resource-group ${RESOURCE_GROUP_NAME} \
   --location ${LOCATION} \
-  --attach-acr ${ACR_NAME}
+  --attach-acr ${ACR_NAME} \
+  --no-ssh-key
 
 # Capture AKS cluster ID
 AKS_CLUSTER_ID=$(az aks show \
@@ -190,39 +201,43 @@ Get the credentials to access the cluster:
 az aks get-credentials \
   --name ${AKS_CLUSTER_NAME} \
   --resource-group ${RESOURCE_GROUP_NAME} \
-  --file "${AKS_CLUSTER_NAME}-kubeconfig"
+  --file "${AKS_CLUSTER_NAME}.config"
 ```
 
-Use the `${AKS_CLUSTER_NAME}-kubeconfig` file this as your **KUBECONFIG**
+Use the `${AKS_CLUSTER_NAME}.config` file this as your **KUBECONFIG**
 
 ```bash
-export KUBECONFIG=$PWD/${AKS_CLUSTER_NAME}-kubeconfig
+export KUBECONFIG=$PWD/${AKS_CLUSTER_NAME}.config
 ```
 
 You can now test your access to the AKS cluster
 
 ```
-kubectl get pods
+kubectl get nodes
 ```
 
 ### Install the Service Connector
 
 Next, we need to install the Service Connector. This will allow the AKS cluster and the Postgres Flexible Server to communicate securely. 
-In a terminal, run the following command to install the service-connector:
+In a terminal, run the following command to install the service-connector extension:
 
 ```bash
 az extension add --name serviceconnector-passwordless --upgrade
+```
 
-nohup bash -c 'az aks connection create postgres-flexible \
+Create the service-connector for postgres-flexible
+	
+```bash
+az aks connection create postgres-flexible --connection pg \
 --source-id ${AKS_CLUSTER_ID} \
 --target-id ${POSTGRES_DATABASE_ID} \
 --workload-identity ${USER_ASSIGNED_IDENTITY_ID} \
 --client-type none \
---kube-namespace default | tee ~/spring-petclinic/k8s/sc.json' > ~/spring-petclinic/k8s/sc.log 2>&1 &' 
+--kube-namespace default | tee sc.json
 ```
 
 :::note
-This script will log its output into the ~/spring-petclinic/k8s/sc.log file. You can check for its progress opening that file.
+This script will log its output into the **~/spring-petclinic/k8s/sc.log** file. You can check for its progress opening that file.
 :::
 
 ### Install the GitHub Copilot app modernization extension
@@ -273,27 +288,30 @@ To use GitHub Copilot, sign in with the GitHub account. After signing in to GitH
 
 To facilitate standing up our local environment, we will use a script to perform a complete one-command setup. This script will:
 
-1. **Clone the repository** to `~/spring-petclinic` and creates a symlink for easy access
+1. **Clone the repository** to `~/aks-labs/migration/migrate-to-aks/spring-petclinic`
 2. **Launch PostgreSQL** in a Docker container with pre-configured credentials
 3. **Build and start** the Spring Boot application connected to the database
 
 Steps:
 
-1. Clone the GitHub repository for this workshop.
+1. Fetch the `setup-local-lab-infra.sh` from the GitHub repository for this workshop.
 
 	```bash
-	git clone https://github.com/appdevgbb/mm-springboot-petclinic-to-aks-automatic-ignite.git
+	wget https://raw.githubusercontent.com/Azure-Samples/aks-labs/refs/heads/main/docs/migration/assets/migrate-to-aks/setup-local-lab-infra.sh
 	```
 
-1. Next, execute the setup script from the `infra` directory:
+1. Next, execute the setup script:
 
 	```bash
-	cd mm-springboot-petclinic-to-aks-automatic-ignite/infra
 	chmod +x setup-local-lab-infra.sh
 	./setup-local-lab-infra.sh
 	```
 
 The script will complete in approximately 1-2 minutes. When finished, your PetClinic application will be running at **http://localhost:8080**.
+
+:::information
+The `setup-local-lab-infra.sh` script will write an output file to `~/aks-labs/migration/migrate-to-aks/spring-petclinic/app.log` containing details of the setup process, including any errors encountered. If you face issues, please check this log file for troubleshooting information.
+:::
 
 ### Verify and Explore PetClinic Locally
 
@@ -357,9 +375,7 @@ Now that you have GitHub Copilot setup, you can use the assessment tool to analy
 
    ![GitHub User Authorization](assets/migrate-to-aks/github-user-authorization.png)
 
-4. And finally, authorize it again on this screen.
-
-   ![GitHub Authorization Screen](assets/migrate-to-aks/github-authorization-screen.png)
+4. And finally, authorize VS Code.
 
 5. The assessment will start now. Notice that GitHub will install the AppCAT CLI for Java. This might take a few minutes.
 
@@ -816,7 +832,6 @@ The application is successfully deployed to AKS with passwordless authentication
 - Deployed to Azure Kubernetes Service (AKS)
 - Configured passwordless authentication using workload identity
 - Integrated Azure Service Connector for seamless database connectivity
-- Validated production deployment with secure authentication
 
 ### Key Takeaways
 
