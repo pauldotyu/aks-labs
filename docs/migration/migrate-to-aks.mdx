@@ -87,6 +87,27 @@ Now that we have saved the environment variables, you can always reload these va
 
 ### Create the resources for the workshop
 
+Register these providers if they are not already registered in your subscription:
+
+```bash
+az provider register --namespace Microsoft.Quota
+az provider register --namespace Microsoft.OperationsManagement
+az provider register --namespace Microsoft.PolicyInsights
+az provider register --namespace Microsoft.Compute
+az provider register --namespace Microsoft.ContainerService
+az provider register --namespace Microsoft.Insights
+az provider register --namespace Microsoft.DBforPostgreSQL
+az provider register --namespace Microsoft.ContainerRegistry
+az provider register --namespace Microsoft.ServiceLinker
+az provider register --namespace Microsoft.KubernetesConfiguration
+```
+
+You can check if these are registered by running:
+
+```bash
+for ns in Microsoft.Quota Microsoft.OperationsManagement Microsoft.PolicyInsights Microsoft.Compute Microsoft.ContainerService Microsoft.Insights Microsoft.DBforPostgreSQL Microsoft.ContainerRegistry Microsoft.ServiceLinker Microsoft.KubernetesConfiguration; do echo -n "$ns: "; az provider show --namespace $ns --query "registrationState" -o tsv; done
+```
+
 Create the resource group
 
 ```bash
@@ -237,7 +258,7 @@ az aks connection create postgres-flexible --connection pg \
 ```
 
 :::note
-This script will log its output into the **~/spring-petclinic/k8s/sc.log** file. You can check for its progress opening that file.
+This script will log its output into the **sc.log** file. You can check for its progress opening that file.
 :::
 
 ### Install the GitHub Copilot app modernization extension
@@ -667,7 +688,7 @@ If needed, you can refer to this [sample](./assets/migrate-to-aks/sample.yaml) d
   - serviceAccountName: `sc-account-XXXX` this needs to reflect the service account created earlier during the PostgreSQL Service Connector 
   - image: `<acr-login-server>/petclinic:0.0.1` this should point to your ACR and image created earlier.
 
-If needed, you can retrieve the Service Connector account name from your `k8s/sc.json` file.
+If needed, you can retrieve the Service Connector account name from your `sc.json` file.
 Example format `sc-account-d4157fc8-73b5-4a68-acf4-39c8f22db792`
 :::
 
