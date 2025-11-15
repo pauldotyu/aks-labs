@@ -254,7 +254,7 @@ az aks connection create postgres-flexible --connection pg \
 --target-id ${POSTGRES_DATABASE_ID} \
 --workload-identity ${USER_ASSIGNED_IDENTITY_ID} \
 --client-type none \
---kube-namespace default | tee sc.json
+--kube-namespace default | tee sc.log
 ```
 
 :::note
@@ -699,7 +699,7 @@ If needed, you can refer to this [sample](./assets/migrate-to-aks/sample.yaml) d
   - serviceAccountName: `sc-account-XXXX` this needs to reflect the service account created earlier during the PostgreSQL Service Connector 
   - image: `<acr-login-server>/petclinic:0.0.1` this should point to your ACR and image created earlier.
 
-If needed, you can retrieve the Service Connector account name from your `sc.json` file.
+If needed, you can retrieve the Service Connector account name from your `sc.log` file.
 Example format `sc-account-d4157fc8-73b5-4a68-acf4-39c8f22db792`
 :::
 
@@ -766,6 +766,16 @@ Check pod logs for successful database connections:
 kubectl logs -l app=petclinic
 ```
 
+:::tip Pro Tip
+Chances are you will not be able to deploy your application in your first attempt. What if your deployment is not progressing as expected? 
+You can always use Copilot Chat to help you troubleshoot issues. Just describe the problem you are facing and it will help you identify 
+the root cause and possible solutions.
+
+For example, you might say: "I'm deploying this to AKS. I have a PostgreSQL database and my app will be using workload identity". 
+Be creative, you can even let Copilot know about the information you have stored in the `sc.log` file by using the
+`#file: sc.log` directive.
+:::
+
 Verify health endpoints:
 
 ```bash
@@ -823,15 +833,14 @@ Verify that the application is using passwordless authentication:
 	[...]
 	```
 
-The application is successfully deployed to AKS with passwordless authentication to PostgreSQL using Entra ID and workload identity.
-
-## Workshop Recap & What's Next
+### Summary
 
 **Congratulations!** You've successfully completed a comprehensive application modernization journey, transforming a legacy Spring Boot application into a cloud-native, secure, and scalable solution on Azure.
+The application is successfully deployed to AKS with passwordless authentication to PostgreSQL using Entra ID and workload identity.
 
 ![PetClinic on Azure](assets/migrate-to-aks/petclinic-deployed-on-azure.png)
 
-### What You Accomplished
+During this lab, you accomplished the following key milestones:
 
 **Local Environment Setup**
 
@@ -856,7 +865,3 @@ The application is successfully deployed to AKS with passwordless authentication
 - Deployed to Azure Kubernetes Service (AKS)
 - Configured passwordless authentication using workload identity
 - Integrated Azure Service Connector for seamless database connectivity
-
-### Key Takeaways
-
-This workshop demonstrated how AI-powered tools can dramatically accelerate application modernization while maintaining code quality and security standards. The combination of GitHub Copilot App Modernization and Azure's managed services enables teams to focus on business value rather than infrastructure complexity.
