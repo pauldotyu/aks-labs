@@ -376,6 +376,13 @@ In this section, you'll use GitHub Copilot app modernization to assess, remediat
 
 Next let's begin our modernization work.
 
+1. Change directory and start VS Code from the `spring-petclinic` directory:
+
+   ```bash
+   cd spring-petclinic
+   code .
+   ```
+
 1. Select `GitHub Copilot app modernization` extension.
 
    ![GitHub Copilot App Modernization Extension](assets/migrate-to-aks/copilot-appmod-extension.png)
@@ -664,11 +671,11 @@ In this section, you'll use AI-powered tools to generate Docker and Kubernetes m
 
 ### Using Containerization Assist
 
-In the GitHub Copilot App Mod extension, click on **Containerize Task -> Containerize Application**
+In the GitHub Copilot App Mod extension, click on **Common Tasks -> Containerize Tasks -> Containerize Application**
 
-![Conteinerzation Task](assets/migrate-to-aks/containerization-task.png)
+![Containerization Task](assets/migrate-to-aks/containerization-task.png)
 
-The Containerization Assist MCP Server will scan your project and conteinerize your application. It will elaborate on a strategy on how to do this which will involve:
+The Containerization Assist MCP Server will scan your project and containerize your application. It will elaborate on a strategy on how to do this which will involve:
 
 - **Dockerfile**: Multi-stage build with optimized base image
 - **Kubernetes Deployment**: With Azure workload identity, PostgreSQL secrets, health checks, and resource limits
@@ -676,11 +683,15 @@ The Containerization Assist MCP Server will scan your project and conteinerize y
 
 The expected result are Kubernetes manifests in the `k8s/` directory.
 
-:::note 
-You are almost there. Before deploying it to your cluster, double check the image location, the use of workload identity and if the service connector secret reference in the deployment file are correct to your environment. 
-:::
+![Containerization Plan](assets/migrate-to-aks/containerization-plan.png)
+
+Once done, you should see a success message like this:
+
+![Containerization Complete](assets/migrate-to-aks/containerization-complete.png)
 
 :::tip
+You are almost there. Before deploying it to your cluster, double check the image location, the use of workload identity and if the service connector secret reference in the deployment file are correct to your environment. 
+
 If needed, you can refer to this [sample](./assets/migrate-to-aks/sample.yaml) deployment file. 
 
  Key areas to pay close attention to are:
@@ -716,16 +727,8 @@ In this section, you'll deploy the modernized application to AKS using Service C
 
 Apply the Kubernetes manifests to deploy the application.
 
-Update the image name in your deployment manifest with your ACR login server. You can retrieve the name of your Azure Container Registry with this command:
-
 ```bash
-echo "${ACR_LOGIN_SERVER}/petclinic:0.0.1"
-```
-
-Apply the deployment manifest:
-
-```bash
-kubectl apply -f k8s/petclinic.yaml
+kubectl apply -f k8s/petclinic.yml
 ```
 
 Monitor deployment status:
