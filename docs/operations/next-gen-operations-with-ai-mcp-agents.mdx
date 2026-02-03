@@ -57,31 +57,27 @@ By the end of this lab, you will be able to:
 
 ### Setup Azure OpenAI
 
-After you provision the AKS cluster, create an [Azure OpenAI resource](https://learn.microsoft.com/azure/ai-foundry/openai/overview) and deploy the `gpt-5-mini` model.
+After you provision the AKS cluster, create an [Azure AI Foundry resource](https://learn.microsoft.com/azure/ai-foundry/foundry-models/concepts/models-sold-directly-by-azure?view=foundry&tabs=global-standard-aoai%2Cglobal-standard&pivots=azure-openai#azure-openai-in-microsoft-foundry-models) and deploy the `gpt-5-mini` model.
 
 Run the following commands.
 
 ```bash
-# Generate a short suffix to avoid name collisions
-export RAND=$RANDOM
+export AI_NAME=myaifoundry$RAND
 
-# Set the Azure OpenAI account name
-export AOAI_NAME=myopenai$RAND
-
-# Create the Azure OpenAI account
-AOAI_ID=$(az cognitiveservices account create \
+# Create the Azure AI Foundry account
+AI_ID=$(az cognitiveservices account create \
 --resource-group $RG_NAME \
 --location $LOCATION \
---name $AOAI_NAME \
---custom-domain $AOAI_NAME \
---kind OpenAI \
+--name $AI_NAME \
+--custom-domain $AI_NAME \
+--kind AIServices \
 --sku S0 \
 --assign-identity \
 --query id -o tsv)
 
 # Create a deployment for the gpt-5-mini model
 az cognitiveservices account deployment create \
---name $AOAI_NAME \
+--name $AI_NAME \
 --resource-group $RG_NAME \
 --deployment-name gpt-5-mini \
 --model-name gpt-5-mini \
@@ -97,47 +93,7 @@ If you need additional SKU capacity quota for the model deployment, follow the i
 
 :::
 
-
-### Setup Workload Identity
-
-Next, create a user-assigned managed identity that will be used by the AKS MCP Server to authenticate to Azure services.
-
-:::info
-
-We will speed run through the setup of workload identity here. For a more detailed explanation, refer to the [Azure Workload Identity documentation](https://learn.microsoft.com/azure/aks/workload-identity-overview) and the [Workload Identity lab](/docs/security/workload-identity-lab)
-
-:::
-
-```bash
-export MI_NAME=myidentity$RAND
-
-read -r AKS_OIDC_ISSUER_URL <<< \
-  "$(az aks show \
-    --resource-group $RG_NAME \
-    --name $AKS_NAME \
-    --query '{oidcIssuerUrl:oidcIssuerProfile.issuerUrl}' -o tsv)"
-
-read -r PRINCIPAL_ID CLIENT_ID TENANT_ID <<< \
-  "$(az identity create \
-    --resource-group $RG_NAME \
-    --name $MI_NAME \
-    --query '{principalId:principalId, clientId:clientId, tenantId:tenantId}' -o tsv)"
-
-az identity federated-credential create \
---name $MI_NAME \
---identity-name $MI_NAME \
---resource-group $RG_NAME \
---issuer $AKS_OIDC_ISSUER_URL \
---subject system:serviceaccount:default:aks-mcp \
---audiences api://AzureADTokenExchange
-
-az role assignment create \
---assignee $PRINCIPAL_ID \
---role "Contributor" \
---scope $(az group show --name $RG_NAME --query id -o tsv)
-```
-
-Once the resources are deployed, you can proceed with the workshop.
+Once the initial resources are deployed, you can proceed with the workshop.
 
 :::important
 
@@ -286,13 +242,16 @@ Before using the agent, you need to configure the backend language model. Azure 
 In VS Code, open a new terminal and run the following commands to create the agent configuration file to use Azure AI Foundry models. These settings tell the agent where to find the AI service and how to authenticate to it.
 
 ```bash
+AI_API_KEY=$(az cognitiveservices account keys list --name $AI_NAME --resource-group $RG_NAME --query key1 -o tsv)
+AI_API_BASE=$(az cognitiveservices account show --name $AI_NAME --resource-group $RG_NAME --query 'properties.endpoints."OpenAI Language Model Instance API"' -o tsv)
+
 cat << EOF > $HOME/.azure/aksAgent.yaml
 model: azure/gpt-5-mini
 llms:
 - provider: azure
   DEPLOYMENT_NAME: gpt-5-mini
-  AZURE_API_BASE: <your-azure-openai-endpoint>
-  AZURE_API_KEY: <your-azure-openai-key>
+  AZURE_API_BASE: $AI_API_BASE
+  AZURE_API_KEY: $AI_API_KEY
   AZURE_API_VERSION: 2024-12-01-preview
 EOF
 export TEMPERATURE=1
@@ -419,6 +378,43 @@ Earlier in the lab, you tested the AKS MCP server locally using GitHub Copilot. 
 https://github.com/Azure/aks-mcp/tree/main/chart
 
 In your VS Code terminal, run the following commands to deploy the AKS MCP server into your cluster.
+
+Before you deploy the MCP server to AKS, you will need to create a user-assigned managed identity so that it can work with your Azure services.
+
+:::info
+
+We will speed run through the setup of workload identity here. For a more detailed explanation, refer to the [Azure Workload Identity documentation](https://learn.microsoft.com/azure/aks/workload-identity-overview) and the [Workload Identity lab](/docs/security/workload-identity-lab)
+
+:::
+
+```bash
+export MI_NAME=myidentity$RAND
+
+read -r AKS_OIDC_ISSUER_URL <<< \
+  "$(az aks show \
+    --resource-group $RG_NAME \
+    --name $AKS_NAME \
+    --query '{oidcIssuerUrl:oidcIssuerProfile.issuerUrl}' -o tsv)"
+
+read -r PRINCIPAL_ID CLIENT_ID TENANT_ID <<< \
+  "$(az identity create \
+    --resource-group $RG_NAME \
+    --name $MI_NAME \
+    --query '{principalId:principalId, clientId:clientId, tenantId:tenantId}' -o tsv)"
+
+az identity federated-credential create \
+--name $MI_NAME \
+--identity-name $MI_NAME \
+--resource-group $RG_NAME \
+--issuer $AKS_OIDC_ISSUER_URL \
+--subject system:serviceaccount:default:aks-mcp \
+--audiences api://AzureADTokenExchange
+
+az role assignment create \
+--assignee $PRINCIPAL_ID \
+--role "Contributor" \
+--scope $(az group show --name $RG_NAME --query id -o tsv)
+```
 
 ```bash
 # Clone the repository
