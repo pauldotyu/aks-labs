@@ -592,7 +592,7 @@ Fill in the following details for the new agent:
 - **Agent Namespace**: `kagent`
 - **Agent Type**: Select **Declarative**
 - **Description**: `An AI agent specialized in Azure Kubernetes Service (AKS) operations and troubleshooting. Equipped with tools from the AKS MCP server for diagnostics, monitoring, and management.`
-- **Agent Instructions**: Accept the default instructions provided.
+- **Agent Instructions**: Accept the default instructions provided. (TODO: tell it to troubleshoot from the cluster level first, then move to Azure APIs, and to always use tools for diagnostics and never guess without data. You can find the full system prompt in this [gist](https://gist.github.com/pauldotyu/aks-agent-system-prompt))
 - **Model**: Select **gpt-5-mini (kagent/default-model-config)**
 - **Enable LLM response streaming**: Check this box to allow the agent to stream responses for better user experience.
 - **Tools & Agents**: Select **+ Add Tools & Agents**, then in the dialog, filter for `aks` and select all tools under **Kagent/Aks-Mcp**.
@@ -662,13 +662,8 @@ The AKS agent automatically delegates tasks to specialized agents (Kubernetes op
 Ask the aks-agent to delegate troubleshooting to specialized agents.
 
 ```prompt
-I seem to be unable to unable to access the store-front application deployed in the pets namespace. Can you investigate this?
+I seem to be unable to unable to access the store-front application deployed in the pets namespace. Can you investigate this potential networking issue?
 ```
-
-**Expected results**
-
-- The aks-agent delegates to the cilium-policy-agent or k8s-agent.
-- The response summarizes whether NetworkPolicy objects exist and their impact.
 
 ---
 
@@ -694,8 +689,3 @@ You used AI agents to explore AKS operations across three modes: local tools in 
 ---
 
 <Cleanup />
-
-Things to fix:
-
-- status check failed: [ciliumendpoints.cilium.io is forbidden: User "system:serviceaccount:kagent:aks-mcp" cannot list resource "ciliumendpoints" in API group "cilium.io" at the cluster scope]
-- Error from server (Forbidden): ciliumnetworkpolicies.cilium.io is forbidden: User "system:serviceaccount:kagent:aks-mcp" cannot list resource "ciliumnetworkpolicies" in API group "cilium.io" at the cluster scope
