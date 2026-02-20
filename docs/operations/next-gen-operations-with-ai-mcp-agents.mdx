@@ -477,21 +477,28 @@ helm install aks-mcp . \
 --set workloadIdentity.enabled=true \
 --set azure.tenantId=$TENANT_ID \
 --set azure.clientId=$CLIENT_ID \
---set azure.subscriptionId=$(az account show --query id -o tsv)
+--set azure.subscriptionId=$(az account show --query id -o tsv) \
+--set app.accessLevel=admin
 ```
 
 The deployment consists of four Kubernetes resources that were created in the **kagent** namespace:
 
 1. **ServiceAccount (aks-mcp)** - Provides identity for the MCP server pod, linked to an Azure managed identity via annotations.
-2. **ClusterRoleBinding (aks-mcp-cluster-admin)** - Grants the service account cluster-admin permissions to perform diagnostic and management operations.
-3. **Deployment (aks-mcp)** - Runs the AKS MCP server container (ghcr.io/azure/aks-mcp:v0.0.9) with streamable HTTP transport.
-4. **Service (aks-mcp)** - Exposes the MCP server internally on port 8000 so agents can connect to it.
+1. **ClusterRoleBinding (aks-mcp-cluster-admin)** - Grants the service account cluster-admin permissions to perform diagnostic and management operations.
+1. **Deployment (aks-mcp)** - Runs the AKS MCP server container (ghcr.io/azure/aks-mcp:v0.0.9) with streamable HTTP transport.
+1. **Service (aks-mcp)** - Exposes the MCP server internally on port 8000 so agents can connect to it.
 
 :::info
 
 **Azure Workload Identity** enables the MCP server to authenticate with Azure services without storing credentials. The service account has an annotation that links it to the Azure managed identity, which has the necessary permissions to manage AKS resources and query Azure APIs.
 
 :::
+
+TODO: In case the above doesn't work for permissions, run this.
+
+```sh
+kubectl create clusterrolebinding aks-mcp-cluster-admin --clusterrole=cluster-admin --serviceaccount=kagent:aks-mcp
+```
 
 Let's verify that the AKS MCP deployment is running by asking the k8s-agent in the kagent dashboard.
 
@@ -655,7 +662,7 @@ The AKS agent automatically delegates tasks to specialized agents (Kubernetes op
 Ask the aks-agent to delegate troubleshooting to specialized agents.
 
 ```prompt
-Check for any NetworkPolicy objects in the kagent namespace. If any exist, summarize how they could affect traffic to the kagent UI service.
+I seem to be unable to unable to access the store-front application deployed in the pets namespace. Can you investigate this?
 ```
 
 **Expected results**
@@ -687,3 +694,8 @@ You used AI agents to explore AKS operations across three modes: local tools in 
 ---
 
 <Cleanup />
+
+Things to fix:
+
+- status check failed: [ciliumendpoints.cilium.io is forbidden: User "system:serviceaccount:kagent:aks-mcp" cannot list resource "ciliumendpoints" in API group "cilium.io" at the cluster scope]
+- Error from server (Forbidden): ciliumnetworkpolicies.cilium.io is forbidden: User "system:serviceaccount:kagent:aks-mcp" cannot list resource "ciliumnetworkpolicies" in API group "cilium.io" at the cluster scope
