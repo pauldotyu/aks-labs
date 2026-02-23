@@ -11,13 +11,11 @@ import Cleanup from "../../src/components/SharedMarkdown/_cleanup.mdx";
 
 ## Overview
 
-Imagine managing production clusters using natural language - asking agents to diagnose issues, optimize configurations, and execute operations without memorizing complex CLI syntax.
-
-In this workshop, you'll experience the future of Azure Kubernetes Service (AKS) operations through AI agents.
+In this lab, you'll manage Azure Kubernetes Service (AKS) clusters using natural language through AI agents -- diagnosing issues, optimizing configurations, and executing operations without memorizing complex CLI syntax.
 
 You'll explore two complementary approaches:
 
-- **[CLI Agent for AKS](https://github.com/Azure/cli-agent-for-aks)**: Terminal-based AI assistant for interactive cluster management
+- **[Agentic CLI for AKS](https://learn.microsoft.com/azure/aks/agentic-cli-for-aks-overview)**: Terminal-based AI assistant for interactive cluster management
 - **[kagent](https://kagent.dev/)**: A CNCF Sandbox project that brings AI agents directly into your Kubernetes cluster as native resources
 
 The common thread between these two approaches is the **[AKS MCP Server](https://github.com/Azure/aks-mcp)**, a standardized interface that exposes Azure, AKS, and Kubernetes capabilities to AI agents.
@@ -29,7 +27,7 @@ Together, these tools demonstrate how AI can transform cluster operations - from
 By the end of this lab, you will be able to:
 
 - Use the AKS MCP Server locally with GitHub Copilot to explore available tools.
-- Diagnose cluster issues with the CLI Agent for AKS.
+- Diagnose cluster issues with the Agentic CLI for AKS.
 - Deploy kagent and connect in-cluster agents to the AKS MCP Server.
 - Create a multi-agent system and delegate specialized tasks.
 
@@ -52,19 +50,26 @@ By the end of this lab, you will be able to:
 
 <ProvisionAKSCluster />
 
-Deploy a sample application to the cluster to have some workloads and telemetry to work with in the agents later on.
+Deploy a sample application to the cluster. This gives agents some workloads and telemetry to work with later.
 
 ```bash
 kubectl create namespace pets
 kubectl apply -n pets -k "https://github.com/Azure-Samples/aks-store-demo//kustomize/overlays/dev?ref=main"
-kubectl apply -n pets -f https://raw.githubusercontent.com/Azure-Samples/aks-store-demo/refs/heads/main/ai-service.yaml
 ```
+
+Verify the pods are running before continuing.
+
+```bash
+kubectl get pods -n pets
+```
+
+You should see pods for `makeline-service`, `order-service`, `product-service`, `store-front`, and others in a **Running** state. It may take a minute for all pods to start.
 
 ---
 
-### Setup Azure OpenAI
+### Set up Azure OpenAI
 
-After you provision the AKS cluster, create an [Azure AI Foundry resource](https://learn.microsoft.com/azure/ai-foundry/foundry-models/concepts/models-sold-directly-by-azure?view=foundry&tabs=global-standard-aoai%2Cglobal-standard&pivots=azure-openai#azure-openai-in-microsoft-foundry-models) and deploy the `gpt-5-mini` model.
+The AI agents in this lab need a language model to power their natural language understanding. Create an [Azure AI Foundry resource](https://learn.microsoft.com/azure/ai-foundry/foundry-models/concepts/models-sold-directly-by-azure?view=foundry&tabs=global-standard-aoai%2Cglobal-standard&pivots=azure-openai#azure-openai-in-microsoft-foundry-models) and deploy the `gpt-5-mini` model.
 
 Run the following commands.
 
@@ -72,7 +77,7 @@ Run the following commands.
 export AI_NAME=myaifoundry$RAND
 
 # Create the Azure AI Foundry account
-AI_ID=$(az cognitiveservices account create \
+export AI_ID=$(az cognitiveservices account create \
 --resource-group $RG_NAME \
 --location $LOCATION \
 --name $AI_NAME \
@@ -94,7 +99,7 @@ az cognitiveservices account deployment create \
 --sku-name GlobalStandard
 ```
 
-:::important
+:::tip
 
 If you need additional SKU capacity quota for the model deployment, follow the instructions in the [Azure documentation](https://learn.microsoft.com/azure/ai-foundry/openai/quotas-limits?view=foundry-classic&tabs=REST#request-quota-increases).
 
@@ -102,31 +107,11 @@ If you need additional SKU capacity quota for the model deployment, follow the i
 
 Once the initial resources are deployed, you can proceed with the workshop.
 
-:::important
+:::danger
 
-Keep your terminal open as you will need it to run commands using the environment variables you exported throughout the workshop.
+Keep your terminal open as you will need it to run commands using the environment variables you exported throughout the workshop. If you accidentally close it, you'll need to re-export `RG_NAME`, `LOCATION`, `RAND`, `AKS_NAME`, and `AI_NAME` before continuing.
 
 :::
-
-### Intentional sabotaging of the cluster
-
-To make the workshop more engaging and to give you a chance to see the diagnostic capabilities of the agents in action, we have intentionally sabotaged the cluster by creating a network policy that blocks all traffic to the kagent-ui service in the kagent namespace. This will create a connectivity issue that you can troubleshoot using the agents later in the lab.
-
-Run the following command to create the network policy to disable ingress in the pets namespace.
-
-```bash
-cat << EOF | kubectl apply -f -
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: deny-all-ingress
-  namespace: pets
-spec:
-  podSelector: {}
-  policyTypes:
-  - Ingress
-EOF
-```
 
 ---
 
@@ -136,10 +121,10 @@ The **[Model Context Protocol (MCP)](https://modelcontextprotocol.io/docs/gettin
 
 ### Key concepts
 
-At a high level, here is what you need to know about MCP architecture.
+At a high level, here is what you need to know about MCP architecture:
 
-- **MCP Servers** - Expose capabilities (tools, prompts, resources) through the protocol, (e.g., AKS MCP server).
-- **MCP Clients** - Applications like AI agents that connect to MCP servers (e.g., GitHub Copilot Chat).
+- **MCP Servers** - Expose capabilities (tools, prompts, resources) through the protocol (for example, the AKS MCP server)
+- **MCP Clients** - Applications like AI agents that connect to MCP servers (for example, GitHub Copilot Chat)
 - **Tools** - Functions the AI calls to perform actions (kubectl commands, Azure APIs)
 - **Resources** - Data sources providing context (cluster configs, logs)
 
@@ -154,7 +139,7 @@ The **AKS MCP Server** gives AI agents deep integration with Azure and Kubernete
 You will use the AKS MCP Server three ways:
 
 1. **Locally with VS Code and [GitHub Copilot Agent](https://docs.github.com/en/copilot/concepts/agents/coding-agent/mcp-and-coding-agent)** - Test capabilities directly in VS Code
-2. **Locally with CLI Agent for AKS** - Terminal-based operations
+2. **Locally with Agentic CLI for AKS** - Terminal-based operations
 3. **In-cluster with kagent** - Multi-agent collaboration
 
 Before diving into specialized agents, let's explore the AKS MCP server's capabilities using GitHub Copilot in VS Code. This will give you hands-on experience with the MCP tools and help you understand what operations are available.
@@ -167,13 +152,13 @@ In VS Code, open the command palette (Ctrl+Shift+P), then type and select **AKS:
 
 This downloads and installs the AKS MCP Server binary to your local machine and configures it as an MCP server in VS Code.
 
-Next, select the extensions icon in the Activity Bar and expand the **MCP SERVERS - INSTALLED** panel.
+In the GitHub Copilot Chat panel, expand the **MCP SERVERS - INSTALLED** section.
 
 You should see the **AKS MCP** server listed.
 
 ![AKS MCP server listed in VS Code MCP servers panel](https://placehold.co/600x400)
 
-Select the settings icon, then click the **Start Server** to ensure it is running.
+Select the settings icon, then select **Start Server** to ensure it is running.
 
 ![Start AKS MCP server from settings menu](https://placehold.co/600x400)
 
@@ -232,31 +217,29 @@ Close the GitHub Copilot Agent chat panel, then continue.
 
 ---
 
-## CLI Agent for AKS
+## Agentic CLI for AKS
 
-The CLI Agent for AKS is an AI-powered command-line tool designed to help AKS users troubleshoot cluster issues efficiently.
+You've seen how the AKS MCP Server works through GitHub Copilot in VS Code. Now you'll use the same MCP tools from a dedicated terminal agent designed specifically for AKS troubleshooting.
+
+The Agentic CLI for AKS is an AI-powered command-line tool that helps AKS users troubleshoot cluster issues efficiently. It analyzes telemetry signals (logs, metrics, events), correlates them across infrastructure and workloads, and provides actionable insights through natural language queries.
+
+The agent integrates with tools like kubectl, Azure CLI, Inspektor Gadget, and Azure Monitor, operating in read-only mode by default to ensure safe diagnostics. While the agent excels at surfacing likely causes and guiding investigation, human oversight is essential, particularly in complex or high-stakes environments.
 
 :::note
 
-The CLI Agent for AKS is currently in public preview and is still undergoing active development. Some features may change in future releases and your feedback is valuable to help improve the experience. Be sure to visit the [AKS docs](https://learn.microsoft.com/azure/aks/cli-agent-for-aks-overview) for the latest updates.
+The Agentic CLI for AKS is currently in public preview and is still undergoing active development. Some features may change in future releases and your feedback is valuable to help improve the experience. Be sure to visit the [AKS docs](https://learn.microsoft.com/azure/aks/cli-agent-for-aks-overview) for the latest updates.
 
 :::
 
-It analyzes telemetry signals (logs, metrics, events), correlates them across infrastructure and workloads, and provides actionable insights through natural language queries.
-
-The agent integrates with all the tools you'll need to operate AKS like kubectl, Azure CLI, Inspektor Gadget, and Azure Monitor, operating in read-only mode by default to ensure safe diagnostics.
-
-While the agent excels at surfacing likely causes and guiding investigation, human oversight is essential, particularly in complex or high-stakes environments.
-
 ### How it works
 
-The agent is built on top of open-source project [HolmesGPT](https://holmesgpt.dev/), a CNCF sandbox project, and is packaged as an Azure CLI extension (**aks-agent**). This extension has been pre-installed in your lab environment. It will connect to Azure AI Foundry models to power its natural language understanding and uses the AKS MCP tools to interact with your AKS cluster.
+The agent is built on top of the open-source project [HolmesGPT](https://holmesgpt.dev/), a CNCF sandbox project, and is packaged as an Azure CLI extension (**aks-agent**). It connects to Azure AI Foundry models to power its natural language understanding and uses the AKS MCP tools to interact with your AKS cluster.
 
-### Install the CLI Agent for AKS
+### Install the Agentic CLI for AKS
 
-The CLI Agent for AKS is available as an Azure CLI extension named **aks-agent**.
+The Agentic CLI for AKS is available as an Azure CLI extension named **aks-agent**.
 
-In your terminal, run the following command to verify the extension is installed.
+In your terminal, run the following command to install the extension.
 
 ```bash
 az extension add --name aks-agent
@@ -264,13 +247,13 @@ az extension add --name aks-agent
 
 ### Configure the AI model
 
-Before using the agent, you need to configure the backend language model. Azure AI Foundry provides the AI capabilities that enable the agent to understand your questions and provide intelligent responses. As mentioned above, the service and model have been pre-provisioned for you.
+Before using the agent, you need to configure the backend language model. The Azure AI Foundry service and model you provisioned earlier will power the agent's natural language understanding.
 
-In VS Code, open a new terminal and run the following commands to create the agent configuration file to use Azure AI Foundry models. These settings tell the agent where to find the AI service and how to authenticate to it.
+Run the following commands to create the agent configuration file. These settings tell the agent where to find the AI service and how to authenticate.
 
 ```bash
-AI_API_KEY=$(az cognitiveservices account keys list --name $AI_NAME --resource-group $RG_NAME --query key1 -o tsv)
-AI_API_BASE=$(az cognitiveservices account show --name $AI_NAME --resource-group $RG_NAME --query 'properties.endpoints."OpenAI Language Model Instance API"' -o tsv)
+export AI_API_KEY=$(az cognitiveservices account keys list --name $AI_NAME --resource-group $RG_NAME --query key1 -o tsv)
+export AI_API_BASE=$(az cognitiveservices account show --name $AI_NAME --resource-group $RG_NAME --query 'properties.endpoints."OpenAI Language Model Instance API"' -o tsv)
 
 cat << EOF > $HOME/.azure/aksAgent.yaml
 model: azure/gpt-5-mini
@@ -286,7 +269,7 @@ export TEMPERATURE=1
 
 :::warning
 
-The **TEMPERATURE** setting controls how creative or predictable the AI responses are. The **gpt-5** family of models are highly-capable reasoning models that only supports temperature value of 1.
+The **TEMPERATURE** setting controls how creative or predictable the AI responses are. The **gpt-5** family of models are highly capable reasoning models that only support a temperature value of 1.
 
 :::
 
@@ -298,7 +281,7 @@ az aks agent
 
 This opens an interactive terminal UI (TUI) session.
 
-### Try the CLI Agent for AKS
+### Try the Agentic CLI for AKS
 
 Use a read-only diagnostic prompt to confirm the agent can access your cluster.
 
@@ -311,11 +294,26 @@ What are the top five failing pods across all namespaces? Summarize the likely c
 - The agent queries Kubernetes events.
 - The response includes a short list of pods and likely failure reasons.
 
+Try a second prompt to explore the agent's resource-level capabilities.
+
+```text
+Show me the resource requests and limits for all containers in the pets namespace.
+```
+
+**Expected results**
+
+- The agent retrieves container specs from each Deployment in the `pets` namespace.
+- The response summarizes CPU and memory requests and limits per container.
+
+To exit the CLI Agent TUI, select **Ctrl+C** or type `exit`.
+
 ---
 
 ## kagent on Azure
 
-**kagent** is a [Cloud Native Computing Foundation (CNCF) Sandbox project](https://www.cncf.io/sandbox-projects/) that brings AI agents directly into your Kubernetes cluster. Unlike the CLI agent which runs on your local machine, kagent agents run as Kubernetes resources within your cluster and can interact with your workloads in real-time. See the [kagent Architecture](https://kagent.dev/docs/kagent/concepts/architecture) for more details.
+So far, the agents you've used run on your local machine. Next, you'll run agents inside your Kubernetes cluster as native resources alongside your workloads.
+
+**kagent** is a [Cloud Native Computing Foundation (CNCF) Sandbox project](https://www.cncf.io/sandbox-projects/) that brings AI agents directly into your Kubernetes cluster. Unlike the CLI agent, kagent agents run as Kubernetes resources within your cluster and can interact with your workloads in real time. See the [kagent Architecture](https://kagent.dev/docs/kagent/concepts/architecture) for more details.
 
 :::note
 
@@ -325,7 +323,7 @@ kagent is still in early development and is currently a CNCF Sandbox project. It
 
 ### Why kagent?
 
-With the plethora of AI-assisted tools, some may choose to use kagent for the following reasons:
+kagent stands out from other AI-assisted tools for several reasons:
 
 - **Kubernetes-native** - Agents are defined as custom resources and managed with kubectl
 - **Multi-agent architecture** - Create specialized agents that collaborate on complex tasks
@@ -334,7 +332,7 @@ With the plethora of AI-assisted tools, some may choose to use kagent for the fo
 
 ### Install kagent
 
-kagent provides a CLI to easily install kagent into your clusters; however, you do need to customize the deployment to use Azure AI Foundry models, which requires using Helm charts. This gives us more control over the configuration.
+kagent provides a CLI to install agents into your clusters. However, to use Azure AI Foundry models, you need Helm charts for more control over the configuration.
 
 In your VS Code terminal, run the following commands to install kagent into your AKS cluster.
 
@@ -347,8 +345,8 @@ helm install kagent-crds oci://ghcr.io/kagent-dev/kagent/helm/kagent-crds \
 Next, run the following command to install the main kagent components with Azure OpenAI model configuration.
 
 ```bash
-AI_API_KEY=$(az cognitiveservices account keys list --name $AI_NAME --resource-group $RG_NAME --query key1 -o tsv)
-AI_API_BASE=$(az cognitiveservices account show --name $AI_NAME --resource-group $RG_NAME --query 'properties.endpoints."OpenAI Language Model Instance API"' -o tsv)
+export AI_API_KEY=$(az cognitiveservices account keys list --name $AI_NAME --resource-group $RG_NAME --query key1 -o tsv)
+export AI_API_BASE=$(az cognitiveservices account show --name $AI_NAME --resource-group $RG_NAME --query 'properties.endpoints."OpenAI Language Model Instance API"' -o tsv)
 
 helm install kagent oci://ghcr.io/kagent-dev/kagent/helm/kagent \
 --namespace kagent \
@@ -364,18 +362,24 @@ The installation includes:
 
 - **kagent controller** - Manages agent lifecycles and reconciles custom resources
 - **Dashboard UI** - A web interface to interact with agents
-- **Default model configuration** - Initial OpenAI model config (you will replace this with Azure AI Foundry)
+- **Default model configuration** - Azure OpenAI model config for powering agent responses
 - **Pre-configured agents** - Specialized agents for Kubernetes, Istio, and Cilium operations
 
-kagent uses Kubernetes Custom Resource Definitions (CRDs) to represent agents, models, and tools as native Kubernetes objects. This means you can manage agents using standard kubectl commands.
+kagent uses Kubernetes Custom Resource Definitions (CRDs) to represent agents, models, and tools as native Kubernetes objects. CRDs extend the Kubernetes API, so you manage agents the same way you manage Deployments or Services -- with kubectl commands and YAML manifests.
 
 With the installation complete, you can now access the kagent dashboard.
 
-Run the following command to port-forward the kagent UI service to your local machine.
+Open a new terminal in VS Code and run the following command to port-forward the kagent UI service to your local machine.
 
 ```bash
 kubectl port-forward -n kagent svc/kagent-ui 8080:8080
 ```
+
+:::tip
+
+The port-forward command blocks the terminal. Keep it running and use a separate terminal for subsequent commands.
+
+:::
 
 The kagent dashboard should now be accessible at [http://localhost:8080](http://localhost:8080).
 
@@ -401,7 +405,7 @@ Ask it some follow-up questions to get details for a specific deployment, such a
 Give me some more details around the kagent-ui
 ```
 
-The agent calls a tool such as `k8s_describe_resource` with arguments targeting the `deployment` resource type and the name `kagent-ui` in the `kagent` namespace and summarizes teh results.
+The agent calls a tool such as `k8s_describe_resource` with arguments targeting the `deployment` resource type and the name `kagent-ui` in the `kagent` namespace and summarizes the results.
 
 Finally, let's ask what the `k8s-agent` in particular does.
 
@@ -415,17 +419,15 @@ Now let's give agents the ability to work more effectively with AKS clusters by 
 
 ### AKS MCP with kagent
 
-Earlier in the lab, you tested the AKS MCP server locally using GitHub Copilot. This same MCP server binary can be deployed into your cluster and run as a Kubernetes workload. It can be used to provide AI agents with access to AKS-specific tools and diagnostics.
+Earlier in the lab, you tested the AKS MCP server locally using GitHub Copilot. This same MCP server binary can be deployed into your cluster and run as a Kubernetes workload, providing AI agents with access to AKS-specific tools and diagnostics.
 
-https://github.com/Azure/aks-mcp/tree/main/chart
+In your VS Code terminal, set up the managed identity and deploy the AKS MCP server.
 
-In your VS Code terminal, run the following commands to deploy the AKS MCP server into your cluster.
-
-Before you deploy the MCP server to AKS, you will need to create a user-assigned managed identity so that it can work with your Azure services.
+First, create a user-assigned managed identity so the MCP server can authenticate with your Azure services.
 
 :::info
 
-We will speed run through the setup of workload identity here. For a more detailed explanation, refer to the [Azure Workload Identity documentation](https://learn.microsoft.com/azure/aks/workload-identity-overview) and the [Workload Identity lab](/docs/security/workload-identity-lab)
+We will speed run through the setup of workload identity here. For a more detailed walkthrough, refer to the [Azure Workload Identity documentation](https://learn.microsoft.com/azure/aks/workload-identity-overview) and the [Workload Identity lab](/docs/security/workload-identity-lab).
 
 :::
 
@@ -437,12 +439,14 @@ read -r AKS_OIDC_ISSUER_URL <<< \
     --resource-group $RG_NAME \
     --name $AKS_NAME \
     --query '{oidcIssuerUrl:oidcIssuerProfile.issuerUrl}' -o tsv)"
+export AKS_OIDC_ISSUER_URL
 
 read -r PRINCIPAL_ID CLIENT_ID TENANT_ID <<< \
   "$(az identity create \
     --resource-group $RG_NAME \
     --name $MI_NAME \
     --query '{principalId:principalId, clientId:clientId, tenantId:tenantId}' -o tsv)"
+export PRINCIPAL_ID CLIENT_ID TENANT_ID
 
 az identity federated-credential create \
 --name $MI_NAME \
@@ -458,18 +462,18 @@ Wait a few moments for the identity to be fully propagated, then run the followi
 ```bash
 az role assignment create \
 --assignee $PRINCIPAL_ID \
---role "Reader" \
+--role "Contributor" \
 --scope "/subscriptions/$(az account show --query id -o tsv)"
 ```
 
-Clone the repository
+Clone the AKS MCP server repository.
 
 ```bash
 git clone https://github.com/pauldotyu/aks-mcp.git
 cd aks-mcp/chart
 ```
 
-Install the chart
+Install the Helm chart.
 
 ```bash
 helm install aks-mcp . \
@@ -479,6 +483,12 @@ helm install aks-mcp . \
 --set azure.clientId=$CLIENT_ID \
 --set azure.subscriptionId=$(az account show --query id -o tsv) \
 --set app.accessLevel=admin
+```
+
+Return to your original working directory.
+
+```bash
+cd -
 ```
 
 The deployment consists of four Kubernetes resources that were created in the **kagent** namespace:
@@ -494,19 +504,13 @@ The deployment consists of four Kubernetes resources that were created in the **
 
 :::
 
-TODO: In case the above doesn't work for permissions, run this.
-
-```sh
-kubectl create clusterrolebinding aks-mcp-cluster-admin --clusterrole=cluster-admin --serviceaccount=kagent:aks-mcp
-```
-
 Let's verify that the AKS MCP deployment is running by asking the k8s-agent in the kagent dashboard.
 
 ```prompt
 Get the status of the aks-mcp deployment in the kagent namespace and tell me if it's ready for me to test.
 ```
 
-This should result in several tool calls and an overall assessment of the application and if everything went well during setup, should be ready for use.
+This should result in several tool calls and an overall assessment of the deployment. If the setup went well, the agent reports that the MCP server is ready.
 
 :::info
 
@@ -514,7 +518,7 @@ Additional remote deployment options can be found in the [AKS MCP repo](https://
 
 :::
 
-You got a chance to play with the **k8s-agent** earlier, which is a pre-defined kagent agent with tooling for Kubernetes operations. Now comes the exciting part- creating a new agent and connecting it to the AKS MCP server and other agents too! This integration gives AI agents access to powerful Azure-specific tools and diagnostics, enabling them to perform AKS operations, monitor resources, and troubleshoot issues using natural language.
+Earlier, you used the pre-defined **k8s-agent** to inspect basic cluster state. Now comes the exciting part -- creating a new agent and connecting it to the AKS MCP server. This integration gives AI agents access to Azure-specific tools and diagnostics, enabling them to perform AKS operations, monitor resources, and troubleshoot issues using natural language.
 
 ### Why integrate agents with MCP servers?
 
@@ -592,15 +596,13 @@ Fill in the following details for the new agent:
 - **Agent Namespace**: `kagent`
 - **Agent Type**: Select **Declarative**
 - **Description**: `An AI agent specialized in Azure Kubernetes Service (AKS) operations and troubleshooting. Equipped with tools from the AKS MCP server for diagnostics, monitoring, and management.`
-- **Agent Instructions**: Accept the default instructions provided. (TODO: tell it to troubleshoot from the cluster level first, then move to Azure APIs, and to always use tools for diagnostics and never guess without data. You can find the full system prompt in this [gist](https://gist.github.com/pauldotyu/aks-agent-system-prompt))
+- **Agent Instructions**: Accept the default instructions provided.
 - **Model**: Select **gpt-5-mini (kagent/default-model-config)**
 - **Enable LLM response streaming**: Check this box to allow the agent to stream responses for better user experience.
 - **Tools & Agents**: Select **+ Add Tools & Agents**, then in the dialog, filter for `aks` and select all tools under **Kagent/Aks-Mcp**.
-- TODO**Skills**: Add the following skills to enhance the agent's capabilities: `ghcr.io/pauldotyu/kubernetes-skill:v1.0.0`, `ghcr.io/pauldotyu/azure-skill:v1.0.0`
+  Select the **Save Selection** button to confirm the tools.
 
-Click the **Save Selection (13)** button to confirm the tools.
-
-Confirm all the details are correct, then scroll to the bottom of the page and click the **Create Agent** button to deploy the agent.
+Confirm all the details are correct, then scroll to the bottom of the page and select **Create Agent** to deploy the agent.
 
 :::info
 
@@ -637,55 +639,227 @@ A powerful feature of kagent is the ability to create **multi-agent systems** wh
 
 ![Edit the aks-agent in kagent](https://placehold.co/600x400)
 
-3. Scroll to **Tools & Agents**, then click the **+ Add Tools & Agents**.
+3. Scroll to **Tools & Agents**, then select **+ Add Tools & Agents**.
 
 ![Add tools and agents to aks-agent](https://placehold.co/600x400)
 
-5. Add the following agents, then click the **Save Selection (15)**.
+4. Add the following agents, then select **Save Selection**.
    - **kagent/k8s-agent** - General Kubernetes operations and resource management
    - **kagent/cilium-policy-agent** - Network policy and Cilium-specific configurations
 
 ![Select supporting agents in kagent](https://placehold.co/600x400)
 
-7. Scroll to the bottom of the page and select **Update Agent** to save the changes.
+5. Scroll to the bottom of the page and select **Update Agent** to save the changes.
 
 ![Update the agent in kagent](https://placehold.co/600x400)
 
 :::info
 
-The AKS agent automatically delegates tasks to specialized agents (Kubernetes operations → k8s-agent, network policies → cilium-policy-agent). When you ask a question, you may see it delegating to the k8s-agent. This hierarchical architecture creates a more capable system where each agent contributes domain expertise.
+The AKS agent automatically delegates tasks to specialized agents (Kubernetes operations to k8s-agent, network policies to cilium-policy-agent). When you ask a question, you may see it delegating to the k8s-agent. This hierarchical architecture creates a more capable system where each agent contributes domain expertise.
 
 :::
 
 ### Try the multi-agent system
 
-Ask the aks-agent to delegate troubleshooting to specialized agents.
+Ask the aks-agent to perform a task that requires collaboration between agents.
 
 ```prompt
-I seem to be unable to unable to access the store-front application deployed in the pets namespace. Can you investigate this potential networking issue?
+TODO
 ```
+
+TODO
 
 ---
 
-## Conclusion
+## Prepare the cluster for troubleshooting challenges
 
-You used AI agents to explore AKS operations across three modes: local tools in VS Code, a CLI agent, and in-cluster agents with kagent. You also connected the AKS MCP Server to kagent and created a multi-agent system for specialized troubleshooting.
+Before attempting the challenges, you need to intentionally break the cluster. A script does this for you, but it won't tell you what it's breaking -- that's for you to figure out!
 
-## Troubleshooting
+:::warning
 
-- **AKS MCP Server does not start in VS Code**: Restart VS Code and re-run **AKS: Setup AKS MCP Server**. Verify the server is listed under **MCP SERVERS - INSTALLED**.
-- **Azure OpenAI deployment fails**: Check model quota and reduce `--sku-capacity`. Confirm the resource location supports the model.
-- **kagent UI does not load**: Verify the port-forward command is running and that the kagent pods are Ready in the `kagent` namespace.
-- **aks-agent cannot access Azure APIs**: Confirm workload identity is configured and the managed identity has the **Contributor** role on the resource group.
+Running this script will create multiple issues in your cluster across infrastructure, application, and authentication layers. You'll use agents to diagnose and fix all issues in the challenges section.
 
-### Learn more
+If you want to know exactly what will break, you can inspect the script at [setup-cluster-issues.sh](./assets/ai-assisted-operations/setup-cluster-issues.sh).
+
+:::
+
+### Run the setup script
+
+Ensure your environment variables are still exported (including `AI_API_BASE` from earlier), then run:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/pauldotyu/aks-labs/refs/heads/main/docs/operations/assets/setup-cluster-issues.sh | bash
+```
+
+The script will use the `AI_API_BASE` environment variable if available to configure a service that relies on Azure AI Foundry.
+
+**Expected output:**
+
+```
+🔧 Breaking cluster...
+
+✓ Issue 1 created
+✓ Issue 2 created
+✓ Issue 3 created
+
+✅ Cluster is now broken. Use agents to figure out what's wrong!
+   (Hint: Check the source of this script if you get stuck)
+```
+
+With the cluster broken, continue to the troubleshooting challenges.
+
+---
+
+## Troubleshooting Challenges
+
+Now that you've learned to use all three agent approaches, it's time to put them into practice. The cluster has been intentionally broken in multiple ways -- at the infrastructure, application, and authentication levels. Your task is to diagnose what went wrong and fix it using the agents you deployed.
+
+:::info
+
+**Your mission**: Use GitHub Copilot with the AKS MCP server, the Agentic CLI for AKS, or kagent to figure out what's broken and fix it.
+
+Don't worry if you get stuck -- there are hints in each challenge, and you can always inspect the setup script to see exactly what was broken.
+
+:::
+
+### Challenge 1: Pods are failing and the AI feature is missing
+
+**Scenario**: Users report that they can't access the store-front application in the pets namespace. Some pods aren't starting at all, and others are crashing or restarting. Additionally, the store-admin UI is missing its "AI-generated product descriptions" button -- the feature that uses the ai-service to generate marketing copy for products.
+
+**Your tasks**:
+
+1. Using one of the agent tools, investigate why the store application isn't responding
+2. Identify the root causes across infrastructure and application layers
+3. Fix the issues so all pods are healthy
+4. Investigate the ai-service pod -- it's deployed with workload identity annotations, but the authentication to Azure AI Foundry is failing. Determine what's missing and fix it so the AI button appears in store-admin
+5. Verify the application is fully operational and the AI feature works
+
+**Where to start**:
+
+- Try asking the CLI Agent: _"Why are pods in the pets namespace not healthy? Show me all failing pods, their events, and logs."_
+- Or use kagent: _"Check pod status, events, and logs in the pets namespace. Look especially at the ai-service pod for authentication errors."_
+- Or ask GitHub Copilot with the AKS MCP server: _"Check for network policies, pod health, and workload identity configuration in the pets namespace"_
+
+<details>
+<summary>Hints (expand if you're stuck)</summary>
+
+- A **network policy** is blocking ingress traffic to the `pets` namespace (infrastructure level)
+- Multiple **application deployments** have configuration issues:
+  - One service references a **missing ConfigMap** and won't start
+  - One service has a **broken liveness probe** and crashes
+- The **ai-service** is deployed with workload identity but is missing two things:
+  - The **ServiceAccount** has a placeholder client ID annotation -- it needs to point to a real managed identity
+  - The **federated identity credential** for the ai-service ServiceAccount hasn't been created in Azure
+  - Pod logs will show authentication failures when trying to get a token for Azure AI Foundry
+- To fix the ai-service, you need to create a federated credential linking the managed identity to the `ai-service` ServiceAccount in the `pets` namespace, and update the ServiceAccount annotation with the correct client ID
+- If you're still stuck, skim the source code of [setup-cluster-issues.sh](./assets/ai-assisted-operations/setup-cluster-issues.sh) to see what was applied
+
+</details>
+
+---
+
+### Challenge 2: The ai-service still can't reach Azure AI Foundry
+
+**Scenario**: You resolved the pod and authentication issues from Challenge 1. But when you restart the ai-service pod, it still can't connect to Azure AI Foundry. The logs show DNS resolution failures or connection timeouts when trying to reach the AI Foundry endpoint URL. Other pods seem to have similar issues resolving external hostnames.
+
+**Your tasks**:
+
+1. Using an agent, check the ai-service pod logs for connection or DNS errors
+2. Verify that DNS resolution is failing cluster-wide, not just for the ai-service
+3. Investigate what's blocking DNS lookups -- look beyond Kubernetes into Azure infrastructure
+4. Fix the issue
+5. Restart the ai-service pod and verify the AI button now appears in the store-admin UI
+
+**Where to start**:
+
+- Try the CLI Agent: _"The ai-service pod still can't reach its external endpoint after the Challenge 1 fixes. Check the pod logs and help me figure out why."_
+- Or use kagent with the AKS agent: _"Pods in the cluster are having trouble connecting to external services. Investigate what's going on."_
+- Or ask GitHub Copilot: _"The ai-service pod can't connect to Azure AI Foundry even though authentication is fixed. Help me investigate the connectivity issue."_
+
+<details>
+<summary>Hint (expand if you're stuck)</summary>
+
+This issue is at the Azure infrastructure level, not Kubernetes. An NSG rule in the cluster's managed resource group is blocking outbound traffic to Azure DNS (168.63.129.16). CoreDNS relies on this address to resolve external hostnames like the Azure AI Foundry endpoint. Remove or update the NSG rule, then restart the ai-service pod to verify connectivity.
+
+</details>
+
+---
+
+### Challenge 3: Harden the cluster with multi-agent best practices
+
+**Scenario**: Challenges 1 and 2 are resolved -- pods are healthy, DNS works, and the AI button appears in the store-admin UI. But the cluster was just "fixed," not hardened. The `pets` namespace may lack proper network segmentation, resource requests and limits could be missing or undersized, and security best practices like pod security standards haven't been reviewed.
+
+Use the multi-agent system to audit the cluster across networking, security, and resiliency -- then implement the recommendations.
+
+**Your tasks**:
+
+1. Ask the aks-agent to perform a comprehensive best practices review of the `pets` namespace covering:
+   - **Networking** -- Are there network policies in place? Is traffic restricted to only what's needed?
+   - **Security** -- Are workload identity configurations correct? Are there any Azure Advisor security recommendations? Are pod security standards enforced?
+   - **Resiliency** -- Do all Deployments have appropriate resource requests and limits? Are replicas configured for availability? Are liveness and readiness probes defined?
+2. Review the agent's findings and have it implement the highest-priority recommendations
+3. Verify the application still works after applying the changes
+
+**Where to start**:
+
+- In kagent, ask the aks-agent: _"Review the pets namespace for best practices across networking, security, and resiliency. Check for missing network policies, resource limits, pod disruption budgets, and security recommendations from Azure Advisor. Then implement the top recommendations."_
+
+<details>
+<summary>Hint (expand if you're stuck)</summary>
+
+The aks-agent should delegate to multiple specialized agents:
+
+- **cilium-policy-agent** -- Analyze pod-to-pod communication and recommend network policies that allow only required traffic (store-front/store-admin to backend services, ai-service outbound to Azure AI Foundry)
+- **k8s-agent** -- Check resource requests/limits, replica counts, and probe configurations across Deployments
+- **aks-agent** (via AKS MCP tools) -- Pull Azure Advisor recommendations for security and operational excellence
+
+After implementing changes, port-forward the store-front and verify the application loads and the AI button in store-admin still generates product descriptions.
+
+</details>
+
+---
+
+## Summary
+
+In this lab, you explored three complementary approaches to AI-powered AKS operations:
+
+- **AKS MCP Server with GitHub Copilot** -- You installed the MCP server locally and used GitHub Copilot to discover available tools and run read-only diagnostics against your cluster.
+- **Agentic CLI for AKS** -- You configured and launched a terminal-based AI agent that analyzes telemetry signals and provides actionable insights through natural language queries.
+- **kagent** -- You deployed in-cluster AI agents, connected them to the AKS MCP Server, and built a multi-agent system where specialized agents collaborate on complex tasks.
+
+Along the way, you practiced troubleshooting real cluster issues -- from network policies blocking traffic to misconfigured workload identity credentials -- using AI agents to diagnose root causes and guide remediation.
+
+## Learn more
+
+To continue your learning journey with AI-powered operations and MCP agents, check out these resources:
 
 - **AKS MCP Server** - [github.com/Azure/aks-mcp](https://github.com/Azure/aks-mcp)
-- **CLI Agent for AKS** - [github.com/Azure/cli-agent-aks](https://github.com/Azure/cli-agent-for-aks)
+- **Agentic CLI for AKS** - [github.com/Azure/cli-agent-for-aks](https://github.com/Azure/cli-agent-for-aks)
 - **Azure AI Foundry** - [learn.microsoft.com/azure/ai-foundry](https://learn.microsoft.com/azure/ai-foundry/what-is-azure-ai-foundry)
 - **Model Context Protocol documentation** - [modelcontextprotocol.io](https://modelcontextprotocol.io)
 - **kagent project** - [kagent.dev](https://kagent.dev)
 
 ---
+
+## Reset cluster state
+
+After completing the lab, remove the intentional cluster issues and all Azure resources.
+
+### Clean up cluster issues
+
+To restore the cluster to normal state, run the cleanup script:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/pauldotyu/aks-labs/refs/heads/main/docs/operations/assets/cleanup-cluster-issues.sh | bash
+```
+
+This removes:
+
+- The NetworkPolicy blocking ingress in the `pets` namespace
+- The NSG rule blocking Azure DNS (168.63.129.16)
+- The broken application patches (restores original aks-store-demo deployments)
+- The custom `ai-service` ServiceAccount with workload identity annotations
+
+### Clean up Azure resources
 
 <Cleanup />
