@@ -86,6 +86,11 @@ resources:
 patches:
 - path: patches/product-service-broken.yaml
 - path: patches/store-front-crash.yaml
+  target:
+    group: apps
+    version: v1
+    kind: Deployment
+    name: store-front
 KUSTOM
 
 # Patch 1: Break product-service by referencing a non-existent ConfigMap
@@ -104,23 +109,15 @@ spec:
             name: product-db-config-missing
 PATCH1
 
-# Patch 2: Break store-front with a bad liveness probe
+# Patch 2: Break store-front with a bad liveness probe (JSON 6902 patch to replace the entire probe)
 cat > "$TEMP_DIR/patches/store-front-crash.yaml" <<'PATCH2'
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: store-front
-spec:
-  template:
-    spec:
-      containers:
-      - name: store-front
-        livenessProbe:
-          httpGet: null
-          tcpSocket:
-            port: 9999
-          initialDelaySeconds: 5
-          periodSeconds: 10
+- op: replace
+  path: /spec/template/spec/containers/0/livenessProbe
+  value:
+    tcpSocket:
+      port: 9999
+    initialDelaySeconds: 5
+    periodSeconds: 10
 PATCH2
 
 # Apply the kustomization for existing service patches
