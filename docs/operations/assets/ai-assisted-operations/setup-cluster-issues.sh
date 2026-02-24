@@ -116,6 +116,7 @@ spec:
       containers:
       - name: store-front
         livenessProbe:
+          httpGet: null
           tcpSocket:
             port: 9999
           initialDelaySeconds: 5
