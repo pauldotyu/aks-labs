@@ -15,7 +15,7 @@ if [[ -z "${AKS_NAME:-}" ]] || [[ -z "${RG_NAME:-}" ]]; then
 fi
 
 # Issue 1: NetworkPolicy blocking all ingress in pets namespace
-kubectl apply -n pets -f - > /dev/null 2>&1 <<EOF
+kubectl apply -n pets -f - > /dev/null <<EOF
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -33,11 +33,11 @@ echo "✓ Issue 1 setup completed"
 MANAGED_RG=$(az aks show \
   --name "$AKS_NAME" \
   --resource-group "$RG_NAME" \
-  --query nodeResourceGroup -o tsv 2>/dev/null)
+  --query nodeResourceGroup -o tsv 2> /dev/null)
 
 NODE_NSG=$(az network nsg list \
   --resource-group "$MANAGED_RG" \
-  --query '[0].name' -o tsv 2>/dev/null)
+  --query '[0].name' -o tsv 2> /dev/null)
 
 if [[ -z "$NODE_NSG" ]]; then
   echo "❌ Error: Could not find NSG"
@@ -47,7 +47,7 @@ fi
 EXISTING_RULE=$(az network nsg rule list \
   --resource-group "$MANAGED_RG" \
   --nsg-name "$NODE_NSG" \
-  --query "[?name=='DenyAzureDNS'].name" -o tsv 2>/dev/null)
+  --query "[?name=='DenyAzureDNS'].name" -o tsv 2> /dev/null)
 
 if [[ -z "$EXISTING_RULE" ]]; then
   az network nsg rule create \
@@ -61,7 +61,7 @@ if [[ -z "$EXISTING_RULE" ]]; then
     --protocol '*' \
     --destination-port-ranges '*' \
     --source-address-prefixes '*' \
-    --source-port-ranges '*' > /dev/null 2>&1
+    --source-port-ranges '*' > /dev/null
 fi
 
 echo "✓ Issue 2 setup completed"
@@ -123,11 +123,11 @@ spec:
 PATCH2
 
 # Apply the kustomization for existing service patches
-kubectl apply -k "$TEMP_DIR" > /dev/null 2>&1
+kubectl apply -k "$TEMP_DIR" > /dev/null
 
 # Deploy ai-service as a standalone resource with broken workload identity
 # Uses an unquoted heredoc so AI_API_BASE is expanded at runtime
-kubectl apply -n pets -f - > /dev/null 2>&1 <<AIEOF
+kubectl apply -n pets -f - > /dev/null <<AIEOF
 apiVersion: v1
 kind: ServiceAccount
 metadata:
