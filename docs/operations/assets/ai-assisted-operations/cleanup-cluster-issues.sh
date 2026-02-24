@@ -66,8 +66,14 @@ else
   echo "⚠️  Could not restore deployments (namespace may not exist)"
 fi
 
-# Remove the custom ai-service ServiceAccount with workload identity annotation
-echo "🗑️  Removing custom ai-service ServiceAccount..."
+# Remove the custom ai-service Deployment and ServiceAccount with workload identity annotation
+echo "🗑️  Removing custom ai-service resources..."
+
+if kubectl delete deployment ai-service -n pets 2>/dev/null; then
+  echo "✓ Custom ai-service Deployment removed"
+else
+  echo "⚠️  Custom ai-service Deployment not found (already removed?)"
+fi
 
 if kubectl delete serviceaccount ai-service -n pets 2>/dev/null; then
   echo "✓ Custom ai-service ServiceAccount removed"

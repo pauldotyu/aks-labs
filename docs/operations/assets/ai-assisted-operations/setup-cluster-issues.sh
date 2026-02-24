@@ -14,8 +14,8 @@ if [[ -z "${AKS_NAME:-}" ]] || [[ -z "${RG_NAME:-}" ]]; then
   exit 1
 fi
 
-# Issue 1
-kubectl apply -n pets -f - <<EOF
+# Issue 1: NetworkPolicy blocking all ingress in pets namespace
+kubectl apply -n pets -f - > /dev/null 2>&1 <<EOF
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -27,17 +27,17 @@ spec:
   - Ingress
 EOF
 
-echo "✓ Issue 1 created"
+echo "✓ Issue 1 setup completed"
 
-# Issue 2
+# Issue 2: NSG rule blocking Azure DNS
 MANAGED_RG=$(az aks show \
   --name "$AKS_NAME" \
   --resource-group "$RG_NAME" \
-  --query nodeResourceGroup -o tsv)
+  --query nodeResourceGroup -o tsv 2>/dev/null)
 
 NODE_NSG=$(az network nsg list \
   --resource-group "$MANAGED_RG" \
-  --query '[0].name' -o tsv)
+  --query '[0].name' -o tsv 2>/dev/null)
 
 if [[ -z "$NODE_NSG" ]]; then
   echo "❌ Error: Could not find NSG"
@@ -47,7 +47,7 @@ fi
 EXISTING_RULE=$(az network nsg rule list \
   --resource-group "$MANAGED_RG" \
   --nsg-name "$NODE_NSG" \
-  --query "[?name=='DenyAzureDNS'].name" -o tsv)
+  --query "[?name=='DenyAzureDNS'].name" -o tsv 2>/dev/null)
 
 if [[ -z "$EXISTING_RULE" ]]; then
   az network nsg rule create \
@@ -61,32 +61,31 @@ if [[ -z "$EXISTING_RULE" ]]; then
     --protocol '*' \
     --destination-port-ranges '*' \
     --source-address-prefixes '*' \
-    --source-port-ranges '*'
+    --source-port-ranges '*' > /dev/null 2>&1
 fi
 
-echo "✓ Issue 2 created"
+echo "✓ Issue 2 setup completed"
 
-# Issue 3: Generate and apply Kustomization patches to break store app services
+# Issue 3: Break store app services and deploy broken ai-service
 TEMP_DIR=$(mktemp -d)
 trap "rm -rf $TEMP_DIR" EXIT
 
 mkdir -p "$TEMP_DIR/patches"
 
-# Create kustomization.yaml that references the remote base
+# Kustomization to patch existing services (product-service, store-front)
+# ai-service is not in the dev overlay base, so it is deployed separately below
 cat > "$TEMP_DIR/kustomization.yaml" <<'KUSTOM'
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 namespace: pets
 
-bases:
+resources:
 - https://github.com/Azure-Samples/aks-store-demo//kustomize/overlays/dev?ref=main
 
-patchesStrategicMerge:
-- patches/product-service-broken.yaml
-- patches/store-front-crash.yaml
-- patches/ai-service-with-ai-foundry.yaml
-- patches/ai-service-account.yaml
+patches:
+- path: patches/product-service-broken.yaml
+- path: patches/store-front-crash.yaml
 KUSTOM
 
 # Patch 1: Break product-service by referencing a non-existent ConfigMap
@@ -123,50 +122,58 @@ spec:
           periodSeconds: 10
 PATCH2
 
-# Patch 3: Deploy ai-service with Azure AI Foundry integration but broken workload identity
-cat > "$TEMP_DIR/patches/ai-service-with-ai-foundry.yaml" <<'PATCH3'
+# Apply the kustomization for existing service patches
+kubectl apply -k "$TEMP_DIR" > /dev/null 2>&1
+
+# Deploy ai-service as a standalone resource with broken workload identity
+# Uses an unquoted heredoc so AI_API_BASE is expanded at runtime
+kubectl apply -n pets -f - > /dev/null 2>&1 <<AIEOF
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ai-service
+  namespace: pets
+  annotations:
+    azure.workload.identity/client-id: "00000000-0000-0000-0000-000000000000"
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ai-service
+  namespace: pets
 spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-service
   template:
+    metadata:
+      labels:
+        app: ai-service
     spec:
       serviceAccountName: ai-service
       containers:
       - name: ai-service
+        image: ghcr.io/azure-samples/aks-store-demo/ai-service:latest
+        ports:
+        - containerPort: 5001
         env:
-        - name: AZURE_CLIENT_ID
-          value: "00000000-0000-0000-0000-000000000000"
-        - name: AZURE_TENANT_ID
-          value: "00000000-0000-0000-0000-000000000000"
-        - name: AZURE_AUTHORITY_HOST
-          value: "https://login.microsoftonline.com/"
-        - name: AI_API_BASE
+        - name: USE_AZURE_OPENAI
+          value: "True"
+        - name: AZURE_OPENAI_DEPLOYMENT_NAME
+          value: "gpt-5-mini"
+        - name: AZURE_OPENAI_ENDPOINT
           value: "${AI_API_BASE:-https://placeholder.openai.azure.com/}"
-        - name: AI_API_KEY
-          value: "placeholder-key-for-testing"
+        - name: USE_AZURE_AD
+          value: "True"
         resources:
           requests:
             memory: "512Mi"
           limits:
             memory: "512Mi"
-PATCH3
+AIEOF
 
-# Patch 4: Create ServiceAccount with intentionally broken workload identity annotation
-cat > "$TEMP_DIR/patches/ai-service-account.yaml" <<'PATCH4'
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: ai-service
-  annotations:
-    azure.workload.identity/client-id: "00000000-0000-0000-0000-000000000000"
-PATCH4
-
-# Apply the Kustomization
-kubectl apply -k "$TEMP_DIR"
-
-echo "✓ Issue 3 created"
+echo "✓ Issue 3 setup completed"
 echo ""
 echo "✅ Cluster is now broken. Use agents to figure out what's wrong!"
 echo "   (Hint: Check the source of this script if you get stuck)"
