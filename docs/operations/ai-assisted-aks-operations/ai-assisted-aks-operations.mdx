@@ -1,13 +1,13 @@
 ---
-title: Next-Gen Operations with AI, MCP, and Agents
-sidebar_label: Next-Gen Operations with AI, MCP, and Agents
+title: Managing AKS with AI Agents and MCP
+sidebar_label: AI Agents and MCP
 sidebar_position: 1
 ---
 
-import Prerequisites from "../../src/components/SharedMarkdown/_prerequisites.mdx";
-import ProvisionResourceGroup from "../../src/components/SharedMarkdown/_provision_resource_group.mdx";
-import ProvisionAKSCluster from "../../src/components/SharedMarkdown/_provision_aks_cluster.mdx";
-import Cleanup from "../../src/components/SharedMarkdown/_cleanup.mdx";
+import Prerequisites from "../../../src/components/SharedMarkdown/_prerequisites.mdx";
+import ProvisionResourceGroup from "../../../src/components/SharedMarkdown/_provision_resource_group.mdx";
+import ProvisionAKSCluster from "../../../src/components/SharedMarkdown/_provision_aks_cluster.mdx";
+import Cleanup from "../../../src/components/SharedMarkdown/_cleanup.mdx";
 
 ## Overview
 
@@ -182,11 +182,11 @@ In the VS Code sidebar (left), click the extensions button, then expand the **MC
 
 You should see the **AKS MCP** server listed.
 
-![AKS MCP server listed in VS Code MCP servers panel](./assets/ai-assisted-operations/vscode-extensions-mcp.png)
+![AKS MCP server listed in VS Code MCP servers panel](./vscode-extensions-mcp.png)
 
 Select the settings icon, then select **Start Server** to ensure it is running. In the **OUTPUT** window, confirm the server is listening on STDIO and has discovered tools.
 
-![AKS MCP server output showing tools discovered](./assets/ai-assisted-operations/vscode-mcp-start.png)
+![AKS MCP server output showing tools discovered](./vscode-mcp-start.png)
 
 We'll explore these tools throughout the lab.
 
@@ -354,7 +354,7 @@ Depending on the state of your cluster, you may see different results. The agent
 Try a second prompt to explore the agent's resource-level capabilities.
 
 ```text
-Show me the resource requests and limits for all containers in the pets namespace.
+Help me plan a cluster upgrade to the latest Kubernetes version. Give me a playbook of steps to follow and potential issues to watch out for based on my current cluster configuration.
 ```
 
 The agent will call the appropriate tools to retrieve the resource configurations for all pods in the `pets` namespace and summarize them in an easy-to-read format while also suggesting any potential misconfigurations or inconsistencies.
@@ -449,7 +449,7 @@ The kagent dashboard should now be accessible at [http://localhost:8080](http://
 
 Select the **Skip the wizard** link. You should be redirected to the kagent homepage, where you will see several pre-installed agents.
 
-![kagent dashboard showing pre-installed agents](./assets/ai-assisted-operations/kagent-home.png)
+![kagent dashboard showing pre-installed agents](./kagent-home.png)
 
 The dashboard provides a user-friendly interface for managing agents, models, and MCP servers. You can also manage everything using kubectl, but the UI makes exploration easier.
 
@@ -618,11 +618,11 @@ With kagent, a **RemoteMCPServer** is a Kubernetes custom resource that represen
 
 Back in the kagent dashboard, select **+ Create** > **New MCP Server**.
 
-![Create a new MCP server in kagent](./assets/ai-assisted-operations/kagent-create-mcp.png)
+![Create a new MCP server in kagent](./kagent-create-mcp.png)
 
 Select **Add MCP Server**.
 
-![Add MCP Server dialog in kagent](./assets/ai-assisted-operations/kagent-add-mcp.png)
+![Add MCP Server dialog in kagent](./kagent-add-mcp.png)
 
 Fill in the following details:
 
@@ -652,7 +652,7 @@ Streamable HTTP allows the MCP server to send responses in chunks, which is usef
 
 Select **Add Server** to create the resource.
 
-![MCP server created in kagent](./assets/ai-assisted-operations/kagent-add-aks-mcp.png)
+![MCP server created in kagent](./kagent-add-aks-mcp.png)
 
 ### Deploy a specialized AKS agent
 
@@ -671,7 +671,7 @@ The AKS agent includes:
 
 In the kagent dashboard, select **+ Create** > **New Agent**.
 
-![Create a new agent in kagent](./assets/ai-assisted-operations/kagent-create-agent.png)
+![Create a new agent in kagent](./kagent-create-agent.png)
 
 Fill in the following details for the new agent:
 
@@ -688,7 +688,7 @@ Fill in the following details for the new agent:
 
 Confirm all the details are correct, then scroll to the bottom of the page and select **Create Agent** to deploy the agent.
 
-![Create the aks-agent in kagent](./assets/ai-assisted-operations/kagent-add-aks-agent.png)
+![Create the aks-agent in kagent](./kagent-add-aks-agent.png)
 
 You may notice the agent status is "Agent not Ready". Wait a few minutes for the agent to be created, then refresh the page.
 
@@ -718,17 +718,17 @@ A powerful feature of kagent is the ability to create **multi-agent systems** wh
 2. Find **kagent/aks-agent**, hover your mouse over it, and select **Edit**.
 3. Scroll to **Tools & Agents**, then select **+ Add Tools & Agents**.
 
-![Add tools and agents to aks-agent](./assets/ai-assisted-operations/kagent-edit-aks-agent-tools.png)
+![Add tools and agents to aks-agent](./kagent-edit-aks-agent-tools.png)
 
 4. Add the following agents.
    - **kagent/k8s-agent** - General Kubernetes operations and resource management
    - **kagent/cilium-policy-agent** - Network policy and Cilium-specific configurations
 
-![Select supporting agents in kagent](./assets/ai-assisted-operations/kagent-selected-aks-agent-tools.png)
+![Select supporting agents in kagent](./kagent-selected-aks-agent-tools.png)
 
 5. Select **Save Selection** then scroll to the bottom of the page and select **Update Agent** to save the changes.
 
-![Update the aks-agent in kagent](./assets/ai-assisted-operations/kagent-update-aks-agent.png)
+![Update the aks-agent in kagent](./kagent-update-aks-agent.png)
 
 ### Try the multi-agent system
 
@@ -740,7 +740,7 @@ Can you please help me implement a CiliumNetworkPolicy to block all ingress traf
 
 The AKS agent should delegate the task to more specialized agents (in this case the cilium-policy-agent). This hierarchical architecture creates a more capable system where each agent contributes domain expertise.
 
-![Agent delegation flow in kagent](./assets/ai-assisted-operations/kagent-aks-agent-delegation.png)
+![Agent delegation flow in kagent](./kagent-aks-agent-delegation.png)
 
 If you are prompted to confirm the action to apply the network policy, you can ignore it and move on.
 
@@ -766,14 +766,14 @@ Before attempting the challenges, you need to intentionally break the cluster. A
 
 Running this script will create multiple issues in your cluster across infrastructure, application, and authentication layers. You'll use agents to diagnose and fix all issues in the challenges section.
 
-If you want to know exactly what will break, you can inspect the script at [setup-cluster-issues.sh](./assets/ai-assisted-operations/setup-cluster-issues.sh).
+If you want to know exactly what will break, you can inspect the script at [setup-cluster-issues.sh](./setup-cluster-issues.sh).
 
 :::
 
 Ensure your environment variables are still exported (including `AI_API_BASE` from earlier), then run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/pauldotyu/aks-labs/refs/heads/ai_assisted_ops/docs/operations/assets/ai-assisted-operations/setup-cluster-issues.sh | bash
+curl -fsSL https://raw.githubusercontent.com/pauldotyu/aks-labs/refs/heads/ai_assisted_ops/docs/operations/assets/ai-assisted-aks-operations/setup-cluster-issues.sh | bash
 ```
 
 :::danger TODO: Replace temporary instructions
@@ -920,7 +920,7 @@ kubectl get pods -n pets -l app=ai-service
 
 Once the pod is in `Running` state, try the AI-generated product description feature again.
 
-If you're still stuck, skim the source code of [setup-cluster-issues.sh](./assets/ai-assisted-operations/setup-cluster-issues.sh) to see what was applied.
+If you're still stuck, skim the source code of [setup-cluster-issues.sh](./setup-cluster-issues.sh) to see what was applied.
 
 </details>
 
@@ -990,7 +990,7 @@ To continue your learning journey with AI-powered operations and MCP agents, che
 To restore the cluster to normal state, run the cleanup script:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/pauldotyu/aks-labs/refs/heads/ai_assisted_ops/docs/operations/assets/ai-assisted-operations/cleanup-cluster-issues.sh | bash
+curl -fsSL https://raw.githubusercontent.com/pauldotyu/aks-labs/refs/heads/ai_assisted_ops/docs/operations/assets/ai-assisted-aks-operations/cleanup-cluster-issues.sh | bash
 ```
 
 :::danger TODO: Replace temporary instructions
