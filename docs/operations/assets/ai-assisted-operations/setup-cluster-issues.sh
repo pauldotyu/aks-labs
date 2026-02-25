@@ -29,101 +29,7 @@ EOF
 
 echo "✓ Issue 1 setup completed"
 
-# Issue 2: NSG rule blocking Azure DNS
-MANAGED_RG=$(az aks show \
-  --name "$AKS_NAME" \
-  --resource-group "$RG_NAME" \
-  --query nodeResourceGroup -o tsv 2> /dev/null)
-
-NODE_NSG=$(az network nsg list \
-  --resource-group "$MANAGED_RG" \
-  --query '[0].name' -o tsv 2> /dev/null)
-
-if [[ -z "$NODE_NSG" ]]; then
-  echo "❌ Error: Could not find NSG"
-  exit 1
-fi
-
-EXISTING_RULE=$(az network nsg rule list \
-  --resource-group "$MANAGED_RG" \
-  --nsg-name "$NODE_NSG" \
-  --query "[?name=='DenyAzureDNS'].name" -o tsv 2> /dev/null)
-
-if [[ -z "$EXISTING_RULE" ]]; then
-  az network nsg rule create \
-    --resource-group "$MANAGED_RG" \
-    --nsg-name "$NODE_NSG" \
-    --name DenyAzureDNS \
-    --direction Outbound \
-    --priority 100 \
-    --destination-address-prefixes "168.63.129.16" \
-    --access Deny \
-    --protocol '*' \
-    --destination-port-ranges '*' \
-    --source-address-prefixes '*' \
-    --source-port-ranges '*' > /dev/null
-fi
-
-echo "✓ Issue 2 setup completed"
-
-# Issue 3: Break store app services and deploy broken ai-service
-TEMP_DIR=$(mktemp -d)
-trap "rm -rf $TEMP_DIR" EXIT
-
-mkdir -p "$TEMP_DIR/patches"
-
-# Kustomization to patch existing services (product-service, store-front)
-# ai-service is not in the dev overlay base, so it is deployed separately below
-cat > "$TEMP_DIR/kustomization.yaml" <<'KUSTOM'
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-
-namespace: pets
-
-resources:
-- https://github.com/Azure-Samples/aks-store-demo//kustomize/overlays/dev?ref=main
-
-patches:
-- path: patches/product-service-broken.yaml
-- path: patches/store-front-crash.yaml
-  target:
-    group: apps
-    version: v1
-    kind: Deployment
-    name: store-front
-KUSTOM
-
-# Patch 1: Break product-service by referencing a non-existent ConfigMap
-cat > "$TEMP_DIR/patches/product-service-broken.yaml" <<'PATCH1'
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: product-service
-spec:
-  template:
-    spec:
-      containers:
-      - name: product-service
-        envFrom:
-        - configMapRef:
-            name: product-db-config-missing
-PATCH1
-
-# Patch 2: Break store-front with a bad liveness probe (JSON 6902 patch to replace the entire probe)
-cat > "$TEMP_DIR/patches/store-front-crash.yaml" <<'PATCH2'
-- op: replace
-  path: /spec/template/spec/containers/0/livenessProbe
-  value:
-    tcpSocket:
-      port: 9999
-    initialDelaySeconds: 5
-    periodSeconds: 10
-PATCH2
-
-# Apply the kustomization for existing service patches
-kubectl apply -k "$TEMP_DIR" > /dev/null
-
-# Deploy ai-service as a standalone resource with broken workload identity
+# Issue 2: Deploy ai-service with broken workload identity
 # Uses an unquoted heredoc so AI_API_BASE is expanded at runtime
 kubectl apply -n pets -f - > /dev/null <<AIEOF
 apiVersion: v1
@@ -170,6 +76,43 @@ spec:
           limits:
             memory: "512Mi"
 AIEOF
+
+echo "✓ Issue 2 setup completed"
+
+# Issue 3: NSG rule blocking Azure DNS
+MANAGED_RG=$(az aks show \
+  --name "$AKS_NAME" \
+  --resource-group "$RG_NAME" \
+  --query nodeResourceGroup -o tsv 2> /dev/null)
+
+NODE_NSG=$(az network nsg list \
+  --resource-group "$MANAGED_RG" \
+  --query '[0].name' -o tsv 2> /dev/null)
+
+if [[ -z "$NODE_NSG" ]]; then
+  echo "❌ Error: Could not find NSG"
+  exit 1
+fi
+
+EXISTING_RULE=$(az network nsg rule list \
+  --resource-group "$MANAGED_RG" \
+  --nsg-name "$NODE_NSG" \
+  --query "[?name=='DenyAzureDNS'].name" -o tsv 2> /dev/null)
+
+if [[ -z "$EXISTING_RULE" ]]; then
+  az network nsg rule create \
+    --resource-group "$MANAGED_RG" \
+    --nsg-name "$NODE_NSG" \
+    --name DenyAzureDNS \
+    --direction Outbound \
+    --priority 100 \
+    --destination-address-prefixes "168.63.129.16" \
+    --access Deny \
+    --protocol '*' \
+    --destination-port-ranges '*' \
+    --source-address-prefixes '*' \
+    --source-port-ranges '*' > /dev/null
+fi
 
 echo "✓ Issue 3 setup completed"
 echo ""

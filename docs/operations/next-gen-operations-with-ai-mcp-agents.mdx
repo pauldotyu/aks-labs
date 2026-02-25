@@ -743,87 +743,70 @@ The script will use the `AI_API_BASE` environment variable if available to confi
 
 With the cluster broken, continue to the troubleshooting challenges.
 
-### Challenge 1: Pods are failing and the AI feature is missing
+### Challenge 1: Is store admin closed for business?
 
-**Scenario**: Users report that they can't access the store-front application in the pets namespace. Some pods aren't starting at all, and others are crashing or restarting. Additionally, the store-admin UI is missing its "AI-generated product descriptions" button -- the feature that uses the ai-service to generate marketing copy for products.
+**Scenario**: Users report that they can't access the store-admin application in the pets namespace. No services in the namespace are reachable, even though the pods appear to be running.
 
-**Your tasks**:
+Use an agent to figure out what's wrong and fix it. Try one of these prompts to get started:
 
-1. Using one of the agent tools, investigate why the store application isn't responding
-2. Identify the root causes across infrastructure and application layers
-3. Fix the issues so all pods are healthy
-4. Investigate the ai-service pod -- it's deployed with workload identity annotations, but the authentication to Azure AI Foundry is failing. Determine what's missing and fix it so the AI button appears in store-admin
-5. Verify the application is fully operational and the AI feature works
-
-**Where to start**:
-
-- Try asking the CLI Agent: _"Why are pods in the pets namespace not healthy? Show me all failing pods, their events, and logs."_
-- Or use kagent: _"Check pod status, events, and logs in the pets namespace. Look especially at the ai-service pod for authentication errors."_
-- Or ask GitHub Copilot with the AKS MCP server: _"Check for network policies, pod health, and workload identity configuration in the pets namespace"_
-
-<details>
-<summary>Hints (expand if you're stuck)</summary>
-
-- A **network policy** is blocking ingress traffic to the `pets` namespace (infrastructure level)
-- Multiple **application deployments** have configuration issues:
-  - One service references a **missing ConfigMap** and won't start
-  - One service has a **broken liveness probe** and crashes
-- The **ai-service** is deployed with workload identity but is missing two things:
-  - The **ServiceAccount** has a placeholder client ID annotation -- it needs to point to a real managed identity
-  - The **federated identity credential** for the ai-service ServiceAccount hasn't been created in Azure
-  - Pod logs will show authentication failures when trying to get a token for Azure AI Foundry
-- To fix the ai-service, you need to create a federated credential linking the managed identity to the `ai-service` ServiceAccount in the `pets` namespace, and update the ServiceAccount annotation with the correct client ID
-- If you're still stuck, skim the source code of [setup-cluster-issues.sh](./assets/ai-assisted-operations/setup-cluster-issues.sh) to see what was applied
-
-</details>
-
----
-
-### Challenge 2: The ai-service still can't reach Azure AI Foundry
-
-**Scenario**: You resolved the pod and authentication issues from Challenge 1. But when you restart the ai-service pod, it still can't connect to Azure AI Foundry. The logs show DNS resolution failures or connection timeouts when trying to reach the AI Foundry endpoint URL. Other pods seem to have similar issues resolving external hostnames.
-
-**Your tasks**:
-
-1. Using an agent, check the ai-service pod logs for connection or DNS errors
-2. Verify that DNS resolution is failing cluster-wide, not just for the ai-service
-3. Investigate what's blocking DNS lookups -- look beyond Kubernetes into Azure infrastructure
-4. Fix the issue
-5. Restart the ai-service pod and verify the AI button now appears in the store-admin UI
-
-**Where to start**:
-
-- Try the CLI Agent: _"The ai-service pod still can't reach its external endpoint after the Challenge 1 fixes. Check the pod logs and help me figure out why."_
-- Or use kagent with the AKS agent: _"Pods in the cluster are having trouble connecting to external services. Investigate what's going on."_
-- Or ask GitHub Copilot: _"The ai-service pod can't connect to Azure AI Foundry even though authentication is fixed. Help me investigate the connectivity issue."_
+- CLI Agent: _"Users can't access store-admin in the pets namespace. Help me figure out why."_
+- kagent: _"Investigate why no services are reachable in the pets namespace."_
+- GitHub Copilot with AKS MCP: _"Why can't I reach any services in the pets namespace?"_
 
 <details>
 <summary>Hint (expand if you're stuck)</summary>
 
-This issue is at the Azure infrastructure level, not Kubernetes. An NSG rule in the cluster's managed resource group is blocking outbound traffic to Azure DNS (168.63.129.16). CoreDNS relies on this address to resolve external hostnames like the Azure AI Foundry endpoint. Remove or update the NSG rule, then restart the ai-service pod to verify connectivity.
+A **NetworkPolicy** named `deny-all-ingress` is blocking all ingress traffic to every pod in the `pets` namespace. You can fix this by either removing the policy entirely or by adding a new ingress rule that allows traffic to the store-admin and store-front pods.
 
 </details>
 
 ---
 
-### Challenge 3: Harden the cluster with multi-agent best practices
+### Challenge 2: Hello, AI... or not?
 
-**Scenario**: Challenges 1 and 2 are resolved -- pods are healthy, DNS works, and the AI button appears in the store-admin UI. But the cluster was just "fixed," not hardened. The `pets` namespace may lack proper network segmentation, resource requests and limits could be missing or undersized, and security best practices like pod security standards haven't been reviewed.
+**Scenario**: With the store-admin site up and running again, users report that the AI-generated product descriptions feature isn't working. The feature relies on the ai-service pod making inference calls to Azure AI Foundry. Investigate the issue and get the AI-generated product descriptions working again.
+
+This challenge has multiple layers -- fixing one problem may reveal another underneath. The challenge is complete when the ai-service pod logs show successful authentication and inference calls to Azure AI Foundry.
+
+Use an agent to diagnose why the AI feature isn't working and fix it. Try one of these prompts to get started:
+
+- CLI Agent: _"The AI-generated product descriptions feature in store-admin isn't working. Help me investigate the ai-service pod in the pets namespace."_
+- kagent: _"The ai-service pod in the pets namespace isn't working correctly. Investigate why."_
+- GitHub Copilot with AKS MCP: _"Why isn't the ai-service working in the pets namespace? Check its logs and configuration."_
+
+<details>
+<summary>Hints (expand if you're stuck)</summary>
+
+There are two issues blocking the ai-service. You need to fix both before it works.
+
+**Issue A -- Workload identity misconfiguration:**
+
+- The **ai-service** is deployed with workload identity but is missing two things:
+  - The **ServiceAccount** has a placeholder client ID annotation (`00000000-0000-0000-0000-000000000000`) -- it needs to point to a real managed identity
+  - The **federated identity credential** for the ai-service ServiceAccount hasn't been created in Azure
+- To fix this, create a federated credential linking the managed identity to the `ai-service` ServiceAccount in the `pets` namespace, and update the ServiceAccount annotation with the correct client ID
+
+**Issue B -- DNS is broken at the infrastructure level:**
+
+- Even after fixing workload identity, the pod still can't reach Azure AI Foundry because DNS resolution is broken
+- An NSG rule named `DenyAzureDNS` in the cluster's managed resource group is blocking outbound traffic to Azure DNS (168.63.129.16) -- CoreDNS relies on this address to resolve external hostnames
+- Remove the NSG rule, then restart the ai-service pod to verify connectivity
+
+If you're still stuck, skim the source code of [setup-cluster-issues.sh](./assets/ai-assisted-operations/setup-cluster-issues.sh) to see what was applied.
+
+</details>
+
+---
+
+### Challenge 3: Beyond fixing -- hardening the cluster
+
+**Scenario**: The earlier issues are resolved and the application is working again. But the cluster was just "fixed," not hardened. Use the multi-agent system to audit the `pets` namespace and see what improvements are recommended.
 
 Use the multi-agent system to audit the cluster across networking, security, and resiliency -- then implement the recommendations.
 
-**Your tasks**:
+Use the multi-agent system to audit the `pets` namespace and implement the top recommendations. Try this prompt to get started:
 
-1. Ask the aks-agent to perform a comprehensive best practices review of the `pets` namespace covering:
-   - **Networking** -- Are there network policies in place? Is traffic restricted to only what's needed?
-   - **Security** -- Are workload identity configurations correct? Are there any Azure Advisor security recommendations? Are pod security standards enforced?
-   - **Resiliency** -- Do all Deployments have appropriate resource requests and limits? Are replicas configured for availability? Are liveness and readiness probes defined?
-2. Review the agent's findings and have it implement the highest-priority recommendations
-3. Verify the application still works after applying the changes
-
-**Where to start**:
-
-- In kagent, ask the aks-agent: _"Review the pets namespace for best practices across networking, security, and resiliency. Check for missing network policies, resource limits, pod disruption budgets, and security recommendations from Azure Advisor. Then implement the top recommendations."_
+- In kagent, ask the aks-agent: _"Review the pets namespace for best practices across networking, security, and resiliency. Then implement the top recommendations."_
 
 <details>
 <summary>Hint (expand if you're stuck)</summary>
@@ -834,7 +817,7 @@ The aks-agent should delegate to multiple specialized agents:
 - **k8s-agent** -- Check resource requests/limits, replica counts, and probe configurations across Deployments
 - **aks-agent** (via AKS MCP tools) -- Pull Azure Advisor recommendations for security and operational excellence
 
-After implementing changes, port-forward the store-front and verify the application loads and the AI button in store-admin still generates product descriptions.
+After implementing changes, port-forward the store-front and verify the application loads and the AI-generated product descriptions feature in store-admin still works.
 
 </details>
 
@@ -848,7 +831,7 @@ In this lab, you explored three complementary approaches to AI-powered AKS opera
 - **Agentic CLI for AKS** -- You configured and launched a terminal-based AI agent that analyzes telemetry signals and provides actionable insights through natural language queries.
 - **kagent** -- You deployed in-cluster AI agents, connected them to the AKS MCP Server, and built a multi-agent system where specialized agents collaborate on complex tasks.
 
-Along the way, you practiced troubleshooting real cluster issues -- from network policies blocking traffic to misconfigured workload identity credentials -- using AI agents to diagnose root causes and guide remediation.
+Along the way, you practiced troubleshooting real cluster issues -- from network policies blocking traffic, to misconfigured workload identity credentials and NSG rules breaking DNS -- using AI agents to diagnose root causes and guide remediation.
 
 ## Learn more
 
@@ -875,9 +858,8 @@ curl -fsSL https://raw.githubusercontent.com/pauldotyu/aks-labs/refs/heads/ai_as
 This removes:
 
 - The NetworkPolicy blocking ingress in the `pets` namespace
+- The custom `ai-service` Deployment and ServiceAccount with workload identity annotations
 - The NSG rule blocking Azure DNS (168.63.129.16)
-- The broken application patches (restores original aks-store-demo deployments)
-- The custom `ai-service` ServiceAccount with workload identity annotations
 
 <Cleanup />
 

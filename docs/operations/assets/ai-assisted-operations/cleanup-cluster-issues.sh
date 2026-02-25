@@ -27,6 +27,25 @@ fi
 echo ""
 
 # ============================================================================
+# Remove custom ai-service resources
+# ============================================================================
+echo "🗑️  Removing custom ai-service resources..."
+
+if kubectl delete deployment ai-service -n pets 2>/dev/null; then
+  echo "✓ Custom ai-service Deployment removed"
+else
+  echo "⚠️  Custom ai-service Deployment not found (already removed?)"
+fi
+
+if kubectl delete serviceaccount ai-service -n pets 2>/dev/null; then
+  echo "✓ Custom ai-service ServiceAccount removed"
+else
+  echo "⚠️  Custom ai-service ServiceAccount not found (already removed?)"
+fi
+
+echo ""
+
+# ============================================================================
 # Remove NSG rule blocking Azure DNS
 # ============================================================================
 echo "🗑️  Removing DenyAzureDNS rule from NSG..."
@@ -51,34 +70,6 @@ else
   else
     echo "⚠️  NSG rule 'DenyAzureDNS' not found (already removed?)"
   fi
-fi
-
-echo ""
-
-# ============================================================================
-# Restore original aks-store-demo deployments (remove patches)
-# ============================================================================
-echo "🗑️  Restoring original store application deployments..."
-
-if kubectl apply -n pets -k "https://github.com/Azure-Samples/aks-store-demo//kustomize/overlays/dev?ref=main" 2>/dev/null; then
-  echo "✓ Original deployments restored"
-else
-  echo "⚠️  Could not restore deployments (namespace may not exist)"
-fi
-
-# Remove the custom ai-service Deployment and ServiceAccount with workload identity annotation
-echo "🗑️  Removing custom ai-service resources..."
-
-if kubectl delete deployment ai-service -n pets 2>/dev/null; then
-  echo "✓ Custom ai-service Deployment removed"
-else
-  echo "⚠️  Custom ai-service Deployment not found (already removed?)"
-fi
-
-if kubectl delete serviceaccount ai-service -n pets 2>/dev/null; then
-  echo "✓ Custom ai-service ServiceAccount removed"
-else
-  echo "⚠️  Custom ai-service ServiceAccount not found (already removed?)"
 fi
 
 echo ""
