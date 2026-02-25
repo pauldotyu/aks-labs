@@ -36,6 +36,8 @@ By the end of this lab, you will be able to:
     {
       name: "Docker",
       url: "https://www.docker.com/",
+      description:
+        "(required for running the Agentic CLI for AKS locally in a Docker container)",
     },
     {
       name: "Helm",
@@ -105,7 +107,7 @@ Once the initial resources are deployed, you can proceed with the workshop.
 
 :::danger
 
-Keep your terminal open as you will need it to run commands using the environment variables you exported throughout the workshop. If you accidentally close it, you'll need to re-export `RG_NAME`, `LOCATION`, `AKS_NAME`, and `AI_NAME` before continuing.
+Keep your terminal open as you will need it to run commands using the environment variables you exported throughout the workshop. If you accidentally close it, you'll need to re-export `RG_NAME`, `LOCATION`, `AKS_NAME`, `AI_NAME`, `MI_NAME`, and `AKS_OIDC_ISSUER_URL` before continuing.
 
 :::
 
@@ -281,7 +283,7 @@ Fill in the details as follows:
 | Prompt                                      | Value                                                                     |
 | ------------------------------------------- | ------------------------------------------------------------------------- |
 | **Please select the mode you want to use:** | Enter `2` for **Client mode - Runs agent locally using Docker**           |
-| \*\*Please choose the LLM provider (1-5).   | Enter `1` for **Azure OpenAI**                                            |
+| **Please choose the LLM provider (1-5):**   | Enter `1` for **Azure OpenAI**                                            |
 | **Enter value for deployment_name**         | Enter `gpt-5-mini` (the name of the model deployment you created earlier) |
 | **Enter value for api_key**                 | Enter the value of `AI_API_KEY` from the previous step                    |
 | **Enter value for api_base**                | Enter the value of `AI_API_BASE` from the previous step                   |
@@ -745,7 +747,6 @@ The script will use the `AI_API_BASE` environment variable if available to confi
 
 ✓ Issue 1 setup completed
 ✓ Issue 2 setup completed
-✓ Issue 3 setup completed
 
 ✅ Cluster is now broken. Use agents to figure out what's wrong!
    (Hint: Check the source of this script if you get stuck)
@@ -824,7 +825,7 @@ You should see a "thinking..." message, but then nothing happens and no product 
 
 The feature relies on the ai-service pod making inference calls to Azure AI Foundry. Investigate the issue and get the AI-generated product descriptions working again.
 
-This challenge has multiple layers - fixing one problem may reveal another underneath. The challenge is complete when the AI-generated product description feature is working again in the store-admin application.
+The challenge is complete when the AI-generated product description feature is working again in the store-admin application.
 
 Use an agent to diagnose why the AI feature isn't working and fix it. Try one of these prompts to get started:
 
@@ -835,19 +836,10 @@ Use an agent to diagnose why the AI feature isn't working and fix it. Try one of
 <details>
 <summary>Hints (expand if you're stuck)</summary>
 
-There are two issues blocking the ai-service. You need to fix both before it works.
+**Workload identity misconfiguration:**
 
-**Issue A - Workload identity misconfiguration:**
-
-- The **ai-service** is deployed with workload identity using the same managed identity used for the aks-mcp server, but is missing one thing:
-  - The ai-service's ServiceAccount is not linked to the managed identity via a federated credential, so it can't authenticate to Azure AI Foundry and make inference calls
+- The **ai-service** is deployed with workload identity using the same managed identity used for the aks-mcp server, but the ServiceAccount annotation has an incorrect client ID (`00000000-0000-0000-0000-000000000000`), so the workload identity token exchange fails and the pod can't authenticate to Azure AI Foundry
 - To fix this, update the ServiceAccount annotation with the correct client ID of the managed identity, then restart the ai-service pod to pick up the changes
-
-**Issue B - DNS is broken at the infrastructure level:**
-
-- Even after fixing workload identity, the pod still can't reach Azure AI Foundry because DNS resolution is broken
-- An NSG rule named `DenyAzureDNS` in the cluster's managed resource group is blocking outbound traffic to Azure DNS (168.63.129.16) - CoreDNS relies on this address to resolve external hostnames
-- Remove the NSG rule, then restart the ai-service pod to verify connectivity
 
 If you're still stuck, skim the source code of [setup-cluster-issues.sh](./assets/ai-assisted-operations/setup-cluster-issues.sh) to see what was applied.
 
@@ -874,9 +866,21 @@ The aks-agent should delegate to multiple specialized agents:
 - **k8s-agent** - Check resource requests/limits, replica counts, and probe configurations across Deployments
 - **aks-agent** (via AKS MCP tools) - Pull Azure Advisor recommendations for security and operational excellence
 
-After implementing changes, port-forward the store-front and verify the application loads and the AI-generated product descriptions feature in store-admin still works.
+After implementing changes, verify the store-admin application loads and the AI-generated product descriptions feature still works.
 
 </details>
+
+To verify your improvements, check that the agent's recommendations were applied:
+
+```bash
+# Verify network policies exist in the pets namespace
+kubectl get networkpolicy -n pets
+
+# Verify resource requests and limits are set on all containers
+kubectl get pods -n pets -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{range .spec.containers[*]}{.name}: requests={.resources.requests}, limits={.resources.limits}{"\n"}{end}{end}'
+```
+
+Confirm that the store-admin application still works end-to-end, including the AI-generated product descriptions feature.
 
 ---
 
@@ -888,7 +892,7 @@ In this lab, you explored three complementary approaches to AI-powered AKS opera
 - **Agentic CLI for AKS** - You configured and launched a terminal-based AI agent that analyzes telemetry signals and provides actionable insights through natural language queries.
 - **kagent** - You deployed in-cluster AI agents, connected them to the AKS MCP Server, and built a multi-agent system where specialized agents collaborate on complex tasks.
 
-Along the way, you practiced troubleshooting real cluster issues - from network policies blocking traffic, to misconfigured workload identity credentials and NSG rules breaking DNS - using AI agents to diagnose root causes and guide remediation.
+Along the way, you practiced troubleshooting real cluster issues - from network policies blocking traffic to misconfigured workload identity credentials - using AI agents to diagnose root causes and guide remediation.
 
 ## Learn more
 
@@ -920,7 +924,6 @@ This removes:
 
 - The NetworkPolicy blocking ingress in the `pets` namespace
 - The custom `ai-service` Deployment and ServiceAccount with workload identity annotations
-- The NSG rule blocking Azure DNS (168.63.129.16)
 
 <Cleanup />
 
