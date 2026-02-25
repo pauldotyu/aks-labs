@@ -37,6 +37,12 @@ else
   echo "⚠️  Custom ai-service Deployment not found (already removed?)"
 fi
 
+if kubectl delete service ai-service -n pets 2>/dev/null; then
+  echo "✓ Custom ai-service Service removed"
+else
+  echo "⚠️  Custom ai-service Service not found (already removed?)"
+fi
+
 if kubectl delete serviceaccount ai-service -n pets 2>/dev/null; then
   echo "✓ Custom ai-service ServiceAccount removed"
 else
@@ -45,32 +51,32 @@ fi
 
 echo ""
 
-# ============================================================================
-# Remove NSG rule blocking Azure DNS
-# ============================================================================
-echo "🗑️  Removing DenyAzureDNS rule from NSG..."
+# # ============================================================================
+# # Remove NSG rule blocking Azure DNS
+# # ============================================================================
+# echo "🗑️  Removing DenyAzureDNS rule from NSG..."
 
-MANAGED_RG=$(az aks show \
-  --name "$AKS_NAME" \
-  --resource-group "$RG_NAME" \
-  --query nodeResourceGroup -o tsv)
+# MANAGED_RG=$(az aks show \
+#   --name "$AKS_NAME" \
+#   --resource-group "$RG_NAME" \
+#   --query nodeResourceGroup -o tsv)
 
-NODE_NSG=$(az network nsg list \
-  --resource-group "$MANAGED_RG" \
-  --query '[0].name' -o tsv)
+# NODE_NSG=$(az network nsg list \
+#   --resource-group "$MANAGED_RG" \
+#   --query '[0].name' -o tsv)
 
-if [[ -z "$NODE_NSG" ]]; then
-  echo "⚠️  Could not find NSG in managed resource group $MANAGED_RG"
-else
-  if az network nsg rule delete \
-    --resource-group "$MANAGED_RG" \
-    --nsg-name "$NODE_NSG" \
-    --name DenyAzureDNS 2>/dev/null; then
-    echo "✓ NSG rule 'DenyAzureDNS' removed from $NODE_NSG"
-  else
-    echo "⚠️  NSG rule 'DenyAzureDNS' not found (already removed?)"
-  fi
-fi
+# if [[ -z "$NODE_NSG" ]]; then
+#   echo "⚠️  Could not find NSG in managed resource group $MANAGED_RG"
+# else
+#   if az network nsg rule delete \
+#     --resource-group "$MANAGED_RG" \
+#     --nsg-name "$NODE_NSG" \
+#     --name DenyAzureDNS 2>/dev/null; then
+#     echo "✓ NSG rule 'DenyAzureDNS' removed from $NODE_NSG"
+#   else
+#     echo "⚠️  NSG rule 'DenyAzureDNS' not found (already removed?)"
+#   fi
+# fi
 
 echo ""
 echo "✅ Cleanup complete!"
