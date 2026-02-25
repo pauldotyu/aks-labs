@@ -70,7 +70,7 @@ kubectl get pods -n pets
 kubectl get svc -n pets
 ```
 
-You should see multiple pods in the `Running` state and services for `store-admin`, `store-front`, and `ai-service`, among others. Wait a moment if pods are still in `ContainerCreating` or `ImagePullBackOff` state and retry.
+You should see multiple pods in the `Running` state and services for `store-admin`, `store-front`, and `product-service`, among others. You don't need to wait for all pods to be ready, just ensure the deployment was successful and there are some workloads running for the agents to interact with.
 
 ---
 
