@@ -63,6 +63,15 @@ kubectl create namespace pets
 kubectl apply -n pets -k "https://github.com/Azure-Samples/aks-store-demo/kustomize/overlays/dev?ref=main"
 ```
 
+Verify the sample application deployed successfully by checking the pods and services in the `pets` namespace.
+
+```bash
+kubectl get pods -n pets
+kubectl get svc -n pets
+```
+
+You should see multiple pods in the `Running` state and services for `store-admin`, `store-front`, and `ai-service`, among others. Wait a moment if pods are still in `ContainerCreating` or `ImagePullBackOff` state and retry.
+
 ---
 
 ### Set up Azure OpenAI
@@ -109,6 +118,19 @@ Once the initial resources are deployed, you can proceed with the workshop.
 
 Keep your terminal open as you will need it to run commands using the environment variables you exported throughout the workshop. If you accidentally close it, you'll need to re-export `RG_NAME`, `LOCATION`, `AKS_NAME`, `AI_NAME`, `MI_NAME`, and `AKS_OIDC_ISSUER_URL` before continuing.
 
+To verify your environment variables are still exported, run:
+
+```bash
+echo "RG_NAME=$RG_NAME"
+echo "AKS_NAME=$AKS_NAME"
+echo "LOCATION=$LOCATION"
+echo "AI_NAME=$AI_NAME"
+echo "AI_API_KEY=$AI_API_KEY"
+echo "AI_API_BASE=$AI_API_BASE"
+```
+
+If any variable is empty, re-export it before proceeding. For the API endpoint and key, refer back to the [Set up Azure OpenAI](#set-up-azure-openai) section to retrieve them.
+
 :::
 
 ---
@@ -141,6 +163,12 @@ You will use the AKS MCP Server three ways:
 3. **In-cluster with kagent** - Multi-agent collaboration
 
 Before diving into specialized agents, let's explore the AKS MCP server's capabilities using GitHub Copilot in VS Code. This will give you hands-on experience with the MCP tools and help you understand what operations are available.
+
+:::info[VS Code Required]
+
+The AKS MCP server is installed and managed via the AKS extension for VS Code. **This section requires VS Code to be installed on your machine.** If you do not have VS Code, you can skip directly to the [Agentic CLI for AKS](#agentic-cli-for-aks) section, which provides terminal-based AI agent access to the same MCP tools.
+
+:::
 
 ### Install the MCP server
 
@@ -296,6 +324,22 @@ Run the following command to start the Agentic CLI for AKS terminal user interfa
 ```bash
 az aks agent --resource-group $RG_NAME --name $AKS_NAME --mode client
 ```
+
+:::info[Navigating the Agentic CLI TUI]
+
+The Agentic CLI opens an interactive terminal interface where you type natural language prompts. Here's how to navigate:
+
+- **Type a prompt** - Enter your diagnostic question or request in plain English
+- **Submit** - Press **Enter** to send your prompt to the agent
+- **View results** - The agent analyzes telemetry and returns insights in natural language
+- **Multi-line input** - If your prompt is long, you can paste it directly; the TUI will handle it
+- **Scroll output** - Use **arrow keys** or **Page Up/Page Down** to scroll through long responses
+- **Clear screen** - Type `/clear` to clear the context and start fresh
+- **Exit** - Type `/exit` and press **Enter**, or press **Ctrl+C** to quit the TUI
+
+The agent maintains context across multiple prompts within a single session, so you can ask follow-up questions naturally.
+
+:::
 
 ### Try the Agentic CLI
 
@@ -838,8 +882,43 @@ Use an agent to diagnose why the AI feature isn't working and fix it. Try one of
 
 **Workload identity misconfiguration:**
 
-- The **ai-service** is deployed with workload identity using the same managed identity used for the aks-mcp server, but the ServiceAccount annotation has an incorrect client ID (`00000000-0000-0000-0000-000000000000`), so the workload identity token exchange fails and the pod can't authenticate to Azure AI Foundry
-- To fix this, update the ServiceAccount annotation with the correct client ID of the managed identity, then restart the ai-service pod to pick up the changes
+The **ai-service** is deployed with workload identity using the same managed identity used for the aks-mcp server, but the ServiceAccount annotation has an incorrect client ID (`00000000-0000-0000-0000-000000000000`), so the workload identity token exchange fails and the pod can't authenticate to Azure AI Foundry.
+
+**To fix this:**
+
+1. First, confirm the issue by checking the ai-service ServiceAccount:
+
+```bash
+kubectl get sa ai-service -n pets -oyaml
+```
+
+You should see an annotation like `azure.workload.identity/client-id: 00000000-0000-0000-0000-000000000000`.
+
+2. Get the correct client ID of the managed identity you created earlier:
+
+```bash
+echo $CLIENT_ID
+```
+
+3. Update the ServiceAccount annotation with the correct client ID:
+
+```bash
+kubectl patch serviceaccount ai-service -n pets --type='json' -p='[{"op": "replace", "path": "/metadata/annotations/azure.workload.identity~1client-id", "value":"'$CLIENT_ID'"}]'
+```
+
+4. Restart the ai-service pod to pick up the updated credential:
+
+```bash
+kubectl rollout restart deployment ai-service -n pets
+```
+
+5. Verify the pod is running:
+
+```bash
+kubectl get pods -n pets -l app=ai-service
+```
+
+Once the pod is in `Running` state, try the AI-generated product description feature again.
 
 If you're still stuck, skim the source code of [setup-cluster-issues.sh](./assets/ai-assisted-operations/setup-cluster-issues.sh) to see what was applied.
 
