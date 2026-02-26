@@ -675,11 +675,11 @@ In the kagent dashboard, select **+ Create** > **New Agent**.
 
 Fill in the following details for the new agent:
 
-1. **Agent Name** - Enter `aks-agent`.
-2. **Agent Namespace** - Select `kagent`.
-3. **Agent Type** - Select `Declarative`.
-4. **Description** - Enter `An AI agent specialized in Azure Kubernetes Service (AKS) operations and troubleshooting. Equipped with tools from the AKS MCP server for diagnostics, monitoring, and management.`
-5. **Agent Instructions** - Replace the existing content with the following system prompt:
+1. **Agent Name:** Enter `aks-agent`.
+2. **Agent Namespace:** Select `kagent`.
+3. **Agent Type:** Select `Declarative`.
+4. **Description:** Enter `An AI agent specialized in Azure Kubernetes Service (AKS) operations and troubleshooting. Equipped with tools from the AKS MCP server for diagnostics, monitoring, and management.`
+5. **Agent Instructions:** Replace the existing content with the following system prompt:
 
    :::tip
 
@@ -760,10 +760,10 @@ Fill in the following details for the new agent:
    4. **Artifacts** - Any generated manifests, files, or outputs in code blocks.
    ```
 
-6. **Model** - Select **gpt-5-mini (kagent/default-model-config)**.
-7. **Enable LLM response streaming** - Check this box to allow the agent to stream responses for better user experience.
-8. **Tools & Agents** - Select **+ Add Tools & Agents**, then in the dialog, filter for `aks` and select all tools under **Kagent/Aks-Mcp**. Select the **Save Selection** button to confirm the tools.
-9. **Skills** - Add `ghcr.io/pauldotyu/aks-skills:0.4.0` for the model to leverage pre-built skills for AKS operations.
+6. **Model:** Select **gpt-5-mini (kagent/default-model-config)**.
+7. **Enable LLM response streaming:** Check this box to allow the agent to stream responses for better user experience.
+8. **Tools & Agents:** Select **+ Add Tools & Agents**, then in the dialog, filter for `aks` and select all tools under **Kagent/Aks-Mcp**. Select the **Save Selection** button to confirm the tools.
+9. **Skills:** Add `ghcr.io/pauldotyu/aks-skills:0.4.0` for the model to leverage pre-built skills for AKS operations.
 
 Confirm all the details are correct, then scroll to the bottom of the page and select **Create Agent** to deploy the agent.
 
