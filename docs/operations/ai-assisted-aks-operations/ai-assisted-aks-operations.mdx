@@ -675,21 +675,97 @@ In the kagent dashboard, select **+ Create** > **New Agent**.
 
 Fill in the following details for the new agent:
 
-| Field                             | Value                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Agent Name**                    | `aks-agent`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| **Agent Namespace**               | Select `kagent`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| **Agent Type**                    | Select `Declarative`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| **Description**                   | `An AI agent specialized in Azure Kubernetes Service (AKS) operations and troubleshooting. Equipped with tools from the AKS MCP server for diagnostics, monitoring, and management.`                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| **Agent Instructions**            | Accept the default instructions provided, but insert the following additional bullet points at the top of the instruction section:<br/><br/><ul><li>When troubleshooting, start troubleshooting from within the cluster using AKS MCP or kubernetes tooling you have access to.</li><li>Use AKS MCP tools wherever possible and delegate tasks to appropriate agents when necessary.</li><li>You have full permission to the Azure resource group &lt;INSERT_YOUR_RESOURCE_GROUP_NAME&gt; and all the resources within it.</li></ul><br/>NOTE: If your agent isn't behaving the way you expect it to, you can adjust the instructions or settings as needed. |
-| **Model**                         | Select **gpt-5-mini (kagent/default-model-config)**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| **Enable LLM response streaming** | Check this box to allow the agent to stream responses for better user experience.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| **Tools & Agents**                | Select **+ Add Tools & Agents**, then in the dialog, filter for `aks` and select all tools under **Kagent/Aks-Mcp**. Select the **Save Selection** button to confirm the tools.                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| **Skills**                        | Add `ghcr.io/pauldotyu/aks-skills:latest` for the model to leverage pre-built skills for AKS operations.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+1. **Agent Name** - Enter `aks-agent`.
+2. **Agent Namespace** - Select `kagent`.
+3. **Agent Type** - Select `Declarative`.
+4. **Description** - Enter `An AI agent specialized in Azure Kubernetes Service (AKS) operations and troubleshooting. Equipped with tools from the AKS MCP server for diagnostics, monitoring, and management.`
+5. **Agent Instructions** - Replace the existing content with the following system prompt:
+
+   :::tip
+
+   If your agent isn't behaving the way you expect it to, you can adjust the instructions or settings as needed.
+
+   :::
+
+   ```text
+   # AKS AI Agent System Prompt
+
+   You are the AKS Abbot, an expert in Azure Kubernetes Service and Kubernetes operations. You orchestrate diagnostics, troubleshooting, and cluster management using AKS MCP tools, sub-agents, and skills. Operate only within your current cluster unless the user explicitly requests otherwise.
+
+   ## Tools & Delegation
+
+   **Direct tools** - use for quick, targeted commands when you know what to run:
+   - AKS diagnostics, health, and infrastructure issues - aks_detector, aks_advisor_recommendation, aks_monitoring
+   - Node failures, VMSS, and node-level investigation - collect_aks_node_logs, get_aks_vmss_info
+   - Network connectivity, DNS, and policy visibility - aks_network_resources, call_cilium, call_hubble
+   - Application debugging, configuration, RBAC, and general CLI access - call_kubectl, call_helm, call_az
+   - Multi-cluster fleet operations (only when user requests cross-cluster work) - az_fleet
+   - Low-level pod and node observability - inspektor_gadget_observability
+
+   **Sub-agents** - you may have specialized agents available in your tool list. If present, delegate complex multi-step tasks to them based on their described capabilities. If no sub-agents are available, handle everything directly with your own tools.
+
+   **Skills** - pre-built procedures and reference material mounted at `/skills/`. Before building a solution from scratch, check if a relevant skill exists:
+   1. Read `/skills/aks-skills/SKILL.md` for a summary of available skills.
+   2. Each skill directory contains a `SKILL.md` with instructions and a `references/` folder with supporting docs. Some include `scripts/` with ready-to-run scripts.
+   3. Follow the skill's SKILL.md as your primary guide for that topic. Use reference docs for deeper context and scripts for automation.
+
+   Use direct tools when you already know the exact command. Prefer sub-agents for multi-step reasoning or broad investigation. When a problem spans Kubernetes and Azure layers, start in-cluster then escalate to Azure tools.
+
+   ## Troubleshooting Methodology
+
+   **Initial assessment** - before diving in, gather baseline context:
+   - Cluster version and configuration
+   - Node status and resource capacity
+   - Recent changes or deployments (events)
+
+   **Then follow these fundamentals:**
+   1. **Characterize.** Clarify symptoms, scope (pod, node, or cluster-wide), and timeline. Ask if ambiguous.
+   2. **Reproduce.** Verify the issue is current via pod logs, resource events, and cluster-wide events.
+   3. **Start easy, work outward.** Troubleshoot Kubernetes resources first then Azure. Pod logs → resource events → node status → AKS diagnostics → Azure advisor/monitoring.
+   4. **Eliminate one cause at a time.** Hypothesize, test with the least invasive tool, rule in or out.
+   5. **Change one thing at a time.** Revert if it does not help before trying the next.
+   6. **Verify.** Confirm resolution using the same signals that revealed the issue.
+
+   ## Identity & Permissions
+
+   On first interaction, establish context:
+   1. `kubectl cluster-info` - get API server FQDN.
+   2. `az aks list -o table` - match FQDN to identify cluster name, resource group, and subscription.
+   3. `kubectl auth can-i --list` - confirm in-cluster RBAC scope (look for ClusterRole/ClusterRoleBinding).
+   4. `az account show` and `az role assignment list` - confirm Azure RBAC role assignments on the service account identity.
+
+   **Autonomy rule:** If the service account has broad in-cluster permissions (e.g., cluster-admin ClusterRoleBinding) and a sufficient Azure role assignment (e.g., Contributor on the resource group), you have full autonomy to act. Proceed with read and write operations without asking for permission - but still follow Safety protocols. If permissions are insufficient, report what is missing and suggest the minimum binding needed. Do not attempt the action.
+
+   ## Safety
+
+   - Read before write. Always use informational tools before modifications.
+   - Explain planned changes and rationale before executing.
+   - Use `--dry-run` flags when available to preview changes.
+   - Capture current state (YAML export) before modifications; limit scope to the minimum necessary.
+   - Verify after every change. Revert if it does not help.
+   - Never fabricate information. If unsure, say so and refer the user to https://learn.microsoft.com/azure/aks.
+
+   ## Limitations
+
+   - You can only operate within the Kubernetes cluster and Azure subscription you are running in.
+   - You cannot access host filesystems or external systems outside the cluster and Azure.
+   - Your actions impact live environments - prioritize stability even when you have full autonomy.
+
+   ## Response Format
+
+   Respond in Markdown:
+   1. **Assessment** - Problem understanding.
+   2. **Investigation** - Tools used, findings, reasoning.
+   3. **Resolution** - Actions taken or recommended, with verification.
+   4. **Artifacts** - Any generated manifests, files, or outputs in code blocks.
+   ```
+
+6. **Model** - Select **gpt-5-mini (kagent/default-model-config)**.
+7. **Enable LLM response streaming** - Check this box to allow the agent to stream responses for better user experience.
+8. **Tools & Agents** - Select **+ Add Tools & Agents**, then in the dialog, filter for `aks` and select all tools under **Kagent/Aks-Mcp**. Select the **Save Selection** button to confirm the tools.
+9. **Skills** - Add `ghcr.io/pauldotyu/aks-skills:0.4.0` for the model to leverage pre-built skills for AKS operations.
 
 Confirm all the details are correct, then scroll to the bottom of the page and select **Create Agent** to deploy the agent.
-
-![Create the aks-agent in kagent](./kagent-add-aks-agent.png)
 
 You may notice the agent status is "Agent not Ready". Wait a few minutes for the agent to be created, then refresh the page.
 
@@ -830,9 +906,16 @@ Remember when using Agentic CLI for AKS or kagent, the quality of the insights a
 
 **Scenario**: Users report that they can't access the store-admin application in the pets namespace. No services in the namespace are reachable, even though the pods appear to be running.
 
+To reproduce the issue, try to access the store-admin service:
+
+```bash
+IP_ADDRESS=$(kubectl get svc store-admin -n pets -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+curl --connect-timeout 5 http://$IP_ADDRESS
+```
+
 Use an agent to figure out what's wrong and fix it. Try one of these prompts to get started:
 
-- **kagent:** _"Why can't users reach the store-admin service over http? The store-admin service is the pets namespace in the cluster named myakscluster\*"_
+- **kagent:** _"Why can't users reach the store-admin service over http? The store-admin service is the pets namespace"_
 - **Agentic CLI for AKS:** _"Users can't access the store-admin service running in the pets namespace. Help me figure out why."_
 - GitHub Copilot Agent in VS Code: _"@aks-mcp Help me investigate why no services are reachable in the pets namespace."_
 
@@ -860,11 +943,12 @@ You should see a successful response with HTTP status code **200**.
 
 To reproduce the issue:
 
-1. Navigate to the store-admin site
-2. Click on the **Products** tab in the navigation bar
-3. Click the **Add Product** button
-4. Enter a product name and related keywords (comma-separated)
-5. Click the **Ask AI Assistant** button
+1. Run `echo http://$IP_ADDRESS` to print the URL of the store-admin service in the terminal
+1. Navigate to the store-admin site using the URL you just printed in your web browser
+1. Click on the **Products** tab in the navigation bar
+1. Click the **Add Product** button
+1. Enter a product name and related keywords (comma-separated)
+1. Click the **Ask AI Assistant** button
 
 You should see a "thinking..." message, but then nothing happens and no product description is generated.
 
