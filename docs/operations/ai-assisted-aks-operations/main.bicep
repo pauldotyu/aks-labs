@@ -49,6 +49,7 @@ resource aiServices 'Microsoft.CognitiveServices/accounts@2025-12-01' = {
   }
   properties: {
     customSubDomainName: aiServicesName
+    publicNetworkAccess: 'Enabled'
   }
   sku: {
     name: 'S0'
