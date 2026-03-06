@@ -9,8 +9,8 @@ echo "🔧 Breaking cluster..."
 echo ""
 
 # Validate environment variables
-if [[ -z "${AKS_NAME:-}" ]] || [[ -z "${RG_NAME:-}" ]]; then
-  echo "❌ Error: AKS_NAME and RG_NAME environment variables must be set"
+if [[ -z "${AKS_NAME:-}" ]] || [[ -z "${RG_NAME:-}" ]] || [[ -z "${MI_NAME:-}" ]] || [[ -z "${AKS_OIDC_ISSUER_URL:-}" ]] || [[ -z "${AI_NAME:-}" ]]; then
+  echo "❌ Error: AKS_NAME, RG_NAME, MI_NAME, AKS_OIDC_ISSUER_URL, and AI_NAME environment variables must be set"
   exit 1
 fi
 
