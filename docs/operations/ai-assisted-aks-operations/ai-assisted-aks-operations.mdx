@@ -9,8 +9,6 @@ import ProvisionResourceGroup from "../../../src/components/SharedMarkdown/_prov
 import ProvisionAKSCluster from "../../../src/components/SharedMarkdown/_provision_aks_cluster.mdx";
 import Cleanup from "../../../src/components/SharedMarkdown/_cleanup.mdx";
 
-## Overview
-
 In this lab, you'll manage Azure Kubernetes Service (AKS) clusters using natural language through AI agents - diagnosing issues, optimizing configurations, and executing operations without memorizing complex CLI syntax.
 
 You'll explore various approaches to AI-assisted cluster management, including:
@@ -105,6 +103,10 @@ az cognitiveservices account deployment create \
 --model-format OpenAI \
 --sku-capacity 500 \
 --sku-name GlobalStandard
+
+# Export the API key and endpoint as environment variables for later use
+export AI_API_KEY=$(az cognitiveservices account keys list --name $AI_NAME --resource-group $RG_NAME --query key1 -o tsv)
+export AI_API_BASE=$(az cognitiveservices account show --name $AI_NAME --resource-group $RG_NAME --query 'properties.endpoints."OpenAI Language Model Instance API"' -o tsv)
 ```
 
 :::tip
@@ -126,8 +128,6 @@ echo "RG_NAME=$RG_NAME"
 echo "AKS_NAME=$AKS_NAME"
 echo "LOCATION=$LOCATION"
 echo "AI_NAME=$AI_NAME"
-echo "AI_API_KEY=$AI_API_KEY"
-echo "AI_API_BASE=$AI_API_BASE"
 ```
 
 If any variable is empty, re-export it before proceeding. For the API endpoint and key, refer back to the [Set up Azure OpenAI](#set-up-azure-openai) section to retrieve them.
@@ -347,7 +347,7 @@ The agent maintains context across multiple prompts within a single session, so 
 Use a read-only diagnostic prompt to confirm the agent can access your cluster.
 
 ```text
-What are the top five failing pods across all namespaces? Summarize the likely causes using events.
+Are there any failing pods across all namespaces? Summarize the likely causes using events.
 ```
 
 Depending on the state of your cluster, you may see different results. The agent will analyze pod status and events to identify common failure patterns such as CrashLoopBackOff, ImagePullBackOff, or OOMKilled, and provide a natural language summary of the likely causes.
