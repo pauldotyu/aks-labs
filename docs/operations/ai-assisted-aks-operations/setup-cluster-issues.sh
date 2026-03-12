@@ -37,6 +37,8 @@ kind: ServiceAccount
 metadata:
   name: ai-service
   namespace: pets
+  annotations:
+    azure.workload.identity/client-id: 00000000-0000-0000-0000-000000000000
 ---
 apiVersion: apps/v1
 kind: Deployment

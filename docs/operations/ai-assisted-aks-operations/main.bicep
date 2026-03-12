@@ -2,6 +2,7 @@ var location = resourceGroup().location
 var suffix = uniqueString(resourceGroup().id)
 var aksName = 'aks-${suffix}'
 var aiServicesName = 'ai-${suffix}'
+var identityName = 'mi-${suffix}'
 
 resource aks 'Microsoft.ContainerService/managedClusters@2026-01-02-preview' = {
   name: aksName
@@ -72,10 +73,17 @@ resource gpt5MiniDeployment 'Microsoft.CognitiveServices/accounts/deployments@20
   }
 }
 
+resource userAssignedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2018-11-30' = {
+  name: identityName
+  location: location
+}
+
 output rgName string = resourceGroup().name
 output aksName string = aks.name
+output aksOIDCIssuer string = aks.properties.oidcIssuerProfile.issuerUrl
 output location string = location
 output aiName string = aiServices.name
 #disable-next-line outputs-should-not-contain-secrets
 output aiApiKey string = aiServices.listKeys().key1
 output aiApiBase string = aiServices.properties.endpoints['OpenAI Language Model Instance API']
+output userAssignedIdentityName string = userAssignedIdentity.name

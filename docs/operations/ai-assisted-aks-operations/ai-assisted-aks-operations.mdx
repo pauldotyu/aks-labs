@@ -289,6 +289,8 @@ export AI_API_KEY=$(az cognitiveservices account keys list --name $AI_NAME --res
 export AI_API_BASE=$(az cognitiveservices account show --name $AI_NAME --resource-group $RG_NAME --query 'properties.endpoints."OpenAI Language Model Instance API"' -o tsv)
 ```
 
+:::tip
+
 Run the following command to print the variable values which you will need to input in the next step.
 
 ```bash
@@ -298,6 +300,8 @@ clear
 # print the AI-related environment variables for easy reference
 printenv | grep AI_API_
 ```
+
+:::
 
 Now start the agent initialization process by running the following command:
 
@@ -319,6 +323,12 @@ Fill in the details as follows:
 | **Enter value for api_version**             | Enter `2024-12-01-preview` (the API version for Azure OpenAI)             |
 
 After entering the configuration, the agent initializes and will print a confirmation message that the LLM is configured successfully. The agent is now ready to use.
+
+:::danger
+
+Be sure you have Docker running locally on your machine before starting the agent in client mode, as it relies on Docker containers to run the agent processes. If Docker is not running, you may encounter errors when trying to start the agent.
+
+:::
 
 Run the following command to start the Agentic CLI for AKS terminal user interface (TUI).
 
@@ -344,21 +354,29 @@ The agent maintains context across multiple prompts within a single session, so 
 
 ### Try the Agentic CLI
 
-Use a read-only diagnostic prompt to confirm the agent can access your cluster.
+Let's see how we can use the Agentic CLI for AKS to diagnose cluster issues.
 
 ```text
-Are there any failing pods across all namespaces? Summarize the likely causes using events.
+Have there been any pod restarts in any namespace in the last 12 hours? If so, which pods and namespaces were affected, and what were the likely causes based on the events and logs?
 ```
 
-Depending on the state of your cluster, you may see different results. The agent will analyze pod status and events to identify common failure patterns such as CrashLoopBackOff, ImagePullBackOff, or OOMKilled, and provide a natural language summary of the likely causes.
+Depending on the model you are using and the state of your cluster, you may see different results. The agent should reason about its approach to answering the question, then come up with a task list which may involve calling multiple tools to retrieve relevant information.
 
-Try a second prompt to explore the agent's resource-level capabilities.
+No need to take further action here, just review the agent's approach and findings to get a feel for how it thinks through cluster diagnostics.
+
+Next, try a second prompt to explore the agent's ability to plan complex operations like cluster upgrades.
+
+Type `/clear` to clear the context, then enter the following prompt.
 
 ```text
 Help me plan a cluster upgrade to the latest Kubernetes version. Give me a playbook of steps to follow and potential issues to watch out for based on my current cluster configuration.
 ```
 
-The agent will call the appropriate tools to retrieve the resource configurations for all pods in the `pets` namespace and summarize them in an easy-to-read format while also suggesting any potential misconfigurations or inconsistencies.
+The agent will take a bit more time to analyze your cluster's current state, identify any potential compatibility issues, and provide a detailed upgrade plan with steps and precautions. When it responds, review the upgrade plan to see if there would be any potential issues and mitigations based on your cluster's current configuration.
+
+No need to actually perform the upgrade, just review the agent's recommendations.
+
+Exit the TUI when you are done exploring the agent's capabilities.
 
 To exit the TUI, select **Ctrl+C** or type `/exit`.
 
@@ -398,6 +416,19 @@ helm install kagent-crds oci://ghcr.io/kagent-dev/kagent/helm/kagent-crds \
 --version 0.7.17
 ```
 
+:::danger
+
+Make sure you have the `AI_API_KEY` and `AI_API_BASE` environment variables exported in your terminal, as you will need them to configure the Azure OpenAI provider for kagent.
+
+If you need to re-export them, here are the commands again:
+
+```bash
+export AI_API_KEY=$(az cognitiveservices account keys list --name $AI_NAME --resource-group $RG_NAME --query key1 -o tsv)
+export AI_API_BASE=$(az cognitiveservices account show --name $AI_NAME --resource-group $RG_NAME --query 'properties.endpoints."OpenAI Language Model Instance API"' -o tsv)
+```
+
+:::
+
 Next, run the following command to install the main kagent components with Azure OpenAI model configuration.
 
 ```bash
@@ -411,17 +442,6 @@ helm install kagent oci://ghcr.io/kagent-dev/kagent/helm/kagent \
 --set providers.azureOpenAI.config.azureDeployment="gpt-5-mini" \
 --set providers.azureOpenAI.config.apiVersion="2024-12-01-preview"
 ```
-
-:::warning
-
-Note that the `AI_API_KEY` and `AI_API_BASE` environment variables you exported earlier are used to pass the Azure OpenAI configuration to the Helm chart. If you need to re-export them, here are the commands again:
-
-```bash
-export AI_API_KEY=$(az cognitiveservices account keys list --name $AI_NAME --resource-group $RG_NAME --query key1 -o tsv)
-export AI_API_BASE=$(az cognitiveservices account show --name $AI_NAME --resource-group $RG_NAME --query 'properties.endpoints."OpenAI Language Model Instance API"' -o tsv)
-```
-
-:::
 
 The installation includes:
 
@@ -437,7 +457,7 @@ With the installation complete, you can now access the kagent dashboard.
 Open a new terminal in VS Code and run the following command to port-forward the kagent UI service to your local machine.
 
 ```bash
-kubectl port-forward -n kagent svc/kagent-ui 8080:8080 &
+kubectl port-forward -n kagent svc/kagent-ui 8080:8080 >/dev/null &
 ```
 
 :::tip
@@ -541,25 +561,17 @@ az role assignment create \
 --scope "/subscriptions/$(az account show --query id -o tsv)"
 ```
 
-Clone the AKS MCP server repository.
-
-```bash
-git clone https://github.com/pauldotyu/aks-mcp.git
-```
-
-:::warning
-
-Cloning and deploying aks-mcp from a fork is a workaround to an issue found in the original repo where the workload identity authentication fails due to a change in the AKS webhook token injection path for workload identity. See GitHub issue [#319](https://github.com/Azure/aks-mcp/issues/319) for more details.
-
-These instructions will be updated once the issue is resolved in the original repo.
-
-:::
-
 :::info
 
 The AKS MCP server is available as a Helm chart, but it is not published to a public registry yet. Cloning the repo and installing from the local path is the recommended approach for now. For future releases, check the [AKS MCP repo](https://github.com/azure/aks-mcp) for the latest installation instructions.
 
 :::
+
+Clone the AKS MCP server repository.
+
+```bash
+git clone https://github.com/azure/aks-mcp.git
+```
 
 Install the Helm chart.
 
@@ -570,7 +582,8 @@ helm install aks-mcp aks-mcp/chart \
 --set azure.tenantId=$TENANT_ID \
 --set azure.clientId=$CLIENT_ID \
 --set azure.subscriptionId=$(az account show --query id -o tsv) \
---set app.accessLevel=admin
+--set app.accessLevel=admin \
+--set image.tag=v0.0.16
 ```
 
 :::danger
@@ -679,14 +692,13 @@ Fill in the following details for the new agent:
 1. **Agent Name:** Enter `aks-agent`.
 2. **Agent Namespace:** Select `kagent`.
 3. **Agent Type:** Select `Declarative`.
-4. **Description:** Enter `An AI agent specialized in Azure Kubernetes Service (AKS) operations and troubleshooting. Equipped with tools from the AKS MCP server for diagnostics, monitoring, and management.`
+4. **Description:** Enter the following:
+
+   ```text
+   An AI agent specialized in Azure Kubernetes Service (AKS) operations and troubleshooting. Equipped with tools from the AKS MCP server for diagnostics, monitoring, and management.
+   ```
+
 5. **Agent Instructions:** Replace the existing content with the following system prompt:
-
-   :::tip
-
-   If your agent isn't behaving the way you expect it to, you can adjust the instructions or settings as needed.
-
-   :::
 
    ```text
    # AKS AI Agent System Prompt
@@ -758,13 +770,19 @@ Fill in the following details for the new agent:
    1. **Assessment** - Problem understanding.
    2. **Investigation** - Tools used, findings, reasoning.
    3. **Resolution** - Actions taken or recommended, with verification.
-   4. **Artifacts** - Any generated manifests, files, or outputs in code blocks.
+   4. **Artifacts** - Any generated code should be output in code blocks.
    ```
+
+   :::tip
+
+   If your agent isn't behaving the way you expect it to, you can adjust the instructions or settings as needed.
+
+   :::
 
 6. **Model:** Select `gpt-5-mini (kagent/default-model-config)`.
 7. **Enable LLM response streaming:** Check this box to allow the agent to stream responses for better user experience.
 8. **Tools & Agents:** Select **+ Add Tools & Agents**, then in the dialog, filter for `aks` and select all tools under **Kagent/Aks-Mcp**. Select the **Save Selection** button to confirm the tools.
-9. **Skills:** Add `ghcr.io/pauldotyu/aks-skills:0.4.0` for the model to leverage pre-built skills for AKS operations.
+9. **Skills:** Add `ghcr.io/pauldotyu/aks-skills:0.5.0` for the model to leverage pre-built skills for AKS operations.
 
 Confirm all the details are correct, then scroll to the bottom of the page and select **Create Agent** to deploy the agent.
 
@@ -781,8 +799,14 @@ Give me a list of all the AKS clusters you have access to.
 Use the new agent to pull Azure Advisor recommendations for the cluster.
 
 ```prompt
-Are there any Azure Advisor recommendations for the AKS cluster where the name starts with "myakscluster"?
+Are there any Azure Advisor recommendations for my cluster named <YOUR_AKS_CLUSTER_NAME>?
 ```
+
+:::info
+
+Make sure to replace `<YOUR_AKS_CLUSTER_NAME>` with the actual name of your AKS cluster. The cluster name should have been listed in the response to the first prompt. Copy the cluster name from the first response and paste it into the second prompt to get the relevant Azure Advisor recommendations for your cluster.
+
+:::
 
 The agent should run `aks_advisor_recommendation` for the current cluster and return a summary list of Azure Advisor recommendations. You should see a report with "high severity" and "low severity" items with descriptions and status.
 
@@ -793,7 +817,7 @@ A powerful feature of kagent is the ability to create **multi-agent systems** wh
 #### Connect specialized agents
 
 1. Select **Home** in the kagent UI.
-2. Find **kagent/aks-agent**, hover your mouse over it, and select **Edit**.
+2. Find **kagent/aks-agent**, hover your mouse over it, and select the three dots to toggle the context menu then click **Edit**.
 3. Scroll to **Tools & Agents**, then select **+ Add Tools & Agents**.
 
 ![Add tools and agents to aks-agent](./kagent-edit-aks-agent-tools.png)
@@ -851,12 +875,12 @@ If you want to know exactly what will break, you can inspect the script at [setu
 Ensure your environment variables are still exported (including `AI_API_BASE` from earlier), then run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/pauldotyu/aks-labs/refs/heads/ai_assisted_ops/docs/operations/ai-assisted-aks-operations/setup-cluster-issues.sh | bash
+curl -fsSL https://raw.githubusercontent.com/pauldotyu/aks-labs/0f7a8b410be0b39657d313a6f2bbf0dd1ef50743/docs/operations/ai-assisted-aks-operations/setup-cluster-issues.sh | bash
 ```
 
 :::danger TODO: Replace temporary instructions
 
-REPLACE `pauldotyu/aks-labs/refs/heads/ai_assisted_ops` WITH `azure-samples/aks-labs/refs/heads/main` ONCE PR REVIEW IS COMPLETED
+UPDATE ONCE PR REVIEW IS COMPLETED
 
 :::
 
@@ -918,7 +942,7 @@ Use an agent to figure out what's wrong and fix it. Try one of these prompts to 
 
 - **kagent:** _"Why can't users reach the store-admin service over http? The store-admin service is the pets namespace"_
 - **Agentic CLI for AKS:** _"Users can't access the store-admin service running in the pets namespace. Help me figure out why."_
-- GitHub Copilot Agent in VS Code: _"@aks-mcp Help me investigate why no services are reachable in the pets namespace."_
+- **GitHub Copilot Agent in VS Code:** _"@aks-mcp Help me investigate why no services are reachable in the pets namespace."_
 
 <details>
 <summary>Hint (expand if you're stuck)</summary>
@@ -951,6 +975,12 @@ To reproduce the issue:
 1. Enter a product name and related keywords (comma-separated)
 1. Click the **Ask AI Assistant** button
 
+:::tip
+
+If you don't see the **Ask AI Assistant** button, that's a problem too
+
+:::
+
 You should see a "thinking..." message, but then nothing happens and no product description is generated.
 
 The feature relies on the ai-service pod making inference calls to Azure AI Foundry. Investigate the issue and get the AI-generated product descriptions working again.
@@ -959,7 +989,7 @@ The challenge is complete when the AI-generated product description feature is w
 
 Use an agent to diagnose why the AI feature isn't working and fix it. Try one of these prompts to get started:
 
-- **kagent:** _"The store-admin site is working now, but the ai-service doesn't seem to be working correctly. Users are reporting nothing happens when they click the 'Ask AI Assistant' button. Investigate and see if there are potential network or authentication issues."_
+- **kagent:** _"The ai-service doesn't seem to be working correctly. Users are reporting nothing happens when they click the 'Ask AI Assistant' button in the store-admin site. Investigate and see if there are potential network or authentication issues."_
 - **Agentic CLI for AKS:** _"The AI-generated product descriptions feature in store-admin isn't working. Help me investigate the ai-service pod in the pets namespace."_
 - **GitHub Copilot with AKS MCP:** _"@aks-mcp Why isn't the ai-service working in the pets namespace? Check its logs and configuration."_
 
@@ -968,7 +998,7 @@ Use an agent to diagnose why the AI feature isn't working and fix it. Try one of
 
 **Workload identity misconfiguration:**
 
-The **ai-service** is deployed with workload identity using the same managed identity used for the aks-mcp server, but the ServiceAccount annotation has an incorrect client ID (`00000000-0000-0000-0000-000000000000`), so the workload identity token exchange fails and the pod can't authenticate to Azure AI Foundry.
+The **ai-service** is deployed with workload identity using the same managed identity used for the aks-mcp server, but the ServiceAccount annotation is misconfigured, so the workload identity token exchange fails and the pod can't authenticate to Azure AI Foundry.
 
 **To fix this:**
 
@@ -1076,19 +1106,19 @@ To continue your learning journey with AI-powered operations and MCP agents, che
 To restore the cluster to normal state, run the cleanup script:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/pauldotyu/aks-labs/refs/heads/ai_assisted_ops/docs/operations/ai-assisted-aks-operations/cleanup-cluster-issues.sh | bash
+curl -fsSL https://raw.githubusercontent.com/pauldotyu/aks-labs/0f7a8b410be0b39657d313a6f2bbf0dd1ef50743/docs/operations/ai-assisted-aks-operations/cleanup-cluster-issues.sh | bash
 ```
 
 :::danger TODO: Replace temporary instructions
 
-REPLACE `pauldotyu/aks-labs/refs/heads/ai_assisted_ops` WITH `azure-samples/aks-labs/refs/heads/main` ONCE PR REVIEW IS COMPLETED
+UPDATE ONCE PR REVIEW IS COMPLETED
 
 :::
 
 This removes:
 
 - The NetworkPolicy blocking ingress in the `pets` namespace
-- The custom `ai-service` Deployment and ServiceAccount with workload identity annotations
+- The custom `ai-service` Deployment and ServiceAccount
 
 <Cleanup />
 
