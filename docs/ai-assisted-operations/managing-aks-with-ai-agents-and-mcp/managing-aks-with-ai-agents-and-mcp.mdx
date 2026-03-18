@@ -343,6 +343,8 @@ The Agentic CLI opens an interactive terminal interface where you type natural l
 - **View results** - The agent analyzes telemetry and returns insights in natural language
 - **Multi-line input** - If your prompt is long, you can paste it directly; the TUI will handle it
 - **Scroll output** - Use **arrow keys** or **Page Up/Page Down** to scroll through long responses
+- **Show output** - Type `/show` to show tool output
+- **Token usage** - Type `/context` to view conversation context size and token usage
 - **Clear screen** - Type `/clear` to clear the context and start fresh
 - **Exit** - Type `/exit` and press **Enter**, or press **Ctrl+C** to quit the TUI
 
@@ -873,14 +875,8 @@ If you want to know exactly what will break, you can inspect the script at [setu
 Ensure your environment variables are still exported (including `AI_API_BASE` from earlier), then run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/pauldotyu/aks-labs/d05f3fbaf11f1d3355ace6dda51b1d7641abf9d9/docs/ai-assisted-operations/managing-aks-with-ai-agents-and-mcp/setup-cluster-issues.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Azure-Samples/aks-labs/refs/heads/main/docs/ai-assisted-operations/managing-aks-with-ai-agents-and-mcp/setup-cluster-issues.sh | bash
 ```
-
-:::danger TODO: Replace temporary instructions
-
-UPDATE ONCE PR REVIEW IS COMPLETED
-
-:::
 
 The script will use the `AI_API_BASE` environment variable if available to configure a service that relies on Azure AI Foundry.
 
@@ -1095,33 +1091,21 @@ To continue your learning journey with AI-powered operations and MCP agents, che
 - **Agentic CLI for AKS** - [github.com/Azure/cli-agent-for-aks](https://github.com/Azure/cli-agent-for-aks)
 - **Azure AI Foundry** - [learn.microsoft.com/azure/ai-foundry](https://learn.microsoft.com/azure/ai-foundry/what-is-azure-ai-foundry)
 - **Model Context Protocol documentation** - [modelcontextprotocol.io](https://modelcontextprotocol.io)
+- **Agent Skills documentation** - [agentskills.io](https://agentskills.io/)
 - **kagent project** - [kagent.dev](https://kagent.dev)
 
 ---
 
-## Reset cluster state
-
-To restore the cluster to normal state, run the cleanup script:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/pauldotyu/aks-labs/d05f3fbaf11f1d3355ace6dda51b1d7641abf9d9/docs/ai-assisted-operations/managing-aks-with-ai-agents-and-mcp/cleanup-cluster-issues.sh | bash
-```
-
-:::danger TODO: Replace temporary instructions
-
-UPDATE ONCE PR REVIEW IS COMPLETED
-
-:::
-
-This removes:
-
-- The NetworkPolicy blocking ingress in the `pets` namespace
-- The custom `ai-service` Deployment and ServiceAccount
-
 <Cleanup />
 
-:::note
+:::warning
 
 Be sure to purge the Azure AI Foundry resource you created to free up any associated quota.
 
 :::
+
+If you just want to reset the cluster state by removing the issues introduced in the challenges, run the following cleanup script:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Azure-Samples/aks-labs/refs/heads/main/docs/ai-assisted-operations/managing-aks-with-ai-agents-and-mcp/cleanup-cluster-issues.sh | bash
+```
