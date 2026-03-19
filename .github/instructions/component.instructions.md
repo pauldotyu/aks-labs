@@ -30,6 +30,8 @@ import Cleanup from "../../src/components/SharedMarkdown/_cleanup.mdx";
 - Do not duplicate headings that the component already renders.
 - Keep component usage close to where the section appears in the lab flow.
 - If you need additional tools, pass the tools prop to <Prerequisites /> with name and url.
+- Before adding tools to <Prerequisites />, review the shared component source at src/components/SharedMarkdown/_prerequisites.mdx and avoid duplicates from its default tool list.
+- When editing MDX content, use plain ASCII characters only. Avoid typographic quotes, em/en dashes, ellipses, and any look-alike Unicode characters.
 
 ## Example
 
