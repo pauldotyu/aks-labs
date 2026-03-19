@@ -203,9 +203,11 @@ You should see JSON that looks like the following:
     "command": "wsl",
     "args": [
       "--",
-      "/home/your_user_account_here/.vs-kubernetes/tools/aks-mcp/v0.0.11/aks-mcp",
+      "/home/<YOUR_USER_ACCOUNT_NAME>/.vs-kubernetes/tools/aks-mcp/v0.0.16/aks-mcp",
       "--transport",
-      "stdio"
+      "stdio",
+      "--enabled-components",
+      "az_cli,monitor,fleet,network,compute,detectors,advisor,inspektorgadget,kubectl"
     ]
   }
 }
