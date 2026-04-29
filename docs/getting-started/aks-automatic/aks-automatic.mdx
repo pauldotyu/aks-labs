@@ -3,10 +3,10 @@ title: Kubernetes the Easy Way with AKS Automatic
 sidebar_position: 2
 ---
 
-import Prerequisites from "../../src/components/SharedMarkdown/_prerequisites.mdx";
-import ProvisionResourceGroup from "../../src/components/SharedMarkdown/_provision_resource_group.mdx";
-import ProvisionResources from "../../src/components/SharedMarkdown/_provision_resources.mdx";
-import Cleanup from "../../src/components/SharedMarkdown/_cleanup.mdx";
+import Prerequisites from "../../../src/components/SharedMarkdown/_prerequisites.mdx";
+import ProvisionResourceGroup from "../../../src/components/SharedMarkdown/_provision_resource_group.mdx";
+import ProvisionResources from "../../../src/components/SharedMarkdown/_provision_resources.mdx";
+import Cleanup from "../../../src/components/SharedMarkdown/_cleanup.mdx";
 
 This workshop will show you how easy it is to deploy applications to AKS Automatic. AKS Automatic is a new way to deploy and manage Kubernetes clusters on Azure. It is a fully managed Kubernetes service that simplifies the deployment, management, and operations of Kubernetes clusters. With AKS Automatic, you can deploy a Kubernetes cluster with just a few clicks in the Azure Portal, and it is designed to be simple and easy to use, so you can focus on building your applications!
 
@@ -108,17 +108,17 @@ You're now ready to deploy the sample application to your AKS cluster.
 
 Log in to the [Azure portal](https://portal.azure.com/?feature.Microsoft_Azure_AutomaticAKS=flight4) type **Kubernetes services** in the search box at the top of the page and click the **Kubernetes services** option from the search results.
 
-![Kubernetes services](./assets/aks-automatic/aks-search.png)
+![Kubernetes services](./assets/aks-search.png)
 
 In the upper left portion of the screen, click the **+ Create** button to view all the available options for creating a new AKS cluster.
 
 Click on the **Deploy application** option.
 
-![Deploy application with Automated Deployment](./assets/aks-automatic/deploy-app.png)
+![Deploy application with Automated Deployment](./assets/deploy-app.png)
 
 In the **Basics** tab, click on the **Deploy your application** option, then select your Azure subscription and the resource group you created during the lab environment setup.
 
-![Automated Deployment basics](./assets/aks-automatic/deploy-app-basics.png)
+![Automated Deployment basics](./assets/deploy-app-basics.png)
 
 In the **Repository details** section set **Workflow name** to `contoso-air`.
 
@@ -126,7 +126,7 @@ If you have not already authorized Azure to access your GitHub account, you will
 
 Click the **Select repository** drop down, then select the **contoso-air** repository you forked earlier, and select the **main** branch.
 
-![GitHub repo selection](./assets/aks-automatic/deploy-app-repo-selection.png)
+![GitHub repo selection](./assets/deploy-app-repo-selection.png)
 
 Click **Next**.
 
@@ -135,13 +135,13 @@ In the **Application** tab, complete the **Image** section with the following de
 - **Container configuration**: Select **Existing Dockerfile**
 - **Dockerfile**: Click the **Select** link, browse to the **./src/web** directory, select the Dockerfile, then click the **Select** button
 
-![Container image build context](./assets/aks-automatic/deploy-app-image-path.png)
+![Container image build context](./assets/deploy-app-image-path.png)
 
 - **Dockerfile build context**: Enter `./src/web`
 - **Azure Container Registry**: Select the Azure Container Registry in your resource group
 - **Azure Container Registry image**: Click the **Create new** link then enter `contoso-air`
 
-![Container image build configuration](./assets/aks-automatic/deploy-app-image.png)
+![Container image build configuration](./assets/deploy-app-image.png)
 
 In the **Deployment configuration** section and fill in the following details:
 
@@ -149,13 +149,13 @@ In the **Deployment configuration** section and fill in the following details:
 - **Save files in repository**: Click the **Select** link to open the directory explorer, then select the checkbox next to the **Root** folder, then click **Select**.
 - **Application port**: Enter `3000`
 
-![Kubernetes deployment manifest path](./assets/aks-automatic/deploy-app-manifest-path.png)
+![Kubernetes deployment manifest path](./assets/deploy-app-manifest-path.png)
 
 Click **Next**.
 
 In the **Cluster configuration** section, ensure the **Create Automatic Kubernetes cluster** option is chosen and specify `myakscluster` as the **Kubernetes cluster name**.
 
-![AKS Automatic cluster creation](./assets/aks-automatic/deploy-app-cluster-new.png)
+![AKS Automatic cluster creation](./assets/deploy-app-cluster-new.png)
 
 For **Namespace**, select **Create new** and type `dev`.
 
@@ -165,7 +165,7 @@ Be sure to set the namespace to `dev` as instructions later in the workshop will
 
 :::
 
-![Kubernetes namespace](./assets/aks-automatic/deploy-app-cluster-logging.png)
+![Kubernetes namespace](./assets/deploy-app-cluster-logging.png)
 
 You will see that the monitoring and logging options have been enabled by default and set to use the Azure resources that are available in your subscription. If you don't have these resources available, AKS Automatic will create them for you. If you want to change the monitoring and logging settings, you can do so by clicking on the **Change** link and selecting the desired target resources for monitoring and logging. Leave the remaining fields at their default values.
 
@@ -173,11 +173,11 @@ Click **Next**.
 
 In the **Review** tab, you will see a summary of the configuration you have selected and view a preview of the Dockerfile and Kubernetes deployment files that will be generated for you.
 
-![Automated Deployment configuration review](./assets/aks-automatic/deploy-app-review.png)
+![Automated Deployment configuration review](./assets/deploy-app-review.png)
 
 When ready, click the **Deploy** button to start the deployment.
 
-![Automated Deployment and AKS Cluster deployment](./assets/aks-automatic/deploy-app-deploy.png)
+![Automated Deployment and AKS Cluster deployment](./assets/deploy-app-deploy.png)
 
 :::danger
 
@@ -189,31 +189,31 @@ This process can take up to 20 minutes to complete. Do not close the browser win
 
 Once the deployment is complete, click on the **Approve pull request** button to view the pull request to be taken to the pull request page in your GitHub repository.
 
-![Automated Deployment success](./assets/aks-automatic/deploy-app-done.png)
+![Automated Deployment success](./assets/deploy-app-done.png)
 
 In the pull request review, click on the **Files changed** tab to view the changes that were made by the Automated Deployments workflow.
 
-![GitHub pull request files changed](./assets/aks-automatic/github-pull-request-files.png)
+![GitHub pull request files changed](./assets/github-pull-request-files.png)
 
 Navigate back to the **Conversation** tab and click on the **Merge pull request** button to merge the pull request, then click **Confirm merge**.
 
-![GitHub merge pull request](./assets/aks-automatic/github-pull-request-merged.png)
+![GitHub merge pull request](./assets/github-pull-request-merged.png)
 
 With the pull request merged, the changes will be automatically deployed to your AKS cluster. You can view the deployment logs by clicking on the **Actions** tab in your GitHub repository.
 
-![GitHub Actions tab](./assets/aks-automatic/github-actions.png)
+![GitHub Actions tab](./assets/github-actions.png)
 
 In the **Actions** tab, you will see the Automated Deployments workflow running. Click on the workflow run to view the logs.
 
-![GitHub Actions workflow run](./assets/aks-automatic/github-actions-workflow.png)
+![GitHub Actions workflow run](./assets/github-actions-workflow.png)
 
 In the workflow run details page, you can view the logs of each job in the workflow by simply clicking on the job.
 
-![GitHub Actions workflow logs](./assets/aks-automatic/github-actions-workflow-run.png)
+![GitHub Actions workflow logs](./assets/github-actions-workflow-run.png)
 
 After 5-10 minutes, the workflow will complete and you will see two green check marks next to the **buildImage** and **deploy** jobs. This means that the application has been successfully deployed to your AKS cluster.
 
-![GitHub Actions workflow success](./assets/aks-automatic/github-action-done.png)
+![GitHub Actions workflow success](./assets/github-action-done.png)
 
 :::tip
 If the deploy job fails, it is likely that Node Autoprovisioning (NAP) is taking a bit longer than usual to provision a new node for the cluster. Try clicking the "Re-run" button at the top of the page to re-run the deploy workflow job.
@@ -228,15 +228,15 @@ Back in the Azure portal, click the **Close** button to close the Automated Depl
 
 In the left-hand menu, click on **Services and ingresses** under the **Kubernetes resources** section. You should see a new service called `contoso-air` with an external IP address assigned to it. Click on the IP address to view the deployed application.
 
-![Contoso Air service](./assets/aks-automatic/contoso-air-service-ip.png)
+![Contoso Air service](./assets/contoso-air-service-ip.png)
 
 Let's test the application's chat functionality by clicking the **Ask the AI travel assistant** button.
 
-![Ask the AI travel assistant](./assets/aks-automatic/ask-ai-travel-assistant.png)
+![Ask the AI travel assistant](./assets/ask-ai-travel-assistant.png)
 
 Attempt to interact with the AI assistant and you'll quickly find that the chat provider is not detected.
 
-![AI travel assistant response](./assets/aks-automatic/ask-ai-travel-assistant-response.png)
+![AI travel assistant response](./assets/ask-ai-travel-assistant-response.png)
 
 The application needs to be configured to a backend LLM (e.g., Azure OpenAI), but the connection settings are not configured. We can fix this by adding configuration to the application using the AKS Service Connector!
 
@@ -256,7 +256,7 @@ Workload Identity is the recommended way to authenticate with Azure services fro
 
 Add configuration to the application to specify Azure OpenAI as the chat provider and the model deployed earlier. You can do this in the Azure portal by navigating to the **Configuration** section under **Kubernetes resources** in the left-hand menu, filtering by the `dev` namespace, and selecting the `contoso-air-config` config map.
 
-![AKS configmap](./assets/aks-automatic/contoso-air-config.png)
+![AKS configmap](./assets/contoso-air-config.png)
 
 Click on the **YAML** tab, then in the YAML editor, add the following configuration to the end of the file, then click **Review + save**.
 
@@ -268,11 +268,11 @@ data:
   LOG_CHAT: 'true'
 ```
 
-![AKS configmap](./assets/aks-automatic/contoso-air-config-edit.png)
+![AKS configmap](./assets/contoso-air-config-edit.png)
 
 You will be prompted to confirm the changes. Scroll all the way down to the bottom of the page to review the changes, then check the **Confirm manifest changes** checkbox and click **Save**.
 
-![AKS configmap change confirmation](./assets/aks-automatic/contoso-air-config-edit-confirm.png)
+![AKS configmap change confirmation](./assets/contoso-air-config-edit-confirm.png)
 
 :::info
 
@@ -284,7 +284,7 @@ This configmap was created by the Automated Deployments workflow earlier. The ne
 
 In the left-hand menu, click on **Service Connector** under **Settings** then click on the **+ Create** button.
 
-![AKS service connector](./assets/aks-automatic/service-connector.png)
+![AKS service connector](./assets/service-connector.png)
 
 In the **Basics** tab, enter the following details:
 
@@ -292,21 +292,21 @@ In the **Basics** tab, enter the following details:
 - **Service type**: Select **OpenAI Service**
 - **OpenAI**: Select the Azure OpenAI account you created earlier
 
-![AKS service connector basics](./assets/aks-automatic/service-connector-basics.png)
+![AKS service connector basics](./assets/service-connector-basics.png)
 
 Click **Next: Authentication**.
 
 In the **Authentication** tab, select the **Workload Identity** option. You should see a user-assigned managed identity that was created during your lab setup. If no managed identities appear in the dropdown, click the **Create new** link to provision a new one.
 
-![AKS service connector authentication](./assets/aks-automatic/service-connector-auth.png)
+![AKS service connector authentication](./assets/service-connector-auth.png)
 
 Optionally, you can expand the **Advanced** section to customize the managed identity settings. By default, the **Cognitive Services OpenAI Contributor** role is assigned, granting the workload identity permissions to authenticate and interact with your LLM. You'll also notice there's additional configuration information that Service Connector will set as environment variables in the application. These variables will be saved to a Kubernetes Secret which will then be used to configure the connection to the Azure OpenAI account.
 
-![AKS service connector authentication](./assets/aks-automatic/service-connector-advanced.png)
+![AKS service connector authentication](./assets/service-connector-advanced.png)
 
 Click **Next: Networking** then click **Next: Review + create** and finally click **Create**.
 
-![AKS service connector review](./assets/aks-automatic/service-connector-review.png)
+![AKS service connector review](./assets/service-connector-review.png)
 
 :::info
 
@@ -325,15 +325,15 @@ Once you've successfully set up the Service Connector for your Azure OpenAI acco
 
 In the Service Connector page, select the checkbox next to the OpenAI connection and click the **Yaml snippet** button.
 
-![AKS service connector yaml snippet](./assets/aks-automatic/service-connector-yaml-snippet.png)
+![AKS service connector yaml snippet](./assets/service-connector-yaml-snippet.png)
 
 In the **YAML snippet** window, select **Kubernetes Workload** for **Resource type**, then select **contoso-air** for **Kubernetes Workload**.
 
-![AKS service connector yaml snippet for contoso-air](./assets/aks-automatic/service-connector-yaml-deploy.png)
+![AKS service connector yaml snippet for contoso-air](./assets/service-connector-yaml-deploy.png)
 
 You will see the YAML manifest for the contoso-air application with the highlighted edits required to connect to Azure OpenAI via Workload Identity.
 
-![AKS service connector yaml snippet highlights](./assets/aks-automatic/service-connector-yaml-highlights.png)
+![AKS service connector yaml snippet highlights](./assets/service-connector-yaml-highlights.png)
 
 Scroll through the YAML manifest to view all the changes highlighted in yellow, then click **Apply** to apply the changes to the application. This will redeploy the contoso-air application with the new connection details.
 
@@ -345,7 +345,7 @@ This will apply changes directly to the application deployment but ideally you w
 
 Wait a minute or two for the new pod to be rolled out then navigate back to the application and attempt to interact with the AI assistant. Now, you should be able to chat with an AI assistant without any errors!
 
-![Contoso Air flight booking success](./assets/aks-automatic/contoso-air-chat.png)
+![Contoso Air flight booking success](./assets/contoso-air-chat.png)
 
 ---
 
@@ -400,11 +400,11 @@ With this feature enabled, you can now deploy a new Instrumentation custom resou
 
 In the Azure portal, navigate to the **Workloads** section under **Kubernetes resources** in the left-hand menu. Filter by the **dev** namespace and click on the **contoso-air** deployment to view the deployment details.
 
-![Contoso Air deployment](./assets/aks-automatic/contoso-air-deployment.png)
+![Contoso Air deployment](./assets/contoso-air-deployment.png)
 
 Click the **Application Monitoring** tab to configure AutoInstrumentation for the contoso-air application.
 
-![Contoso Air application monitoring](./assets/aks-automatic/application-monitoring.png)
+![Contoso Air application monitoring](./assets/application-monitoring.png)
 
 In the **Configure Application Monitoring** pane, enter the following details:
 
@@ -413,7 +413,7 @@ In the **Configure Application Monitoring** pane, enter the following details:
 - Check the **Perform rollout restart of all deployments in the namespace to deploy changes immediately** checkbox.
 - Click **Configure** to apply the changes.
 
-![Contoso Air application monitoring configuration](./assets/aks-automatic/application-monitoring-configuration.png)
+![Contoso Air application monitoring configuration](./assets/application-monitoring-configuration.png)
 
 :::tip
 
@@ -423,13 +423,13 @@ This is a simple example of how to instrument your application across an entire 
 
 Once the configuration is applied, the contoso-air deployment will be restarted to apply the instrumentation changes immediately.
 
-![Contoso Air deployment rollout](./assets/aks-automatic/contoso-air-deployment-rollout.png)
+![Contoso Air deployment rollout](./assets/contoso-air-deployment-rollout.png)
 
 Now that the application is instrumented with Application Insights, navigate back to the contoso-air application in your web browser and chat with the AI assitant to generate some metrics. Once the metrics have been generated and collected by the OTel collector, you can view the application performance and usage metrics in the Azure portal.
 
 Navigate to the **Application Insights** resource in your resource group.
 
-![Application Insights resource](./assets/aks-automatic/app-insights.png)
+![Application Insights resource](./assets/app-insights.png)
 
 Click on the **Application map** under **Investigate** in the left-hand menu to view a high-level overview of the application components, their dependencies, and number of calls.
 
@@ -439,15 +439,15 @@ If the Azure OpenAI endpoint does not appear in the application map, return to t
 
 :::
 
-![Application map](./assets/aks-automatic/app-insights-map.png)
+![Application map](./assets/app-insights-map.png)
 
 Click on the **Live Metrics** tab to view the live metrics for the application. Here you can see incoming and outgoing requests, response times, and exceptions in real-time.
 
-![Live metrics](./assets/aks-automatic/app-insights-live-metrics.png)
+![Live metrics](./assets/app-insights-live-metrics.png)
 
 Finally, click on the **Performance** tab to view the performance metrics for the application. Here you can see the average response time, request rate, and failure rate for the application.
 
-![Application Insights resource](./assets/aks-automatic/app-insights-performance.png)
+![Application Insights resource](./assets/app-insights-performance.png)
 
 Feel free to explore the other features of Application Insights and see how you can use it to monitor and observe your applications.
 
@@ -457,13 +457,13 @@ AKS Automatic simplifies monitoring your cluster using [Container Insights](http
 
 To access this feature, navigate back to your AKS cluster in the Azure portal. You should see the **Monitoring** section in the left-hand menu. Click it to view a high-level summary of your cluster's performance.
 
-![Cluster metrics](./assets/aks-automatic/insights.png)
+![Cluster metrics](./assets/insights.png)
 
 The AKS Automatic cluster was also pre-configured with basic CPU utilization and memory utilization alerts. You can also create additional alerts based on the metrics collected by the Prometheus workspace.
 
 Click on the **Recommended alerts (Preview)** button to view the recommended alerts for the cluster. Expand the **Prometheus community alert rules (Preview)** section to see the list of Prometheus alert rules that are available. You can enable any of these alerts by clicking on the toggle switch.
 
-![Cluster alerts](./assets/aks-automatic/insights-recommended-alerts.png)
+![Cluster alerts](./assets/insights-recommended-alerts.png)
 
 Click **Save** to enable the alerts.
 
@@ -473,7 +473,7 @@ With Container Insights enabled, you can query logs using Kusto Query Language (
 
 In the **Monitoring** section of the AKS cluster menu, click **Workbooks** to access pre-configured options. The **Cluster Optimization** workbook is particularly useful for identifying anomalies, detecting probe failures, and optimizing container resource requests and limits. Explore this and other available workbooks to monitor your cluster effectively.
 
-![Cluster optimization workbook](./assets/aks-automatic/insights-workbooks.png)
+![Cluster optimization workbook](./assets/insights-workbooks.png)
 
 :::tip
 
@@ -483,7 +483,7 @@ The workbook visuals will include a query button that you can click to view the 
 
 To aide in troubleshoting your application, you can easily access container logs emitted by the application. Select **Logs** from the **Monitoring** section in the AKS cluster's left-hand menu. This section allows you to access the logs gathered by the Azure Monitor agent operating on the cluster nodes.
 
-![Contoso Air container logs](./assets/aks-automatic/logs.png)
+![Contoso Air container logs](./assets/logs.png)
 
 :::tip
 
@@ -493,7 +493,7 @@ If you are presented with a **Welcome to Log Analytics** pop-up, close it to acc
 
 Close the **Queries hub** pop-up to get to the query editor, then change the query editor from **Simple mode** to **KQL mode** by using the drop-down menu in the top-right corner. 
 
-![Contoso Air container logs via KQL](./assets/aks-automatic/logs-kql-editor.png)
+![Contoso Air container logs via KQL](./assets/logs-kql-editor.png)
 
 In the editor window, type the following query, then click the **Run** button to view container logs.
 
@@ -502,7 +502,7 @@ ContainerLogV2
 | where ContainerName == "contoso-air"
 ```
 
-![Contoso Air error log query](./assets/aks-automatic/log-query.png)
+![Contoso Air error log query](./assets/log-query.png)
 
 You should see some log messages in the table below. Expand some of the logs to view the message details that were generated by the application.
 
@@ -518,7 +518,7 @@ The Azure Portal provides a great way to view metrics and logs, but if you prefe
 
 In the AKS cluster's left-hand menu, click on **Dashboards with Grafana** under the **Monitoring** section. You will see a list of all the pre-configured Grafana dashboard that are available for your cluster.
 
-![Browse dashboards](./assets/aks-automatic/monitor-grafana.png)
+![Browse dashboards](./assets/monitor-grafana.png)
 
 Log into the Grafana instance then in the Grafana home page, click on the **Dashboards** link in the left-hand menu. Here you will see a list of pre-configured dashboards that you can use to visualize the metrics collected by the Prometheus workspace.
 
@@ -526,25 +526,25 @@ In the **Dashboards** list, expand the **Azure Managed Prometheus** folder and e
 
 Click on a **Kubernetes / Compute Resources / Workload** dashboard.
 
-![Grafana dashboards](./assets/aks-automatic/grafana-dashboards.png)
+![Grafana dashboards](./assets/grafana-dashboards.png)
 
 Filter the **namespace** to **dev** the **type** to **deployment**, and the **workload** to **contoso-air**. This will show you the metrics for the contoso-air deployment.
 
-![Grafana compute workload dashboard](./assets/aks-automatic/grafana-compute-workload.png)
+![Grafana compute workload dashboard](./assets/grafana-compute-workload.png)
 
 #### Querying metrics with PromQL
 
 If you prefer to write your own queries to visualize the data, click **Dashboards** to navigate back to the dashboards list and click the **Explore** tab at the top of the pane. 
 
-![Grafana explore with PromQL](./assets/aks-automatic/grafana-explore.png)
+![Grafana explore with PromQL](./assets/grafana-explore.png)
 
 In the **Explore** pane, Azure Monitor is the default datasource. You can change this by clicking it and selecting your Prometheus data source.
 
-![Grafana explore with PromQL](./assets/aks-automatic/grafana-explore-datasource.png)
+![Grafana explore with PromQL](./assets/grafana-explore-datasource.png)
 
 The query editor supports a graphical query builder and a text-based query editor. The graphical query builder is a great way to get started with PromQL. You can select the metric you want to query, the aggregation function, and any filters you want to apply.
 
-![Grafana explore with PromQL](./assets/aks-automatic/grafana-promql.png)
+![Grafana explore with PromQL](./assets/grafana-promql.png)
 
 There is a lot you can do with Grafana and PromQL, so take some time to explore the features and visualize the metrics collected by the Prometheus workspace.
 
@@ -582,15 +582,15 @@ When you deployed the application using AKS Automated Deployments, the deploymen
 
 Navigate to the **Custom resource** section under **Kubernetes resources** in the AKS cluster left-hand menu. Scroll down to the bottom of the page and click on the **Load more** button to view all the available custom resources.
 
-![Load more custom resources](./assets/aks-automatic/custom-resources-load-more.png)
+![Load more custom resources](./assets/custom-resources-load-more.png)
 
 Click on the **VerticalPodAutoscaler** resource to view the VPA resources in the cluster.
 
-![VPA resources](./assets/aks-automatic/custom-resources-vpa.png)
+![VPA resources](./assets/custom-resources-vpa.png)
 
 Click on the **+ Create** button where you'll see a **Apply with YAML** editor.
 
-![Create VPA](./assets/aks-automatic/custom-resources-vpa-create.png)
+![Create VPA](./assets/custom-resources-vpa-create.png)
 
 Not sure what to add here? No worries! You can lean on [Microsoft Copilot in Azure](https://learn.microsoft.com/azure/copilot/overview) to help generate the VPA manifest.
 
@@ -606,7 +606,7 @@ Press **Enter** to generate the VPA manifest.
 
 When the VPA manifest is generated, click the **Accept all** button to accept the changes, then click **Add** to create the VPA resource.
 
-![VPA manifest](./assets/aks-automatic/custom-resources-vpa-add.png)
+![VPA manifest](./assets/custom-resources-vpa-add.png)
 
 :::warning
 
@@ -655,12 +655,12 @@ To delete the existing HPA resource, navigate to the **Run command** section und
 kubectl delete hpa contoso-air -n dev
 ```
 
-![Delete HPA resource](./assets/aks-automatic/run-command-delete-hpa.png)
+![Delete HPA resource](./assets/run-command-delete-hpa.png)
 :::
 
 Navigate to **Application scaling** under **Settings** in the AKS cluster left-hand menu, then click on the **+ Create** button.
 
-![Application scaling](./assets/aks-automatic/keda.png)
+![Application scaling](./assets/keda.png)
 
 In the **Basics** section, enter the following details:
 
@@ -669,7 +669,7 @@ In the **Basics** section, enter the following details:
 - **Target workload**: Select **contoso-air**
 - **Minimum replicas**: Enter `3`
 
-![Application scaling basics](./assets/aks-automatic/keda-basics.png)
+![Application scaling basics](./assets/keda-basics.png)
 
 
 In the **Trigger details** section, enter the following details:
@@ -682,7 +682,7 @@ In the **Review + create** tab, click **Customize with YAML** to view the YAML m
 
 Click **Save and create** to create the ScaledObject resource.
 
-![Application scaling yaml](./assets/aks-automatic/keda-review.png)
+![Application scaling yaml](./assets/keda-review.png)
 
 Head over to the **Workloads** section in the left-hand menu under **Kubernetes resources**. In the **Filter by namespace** drop down list, select **dev**. You should see the **contoso-air** deployment is now running (or starting) 3 replicas.
 
