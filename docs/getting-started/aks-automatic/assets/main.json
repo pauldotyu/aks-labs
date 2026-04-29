@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.42.1.51946",
-      "templateHash": "14337938683850010113"
+      "templateHash": "10654468255289572772"
     }
   },
   "parameters": {
@@ -130,14 +130,14 @@
     {
       "type": "Microsoft.CognitiveServices/accounts",
       "apiVersion": "2025-06-01",
-      "name": "[format('myaifoundry{0}', take(uniqueString(subscription().id, resourceGroup().id, deployment().name), 4))]",
+      "name": "[format('myopenai{0}', take(uniqueString(subscription().id, resourceGroup().id, deployment().name), 4))]",
       "identity": {
         "type": "SystemAssigned"
       },
-      "kind": "AIServices",
+      "kind": "OpenAI",
       "location": "[resourceGroup().location]",
       "properties": {
-        "customSubDomainName": "[format('myaifoundry{0}', take(uniqueString(subscription().id, resourceGroup().id, deployment().name), 4))]",
+        "customSubDomainName": "[format('myopenai{0}', take(uniqueString(subscription().id, resourceGroup().id, deployment().name), 4))]",
         "publicNetworkAccess": "Enabled"
       },
       "sku": {
@@ -147,7 +147,7 @@
     {
       "type": "Microsoft.CognitiveServices/accounts/deployments",
       "apiVersion": "2025-06-01",
-      "name": "[format('{0}/{1}', format('myaifoundry{0}', take(uniqueString(subscription().id, resourceGroup().id, deployment().name), 4)), 'gpt-5.4-mini')]",
+      "name": "[format('{0}/{1}', format('myopenai{0}', take(uniqueString(subscription().id, resourceGroup().id, deployment().name), 4)), 'gpt-5.4-mini')]",
       "properties": {
         "model": {
           "format": "OpenAI",
@@ -160,7 +160,7 @@
         "name": "GlobalStandard"
       },
       "dependsOn": [
-        "[resourceId('Microsoft.CognitiveServices/accounts', format('myaifoundry{0}', take(uniqueString(subscription().id, resourceGroup().id, deployment().name), 4)))]"
+        "[resourceId('Microsoft.CognitiveServices/accounts', format('myopenai{0}', take(uniqueString(subscription().id, resourceGroup().id, deployment().name), 4)))]"
       ]
     }
   ],

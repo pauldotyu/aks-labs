@@ -89,15 +89,15 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   }
 }
 
-resource aiServices 'Microsoft.CognitiveServices/accounts@2025-06-01' = {
+resource openAI 'Microsoft.CognitiveServices/accounts@2025-06-01' = {
   identity: {
     type: 'SystemAssigned'
   }
-  kind: 'AIServices'
+  kind: 'OpenAI'
   location: resourceGroup().location
-  name: 'myaifoundry${take(uniqueString(subscription().id, resourceGroup().id, deployment().name), 4)}'
+  name: 'myopenai${take(uniqueString(subscription().id, resourceGroup().id, deployment().name), 4)}'
   properties: {
-    customSubDomainName: 'myaifoundry${take(uniqueString(subscription().id, resourceGroup().id, deployment().name), 4)}'
+    customSubDomainName: 'myopenai${take(uniqueString(subscription().id, resourceGroup().id, deployment().name), 4)}'
     publicNetworkAccess: 'Enabled'
   }
   sku: {
@@ -106,7 +106,7 @@ resource aiServices 'Microsoft.CognitiveServices/accounts@2025-06-01' = {
 }
 
 resource gpt54Mini 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01' = {
-  parent: aiServices
+  parent: openAI
   name: 'gpt-5.4-mini'
   properties: {
     model: {
