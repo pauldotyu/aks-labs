@@ -54,37 +54,6 @@ Also, to support the deployment of AKS Automatic in private virtual networks, AK
 <ProvisionResourceGroup />
 <ProvisionResources />
 
-After you have provisioned the required resources, the last thing you need to do is create an [Azure OpenAI account](https://learn.microsoft.com/azure/ai-foundry/openai/overview) and `gpt-4.1-mini` model which is not included in the ARM template you just deployed.
-
-You can do that by running the following commands.
-
-```bash
-# Set the Azure OpenAI account name
-export AOAI_NAME=myopenai$RAND
-
-# Create the Azure OpenAI account
-AOAI_ID=$(az cognitiveservices account create \
---resource-group $RG_NAME \
---location $LOCATION \
---name $AOAI_NAME \
---custom-domain $AOAI_NAME \
---kind OpenAI \
---sku S0 \
---assign-identity \
---query id -o tsv)
-
-# Create a deployment for the gpt-4.1-mini model
-az cognitiveservices account deployment create \
--n $AOAI_NAME \
--g $RG_NAME \
---deployment-name gpt-4.1-mini \
---model-name gpt-4.1-mini \
---model-version 2025-04-14 \
---model-format OpenAI \
---sku-capacity 200 \
---sku-name GlobalStandard
-```
-
 Once the resources are deployed, you can proceed with the workshop.
 
 :::tip
@@ -294,7 +263,7 @@ Click on the **YAML** tab, then in the YAML editor, add the following configurat
 ```yaml
 data:
   AZURE_OPENAI_API_VERSION: 2024-12-01-preview
-  AZURE_OPENAI_DEPLOYMENT: gpt-4.1-mini
+  AZURE_OPENAI_DEPLOYMENT: gpt-5.4-mini
   CHAT_PROVIDER: azure
   LOG_CHAT: 'true'
 ```
