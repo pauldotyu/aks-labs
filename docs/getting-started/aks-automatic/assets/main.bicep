@@ -136,4 +136,3 @@ output azureKeyVaultName string = azureKeyVault.name
 output azureKeyVaultUri string = azureKeyVault.properties.vaultUri
 output containerRegistryId string = containerRegistry.id
 output containerRegistryUrl string = containerRegistry.properties.loginServer
-output appInsightsConnectionString string = appInsights.properties.ConnectionString
