@@ -20,6 +20,24 @@ resource metricsWorkspace 'Microsoft.Monitor/accounts@2023-04-03' = {
   location: resourceGroup().location
 }
 
+resource appInsights 'Microsoft.Insights/components@2025-01-23-preview' = {
+  name: 'myappinsights${take(uniqueString(subscription().id, resourceGroup().id, deployment().name), 4)}'
+  location: resourceGroup().location
+  kind: 'web'
+  properties: {
+    ApplicationId: 'myotel${take(uniqueString(subscription().id, resourceGroup().id, deployment().name), 4)}'
+    Application_Type: 'web'
+    Flow_Type: 'Redfield'
+    Request_Source: 'IbizaAIExtension'
+    IngestionMode: 'LogAnalytics'
+    WorkspaceResourceId: logWorkspace.id
+    AzureMonitorWorkspaceResourceId: metricsWorkspace.id
+    AzureMonitorWorkspaceIngestionMode: 'Enabled'
+    publicNetworkAccessForIngestion: 'Enabled'
+    publicNetworkAccessForQuery: 'Enabled'
+  }
+}
+
 resource containerRegistry 'Microsoft.ContainerRegistry/registries@2025-11-01' = {
   name: 'myregistry${take(uniqueString(subscription().id, resourceGroup().id, deployment().name), 4)}'
   location: resourceGroup().location
@@ -76,16 +94,6 @@ resource keyVaultAdministratorRoleAssignment 'Microsoft.Authorization/roleAssign
     principalId: userObjectId
     principalType: 'User'
     roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483')
-  }
-}
-
-resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
-  name: 'myappinsights${take(uniqueString(subscription().id, resourceGroup().id, deployment().name), 4)}'
-  location: resourceGroup().location
-  kind: 'web'
-  properties: {
-    Application_Type: 'web'
-    WorkspaceResourceId: logWorkspace.id
   }
 }
 

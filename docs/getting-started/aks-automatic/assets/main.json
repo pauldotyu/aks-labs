@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.42.1.51946",
-      "templateHash": "10654468255289572772"
+      "templateHash": "12089303650836044023"
     }
   },
   "parameters": {
@@ -36,6 +36,29 @@
       "apiVersion": "2023-04-03",
       "name": "[format('myprometheus{0}', take(uniqueString(subscription().id, resourceGroup().id, deployment().name), 4))]",
       "location": "[resourceGroup().location]"
+    },
+    {
+      "type": "Microsoft.Insights/components",
+      "apiVersion": "2025-01-23-preview",
+      "name": "[format('myappinsights{0}', take(uniqueString(subscription().id, resourceGroup().id, deployment().name), 4))]",
+      "location": "[resourceGroup().location]",
+      "kind": "web",
+      "properties": {
+        "ApplicationId": "[format('myotel{0}', take(uniqueString(subscription().id, resourceGroup().id, deployment().name), 4))]",
+        "Application_Type": "web",
+        "Flow_Type": "Redfield",
+        "Request_Source": "IbizaAIExtension",
+        "IngestionMode": "LogAnalytics",
+        "WorkspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', format('mylogs{0}', take(uniqueString(subscription().id, resourceGroup().id, deployment().name), 4)))]",
+        "AzureMonitorWorkspaceResourceId": "[resourceId('Microsoft.Monitor/accounts', format('myprometheus{0}', take(uniqueString(subscription().id, resourceGroup().id, deployment().name), 4)))]",
+        "AzureMonitorWorkspaceIngestionMode": "Enabled",
+        "publicNetworkAccessForIngestion": "Enabled",
+        "publicNetworkAccessForQuery": "Enabled"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces', format('mylogs{0}', take(uniqueString(subscription().id, resourceGroup().id, deployment().name), 4)))]",
+        "[resourceId('Microsoft.Monitor/accounts', format('myprometheus{0}', take(uniqueString(subscription().id, resourceGroup().id, deployment().name), 4)))]"
+      ]
     },
     {
       "type": "Microsoft.ContainerRegistry/registries",
@@ -114,20 +137,6 @@
       ]
     },
     {
-      "type": "Microsoft.Insights/components",
-      "apiVersion": "2020-02-02",
-      "name": "[format('myappinsights{0}', take(uniqueString(subscription().id, resourceGroup().id, deployment().name), 4))]",
-      "location": "[resourceGroup().location]",
-      "kind": "web",
-      "properties": {
-        "Application_Type": "web",
-        "WorkspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', format('mylogs{0}', take(uniqueString(subscription().id, resourceGroup().id, deployment().name), 4)))]"
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.OperationalInsights/workspaces', format('mylogs{0}', take(uniqueString(subscription().id, resourceGroup().id, deployment().name), 4)))]"
-      ]
-    },
-    {
       "type": "Microsoft.CognitiveServices/accounts",
       "apiVersion": "2025-06-01",
       "name": "[format('myopenai{0}', take(uniqueString(subscription().id, resourceGroup().id, deployment().name), 4))]",
@@ -195,7 +204,7 @@
     },
     "appInsightsConnectionString": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.Insights/components', format('myappinsights{0}', take(uniqueString(subscription().id, resourceGroup().id, deployment().name), 4))), '2020-02-02').ConnectionString]"
+      "value": "[reference(resourceId('Microsoft.Insights/components', format('myappinsights{0}', take(uniqueString(subscription().id, resourceGroup().id, deployment().name), 4))), '2025-01-23-preview').ConnectionString]"
     }
   }
 }

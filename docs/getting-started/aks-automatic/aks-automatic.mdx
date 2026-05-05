@@ -105,17 +105,10 @@ az deployment group create \
 --resource-group ${RG_NAME} \
 --name ${RG_NAME}-deployment \
 --template-uri https://raw.githubusercontent.com/azure-samples/aks-labs/refs/heads/main/docs/getting-started/aks-automatic/assets/main.json \
---parameters userObjectId=${USER_ID} \
---no-wait
+--parameters userObjectId=${USER_ID}
 ```
 
-:::tip
-
-The `--no-wait` flag runs the deployment in the background. This allows you to continue while the resources are being deployed.
-
-:::
-
-Once the resources are deployed, you can proceed with the workshop.
+Wait until the resources are deployed. This can take around 15 minutes. Once the deployment is complete, you can navigate to the resource group in the Azure portal to view the deployed resources.
 
 :::tip
 
@@ -220,15 +213,17 @@ In the **Cluster configuration** section, ensure the **Create Automatic Kubernet
 
 For **Namespace**, select **Create new** and type `dev`.
 
+![Kubernetes namespace](./assets/deploy-app-cluster-namespace.png)
+
 :::warning
 
 Be sure to set the namespace to `dev` as instructions later in the workshop will use this namespace.
 
 :::
 
-![Kubernetes namespace](./assets/deploy-app-cluster-logging.png)
-
 You will see that the monitoring and logging options have been enabled by default and set to use the Azure resources that are available in your subscription. If you don't have these resources available, AKS Automatic will create them for you. If you want to change the monitoring and logging settings, you can do so by selecting the **Change** link and selecting the desired target resources for monitoring and logging. Leave the remaining fields at their default values.
+
+![Kubernetes logging](./assets/deploy-app-cluster-logging.png)
 
 Select **Next**.
 
@@ -256,9 +251,39 @@ In the pull request review, select the **Files changed** tab to view the changes
 
 ![GitHub pull request files changed](./assets/github-pull-request-files.png)
 
-Navigate back to the **Conversation** tab and select the **Merge pull request** button to merge the pull request, then select **Confirm merge**.
+Scroll down to the **manifests/deployment.yaml** file to review the Kubernetes deployment manifest that was generated for you. This manifest includes the `SYS_PTRACE` capability which should be removed for security hardening purposes.
 
-![GitHub merge pull request](./assets/github-pull-request-merged.png)
+![GitHub pull request deployment manifest](./assets/github-pull-request-manifest.png)
+
+:::info
+
+With AKS Automatic, Deployment Safeguards are automatically applied to your cluster which includes a safeguard that prevents the use of the `SYS_PTRACE` capability in your application deployments via Kubernetes Pod Security Standards. This safeguard will block any deployment that includes this capability from being deployed to the cluster. By removing this capability from the manifest, you are ensuring that your application can be successfully deployed to the cluster while also adhering to security best practices. See [Kubernetes Pod Security Standards](https://kubernetes.io/docs/concepts/security/pod-security-standards/) for more information on pod security best practices.
+
+:::
+
+Place your mouse over the like where `SYS_PTRACE` is added and select the plus icon to add a comment to the line.
+
+![GitHub pull request deployment manifest edit](./assets/github-pull-request-edit-manifest.png)
+
+In the comment box, click the **Add a suggestion** button, then select the contents in the suggestion block and delete the line to remove the capability from the manifest. The suggestion block should now contain an empty line. Select the **Comment** button to post the comment and suggestion to the pull request.
+
+![GitHub pull request deployment manifest edit](./assets/github-pull-request-edit-manifest-remove-sysptrace.png)
+
+Now select the **Apply suggestion** button to apply the change to the manifest.
+
+![GitHub pull request apply suggestion](./assets/github-pull-request-apply-suggestion.png)
+
+When prompted, keep the default commit message and select the **Apply Suggestion** button to commit the change to the pull request.
+
+![GitHub pull request commit suggestion](./assets/github-pull-request-commit-suggestion.png)
+
+Navigate back to the **Conversation** tab and select the **Merge pull request** button to merge the pull request
+
+![GitHub merge pull request](./assets/github-pull-request-merge.png)
+
+Finally, select the **Confirm merge** button.
+
+![GitHub confirm merge](./assets/github-pull-request-confirm-merge.png)
 
 With the pull request merged, the changes will be automatically deployed to your AKS cluster. You can view the deployment logs by selecting the **Actions** tab in your GitHub repository.
 
@@ -430,34 +455,21 @@ At the time of this writing, the AutoInstrumentation feature is in public previe
 
 :::
 
-You can enable the feature on your AKS cluster with the following command:
+To enable the app monitoring feature on your AKS cluster navigate to the **Monitor** blade of your AKS cluster in the Azure portal then select **Monitor Settings**.
 
-Before you run the command below, make sure you are logged into Azure CLI and have variables set for the resource group name and AKS cluster name.
+![AKS monitoring settings](./assets/monitor-settings.png)
 
-```bash
-AKS_NAME=$(az aks list -g ${RG_NAME} --query "[0].name" -o tsv)
-```
+Scroll down to the **Application monitoring (preview)** section and select the **Enable** checkboxes for both auto-instrumentation and OpenTelemetry data collection, then select the **Review + enable** button.
 
-:::info
+![Enable application monitoring](./assets/enable-app-monitoring.png)
 
-The `$RG_NAME` variable was set during lab setup in the Prerequisites section above.
+Review the changes and select the **Enable** button to enable the feature.
 
-:::
+![Review application monitoring changes](./assets/review-enable-app-monitoring.png)
 
-With the variables set, run the following command to enable the AutoInstrumentation feature on your AKS cluster.
+The onboarding process will take a few minutes to complete as the necessary components are being set up in your cluster. Wait for the process to complete before moving on to the next steps.
 
-```bash
-az aks update \
--g ${RG_NAME} \
--n ${AKS_NAME} \
---enable-azure-monitor-app-monitoring
-```
-
-:::tip
-
-Using the `--enable-azure-monitor-app-monitoring` flag for AKS requires the `aks-preview` extension installed for Azure CLI. Run the `az extension add --name aks-preview` command to install it.
-
-:::
+![Enable application monitoring progress](./assets/enable-app-monitoring-progress.png)
 
 With this feature enabled, you can now deploy a new Instrumentation custom resource to your AKS cluster to automatically instrument your applications without any modifications to the code.
 
@@ -465,14 +477,14 @@ In the Azure portal, navigate to the **Workloads** section under **Kubernetes re
 
 ![Contoso Air deployment](./assets/contoso-air-deployment.png)
 
-Select the **Application Monitoring** tab to configure AutoInstrumentation for the contoso-air application.
+Select the **Application Monitoring (Preview)** tab to configure AutoInstrumentation for the contoso-air application.
 
 ![Contoso Air application monitoring](./assets/application-monitoring.png)
 
 In the **Configure Application Monitoring** pane, enter the following details:
 
 - **Application Insights**: Select the Application Insights resource in your resource group
-- **Application Language**: Select **NodeJS**
+- **Application Language**: Select **NodeJS auto-instrumentation for all deployments**
 - Check the **Perform rollout restart of all deployments in the namespace to deploy changes immediately** checkbox.
 - Select **Configure** to apply the changes.
 
@@ -671,9 +683,11 @@ In the **Draft with Copilot** text box, type in the following prompt:
 Help me create a vertical pod autoscaler manifest for the contoso-air deployment in the dev namespace and set min and max cpu and memory to something typical for a nodejs app. Please apply the values for both requests and limits.
 ```
 
+![Copilot editor](./assets/custom-resources-vpa-copilot.png)
+
 Press **Enter** to generate the VPA manifest.
 
-When the VPA manifest is generated, select the **Accept all** button to accept the changes, then select **Add** to create the VPA resource.
+When the VPA manifest is generated, select the **Accept** button to accept the changes and create the VPA resource.
 
 ![VPA manifest](./assets/custom-resources-vpa-add.png)
 
